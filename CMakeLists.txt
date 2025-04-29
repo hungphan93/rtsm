@@ -1,0 +1,58 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(rtsm VERSION 0.1 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Qt6 REQUIRED COMPONENTS Quick)
+
+qt_standard_project_setup(REQUIRES 6.5)
+
+qt_add_executable(apprtsm
+    main.cpp
+)
+
+qt_policy(SET QTP0004 NEW)
+
+qt_add_qml_module(apprtsm
+    URI rtsm
+    VERSION 1.0
+    SOURCES
+        entities/ecpuinfo.h
+        entities/ememoryinfo.h
+        entities/egpuinfo.h
+        entities/esysteminfo.h
+        interfaces/isysteminforeader.h
+        usecases/ucsysteminforeader.h
+        usecases/ucsysteminforeader.cc
+        adapters/adlinuxsysteminforeader.h
+        adapters/adlinuxsysteminforeader.cpp
+        presentation/psystemmonitor.h
+        presentation/psystemmonitor.cpp
+        interfaces/isysteminfologger.h
+    QML_FILES
+        ui/Main.qml
+)
+
+# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
+# If you are developing for iOS or macOS you should consider setting an
+# explicit, fixed bundle identifier manually though.
+set_target_properties(apprtsm PROPERTIES
+#    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.apprtsm
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE TRUE
+    WIN32_EXECUTABLE TRUE
+)
+
+target_link_libraries(apprtsm
+    PRIVATE Qt6::Quick
+)
+
+include(GNUInstallDirs)
+install(TARGETS apprtsm
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
