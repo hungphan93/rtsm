@@ -24,6 +24,11 @@ class PSystemMonitor: public QObject
     Q_PROPERTY(int memoryUsed READ memoryUsed WRITE setMemoryUsed NOTIFY memoryUsedChanged)
     Q_PROPERTY(int memoryTotal READ memoryTotal WRITE setMemoryTotal NOTIFY memoryTotalChanged)
 
+    //gpu
+    Q_PROPERTY(QString gpuName READ gpuName WRITE setGpuName NOTIFY gpuNameChanged)
+    Q_PROPERTY(double gpuVramTotal READ gpuVramTotal WRITE setGpuVramTotal NOTIFY gpuVramTotalChanged)
+    Q_PROPERTY(double gpuVramUsed READ gpuVramUsed WRITE setGpuVramUsed NOTIFY gpuVramUsedChanged)
+
 public:
     explicit PSystemMonitor(UCSystemInfoReader* useCase = nullptr, QObject *parent = nullptr);
     ~PSystemMonitor();
@@ -46,14 +51,25 @@ public:
     void setUsagePercent(const QString newUsagePercent);
     void setFrequencyMhz(const QString newFrequencyMhz);
 
+    //memory get
     QString memoryPercent();
     int memoryUsed();
     int memoryTotal();
 
+    //memory set
     void setMemoryPercent(const QString& newMemoryPercent);
     void setMemoryUsed(const double& setMemoryUsed);
     void setMemoryTotal(const double& setMemoryTotal);
 
+    //gpu get
+    QString gpuName() const;
+    double gpuVramTotal() const;
+    double gpuVramUsed() const;
+
+    //gpu setter
+    void setGpuName(const QString& newGpuName);
+    void setGpuVramTotal(const double& newGpuVramTotal);
+    void setGpuVramUsed(const double& newGpuVramUsed);
 
 signals:
     //CPU
@@ -70,6 +86,10 @@ signals:
     void memoryUsedChanged();
     void memoryTotalChanged();
 
+    //gpu
+    void gpuNameChanged();
+    void gpuVramTotalChanged();
+    void gpuVramUsedChanged();
 
 private:
     void updateSystemInfo();
@@ -85,7 +105,9 @@ private:
     QString m_memoryPercent;
     double m_memoryUsed;
     double m_memoryTotal;
-
+    QString m_gpuName;
+    double m_gpuVramTotal;
+    double m_gpuVramUsed;
 };
 
 #endif // PSYSTEMMONITOR_H

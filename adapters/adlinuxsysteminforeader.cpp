@@ -157,17 +157,17 @@ CpuTimes ADLinuxSystemInfoReader::readCpuTimes()
 
 std::string ADLinuxSystemInfoReader::getCpuUsagePercent() {
     CpuTimes t1 = readCpuTimes();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::microseconds(800));
     CpuTimes t2 = readCpuTimes();
 
     unsigned long long idleDiff = t2.idleTime() - t1.idleTime();
     unsigned long long totalDiff = t2.total() - t1.total();
 
-    if (totalDiff == 0) return "0%";
+    if (totalDiff == 0) return "0";
 
     double usage = 100.0 * (totalDiff - idleDiff) / totalDiff;
     char buf[10];
-    snprintf(buf, sizeof(buf), "%.1f%%", usage);
+    snprintf(buf, sizeof(buf), "%.1f%", usage);
     return std::string(buf);
 }
 
@@ -193,7 +193,7 @@ EMemoryInfo ADLinuxSystemInfoReader::readMemoryInfo() {
 
     double percent = 100.0 * mem.used_bytes / static_cast<double>(mem.total_bytes);
     char buf[10];
-    snprintf(buf, sizeof(buf), "%.1f%%", percent);
+    snprintf(buf, sizeof(buf), "%.1f%", percent);
     mem.usage_percent = std::string(buf);
 
     return mem;

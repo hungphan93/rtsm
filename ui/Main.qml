@@ -42,7 +42,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: 50
                 Label {
-                    text: systemMonitor.usagePercent
+                    text: "" + systemMonitor.usagePercent + "%"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -53,7 +53,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: 50
                 Label {
-                    text: systemMonitor.frequencyMhz + " MHZ"
+                    text: " " + systemMonitor.frequencyMhz + " MHZ"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"

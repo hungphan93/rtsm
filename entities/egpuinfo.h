@@ -7,9 +7,9 @@
 struct EGpuInfo
 {
     std::string name;
-    uint64_t total_bytes;
-    uint64_t used_bytes;
-    double usage_percent;
+    uint64_t vramTotal;
+    uint64_t vramUsed;
+    double usagePercent;
     uint64_t cores;
     double frequencyMhz;
     double temperatureC;

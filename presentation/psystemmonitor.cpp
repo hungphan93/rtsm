@@ -173,3 +173,44 @@ void PSystemMonitor::setMemoryTotal(const double &val)
     }
 }
 
+QString PSystemMonitor::gpuName() const
+{
+    return m_gpuName;
+}
+
+double PSystemMonitor::gpuVramTotal() const
+{
+    return m_gpuVramTotal;
+}
+
+double PSystemMonitor::gpuVramUsed() const
+{
+    return m_gpuVramUsed;
+}
+
+void PSystemMonitor::setGpuName(const QString& newGpuName)
+{
+    if (m_gpuName != newGpuName)
+    {
+        m_gpuName = newGpuName;
+        emit gpuNameChanged();
+    }
+}
+
+void PSystemMonitor::setGpuVramTotal(const double& newGpuVramTotal)
+{
+    if (m_gpuVramTotal!= newGpuVramTotal)
+    {
+        m_gpuVramTotal = newGpuVramTotal;
+        emit gpuVramTotalChanged();
+    }
+}
+
+void PSystemMonitor::setGpuVramUsed(const double& newGpuVramUsed)
+{
+    if (m_gpuVramUsed!= newGpuVramUsed)
+    {
+        m_gpuVramUsed = newGpuVramUsed;
+        emit gpuVramUsedChanged();
+    }
+}

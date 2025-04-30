@@ -6,6 +6,8 @@
 
 struct EMemoryInfo
 {
+    uint64_t vramTotal;
+    uint64_t vramUsed;
     uint64_t total_bytes;
     uint64_t used_bytes;
     std::string usage_percent;
