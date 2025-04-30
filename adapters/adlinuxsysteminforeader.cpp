@@ -112,32 +112,39 @@ ECpuInfo ADLinuxSystemInfoReader::readCpuInfoFromProc()
 std::string ADLinuxSystemInfoReader::readCpuTempFromSys()
 {
     namespace fs = std::filesystem;
-    const fs::path thermalDir = "/sys/class/thermal";
+    //const fs::path thermalDir = "/sys/class/thermal";
+    const fs::path thermalDir = "/sys/class/hwmon/hwmon1/";
 
     if (!fs::exists(thermalDir) || !fs::is_directory(thermalDir)) {
         std::cerr << "Thermal directory does not exist or is not accessible: " << thermalDir << '\n';
         return "";
     }
 
-    for (const auto& entry : fs::directory_iterator(thermalDir))
-    {
-        const auto& path = entry.path();
-        const auto& name = path.filename().string();
+    std::ifstream tempFile(thermalDir / "temp1_input");
+    std::string line;
+    std::getline(tempFile, line);
 
-        if (entry.is_directory() && name.rfind("thermal_zone", 0) == 0)
-        {
-            std::ifstream tempFile(path / "temp");
-            if (tempFile)
-            {
-                std::string line;
-                std::getline(tempFile, line);
-                return line;
-            }
-        }
-    }
+           return line;
 
-    std::cerr << "No readable thermal_zone*/temp file found in " << thermalDir << '\n';
-    return "";
+    // for (const auto& entry : fs::directory_iterator(thermalDir))
+    // {
+    //     const auto& path = entry.path();
+    //     const auto& name = path.filename().string();
+
+    //     if (entry.is_directory() && name.rfind("thermal_zone", 0) == 0)
+    //     {
+    //         std::ifstream tempFile(path / "temp");
+    //         if (tempFile)
+    //         {
+    //             std::string line;
+    //             std::getline(tempFile, line);
+    //             return line;
+    //         }
+    //     }
+    // }
+
+   // std::cerr << "No readable thermal_zone*/temp file found in " << thermalDir << '\n';
+    //sreturn "";
 }
 
 CpuTimes ADLinuxSystemInfoReader::readCpuTimes()

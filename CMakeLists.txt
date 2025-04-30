@@ -9,11 +9,11 @@ find_package(Qt6 REQUIRED COMPONENTS Quick)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
+#qt_policy(SET QTP0004 NEW)
+
 qt_add_executable(apprtsm
     main.cpp
 )
-
-qt_policy(SET QTP0004 NEW)
 
 qt_add_qml_module(apprtsm
     URI rtsm
