@@ -9,14 +9,24 @@
 #include <interfaces/isysteminforeader.h>
 
 struct ESystemInfo;
-struct CpuTimes {
-    unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 
-    unsigned long long total() const {
+struct CpuTimes {
+    unsigned long long user;
+    unsigned long long nice;
+    unsigned long long system;
+    unsigned long long idle;
+    unsigned long long iowait;
+    unsigned long long irq;
+    unsigned long long softirq;
+    unsigned long long steal;
+
+    unsigned long long total() const
+    {
         return user + nice + system + idle + iowait + irq + softirq + steal;
     }
 
-    unsigned long long idleTime() const {
+    unsigned long long idleTime() const
+    {
         return idle + iowait;
     }
 };
@@ -24,17 +34,18 @@ struct CpuTimes {
 class ADLinuxSystemInfoReader: public ISystemInfoReader
 {
 public:
-    explicit ADLinuxSystemInfoReader();
-    virtual ESystemInfo& read() override;
+    explicit ADLinuxSystemInfoReader() = default;
+    virtual ESystemInfo &read() override;
 
 private:
     ESystemInfo info;
-    std::optional<int> parseInt(const std::string& s);
-    ECpuInfo readCpuInfoFromProc();
-    std::string readCpuTempFromSys();
+    std::optional<int> parseInt(const std::string &s);
+    void readCpuInfoFromProc();
+    void readCpuTempFromSys();
     CpuTimes readCpuTimes();
-    std::string getCpuUsagePercent();
-    EMemoryInfo readMemoryInfo();
+    std::string readCpuUsagePercent();
+    void readMemoryInfo();
+    void readGpuInfo();
 };
 
 #endif // ADLINUXSYSTEMINFOREADER_H

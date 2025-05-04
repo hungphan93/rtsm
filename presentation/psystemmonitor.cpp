@@ -18,57 +18,61 @@ PSystemMonitor::~PSystemMonitor()
     qDebug() << "SystemMonitor destructor called:" << this;
 }
 
-QString PSystemMonitor::modelName() const
+QString PSystemMonitor::cpuModelName() const
 {
-    qDebug() << "test - " << m_modelName;
-    return m_modelName;
+    qDebug() << "test - " << m_cpuModelName;
+    return m_cpuModelName;
 }
 
-void PSystemMonitor::setModelName(const QString newModelName)
+void PSystemMonitor::setCpuModelName(const QString& newModelName)
 {
-    if (m_modelName == newModelName)
-        return;
-    m_modelName = newModelName;
-    emit modelNameChanged();
+    if (m_cpuModelName != newModelName)
+    {
+        m_cpuModelName = newModelName;
+        emit cpuModelNameChanged();
+    }
 }
 
-int PSystemMonitor::cache() const
+QString PSystemMonitor::cpuCache() const
 {
-    return m_cache;
+    return m_cpuCache;
 }
 
-void PSystemMonitor::setCache(int newCache)
+void PSystemMonitor::setCpuCache(const QString& newCache)
 {
-    if (m_cache == newCache)
-        return;
-    m_cache = newCache;
-    emit cacheChanged();
+    if (m_cpuCache == newCache)
+    {
+        m_cpuCache = newCache;
+        emit cpuCacheChanged();
+    }
 }
 
-int PSystemMonitor::coreNumber() const
+QString PSystemMonitor::cpuCoreNumber() const
 {
-    return m_coreNumber;
+    return m_cpuCoreNumber;
 }
 
-void PSystemMonitor::setCoreNumber(int newCoreNumber)
+void PSystemMonitor::setCpuCoreNumber(const QString& newCoreNumber)
 {
-    if (m_coreNumber == newCoreNumber)
-        return;
-    m_coreNumber = newCoreNumber;
-    emit coreNumberChanged();
+    if (m_cpuCoreNumber != newCoreNumber)
+    {
+        m_cpuCoreNumber = newCoreNumber;
+        emit cpuCoreNumberChanged();
+    }
 }
 
-double PSystemMonitor::power() const
+QString PSystemMonitor::cpuPower() const
 {
-    return m_power;
+    return m_cpuPower;
 }
 
-void PSystemMonitor::setPower(double newPower)
+void PSystemMonitor::setCpuPower(const QString& newPower)
 {
-    if (m_power == newPower)
-        return;
-    m_power = newPower;
-    emit powerChanged();
+    if (m_cpuPower == newPower)
+    {
+        m_cpuPower = newPower;
+        emit cpuPowerChanged();
+    }
 }
 void PSystemMonitor::updateSystemInfo()
 {
@@ -77,59 +81,67 @@ void PSystemMonitor::updateSystemInfo()
 
     ESystemInfo info = m_useCase->execute();
 
-    setModelName(QString::fromStdString(info.cpu.modelName));
-    setCoreNumber(info.cpu.coreNumber);
-    setCache(info.cpu.cache);
-    setPower(info.cpu.power);
-    setFrequencyMhz(QString::fromStdString(info.cpu.threads.front().frequencyMhz));
-    setUsagePercent(QString::fromStdString(info.cpu.threads.front().usagePercent));
-    setTemperatureC(QString::fromStdString(info.cpu.threads.front().temperatureC));
+    setCpuModelName(QString::fromStdString(info.cpu.modelName));
+    setCpuCoreNumber(QString::number(info.cpu.coreNumber));
+    setCpuCache(QString::number(info.cpu.cache));
+    setCpuPower(QString::number(info.cpu.power));
+    setCpuFrequencyMhz(QString::fromStdString(info.cpu.threads.front().frequencyMhz));
+    setCpuUsagePercent(QString::fromStdString(info.cpu.threads.front().usagePercent));
+    setCpuTemperatureC(QString::number(info.cpu.threads.front().temperatureC));
 
     //memory
     setMemoryPercent(QString::fromStdString(info.mem.usage_percent));
     setMemoryUsed(info.mem.used_bytes);
     setMemoryTotal(info.mem.total_bytes);
 
+    //gpu
+    setGpuName(QString::fromStdString(info.gpu.name));
+    setGpuVramTotal(QString::number(info.gpu.vramTotal));
+    setGpuVramUsed(QString::number(info.gpu.vramUsed));
+
 
 }
 
-QString PSystemMonitor::temperatureC() const
+QString PSystemMonitor::cpuTemperatureC() const
 {
-    return m_temperatureC;
+    return m_cpuTemperatureC;
 }
 
-void PSystemMonitor::setTemperatureC(const QString newTemperatureC)
+void PSystemMonitor::setCpuTemperatureC(const QString& newTemperatureC)
 {
-    if (m_temperatureC == newTemperatureC)
-        return;
-    m_temperatureC = newTemperatureC;
-    emit temperatureCChanged();
+    if (m_cpuTemperatureC != newTemperatureC)
+    {
+        m_cpuTemperatureC = newTemperatureC;
+        emit cpuTemperatureCChanged();
+    }
 }
 
-QString PSystemMonitor::usagePercent() const
+QString PSystemMonitor::cpuUsagePercent() const
 {
-    return m_usagePercent;
+    return m_cpuUsagePercent;
 }
 
-void PSystemMonitor::setUsagePercent(const QString newUsagePercent)
+void PSystemMonitor::setCpuUsagePercent(const QString& newUsagePercent)
 {
-    if (m_usagePercent == newUsagePercent)
-        return;
-    m_usagePercent = newUsagePercent;
-    emit usagePercentChanged();
+    if (m_cpuUsagePercent != newUsagePercent)
+    {
+        m_cpuUsagePercent = newUsagePercent;
+        emit cpuUsagePercentChanged();
+    }
 }
 
-QString PSystemMonitor::frequencyMhz() const
+QString PSystemMonitor::cpuFrequencyMhz() const
 {
-    return m_frequencyMhz;
+    return m_cpuFrequencyMhz;
 }
 
-void PSystemMonitor::setFrequencyMhz(const QString newFrequencyMhz)
+void PSystemMonitor::setCpuFrequencyMhz(const QString& newFrequencyMhz)
 {
-    if (m_frequencyMhz == newFrequencyMhz)
-        return;
-    m_frequencyMhz = newFrequencyMhz;
-    emit frequencyMhzChanged();
+    if (m_cpuFrequencyMhz != newFrequencyMhz)
+    {
+        m_cpuFrequencyMhz = newFrequencyMhz;
+        emit cpuFrequencyMhzChanged();
+    }
 }
 
 QString PSystemMonitor::memoryPercent()
@@ -178,12 +190,12 @@ QString PSystemMonitor::gpuName() const
     return m_gpuName;
 }
 
-double PSystemMonitor::gpuVramTotal() const
+QString PSystemMonitor::gpuVramTotal() const
 {
     return m_gpuVramTotal;
 }
 
-double PSystemMonitor::gpuVramUsed() const
+QString PSystemMonitor::gpuVramUsed() const
 {
     return m_gpuVramUsed;
 }
@@ -197,7 +209,7 @@ void PSystemMonitor::setGpuName(const QString& newGpuName)
     }
 }
 
-void PSystemMonitor::setGpuVramTotal(const double& newGpuVramTotal)
+void PSystemMonitor::setGpuVramTotal(const QString& newGpuVramTotal)
 {
     if (m_gpuVramTotal!= newGpuVramTotal)
     {
@@ -206,7 +218,7 @@ void PSystemMonitor::setGpuVramTotal(const double& newGpuVramTotal)
     }
 }
 
-void PSystemMonitor::setGpuVramUsed(const double& newGpuVramUsed)
+void PSystemMonitor::setGpuVramUsed(const QString& newGpuVramUsed)
 {
     if (m_gpuVramUsed!= newGpuVramUsed)
     {

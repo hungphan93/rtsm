@@ -20,7 +20,7 @@ Window {
                 width: parent.width / 4 + 148
                 height: 50
                 Label {
-                    text: systemMonitor.modelName
+                    text: systemMonitor.cpuModelName
                     font.pixelSize: 22
                     font.bold: true
                     color: "#04fc00"
@@ -31,7 +31,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: 50
                 Label {
-                    text: systemMonitor.temperatureC/1000 + " °C"
+                    text: systemMonitor.cpuTemperatureC/1000 + " °C"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -42,7 +42,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: 50
                 Label {
-                    text: "" + systemMonitor.usagePercent + "%"
+                    text: systemMonitor.cpuUsagePercent + " %"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -53,7 +53,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: 50
                 Label {
-                    text: " " + systemMonitor.frequencyMhz + " MHZ"
+                    text: " " + systemMonitor.cpuFrequencyMhz + " MHZ"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -97,6 +97,47 @@ Window {
                 height: 50
                 Label {
                     text: systemMonitor.memoryUsed + "MB/" +  systemMonitor.memoryTotal + "MB"
+                    font.pixelSize: 22
+                    font.bold: true
+                    color: "#e50bc3"
+                    anchors.centerIn: parent
+                }
+            }
+        }
+
+        Row {
+            id: groupGpu
+            spacing: 2
+            anchors.top: groupMemory.bottom
+            height: 50
+            width: parent.width
+            Rectangle {
+                width: parent.width / 4 + 148
+                height: 50
+                Label {
+                    text: systemMonitor.gpuName
+                    font.pixelSize: 22
+                    font.bold: true
+                    color: "#04fc00"
+                    anchors.centerIn: parent
+                }
+            }
+            Rectangle {
+                width: parent.width / 4 - 50
+                height: 50
+                Label {
+                    text: systemMonitor.gpuVramTotal + " MB"
+                    font.pixelSize: 22
+                    font.bold: true
+                    color: "#e50bc3"
+                    anchors.centerIn: parent
+                }
+            }
+            Rectangle {
+                width: parent.width / 4 - 50
+                height: 50
+                Label {
+                    text: systemMonitor.gpuVramUsed + " MB"
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"

@@ -10,7 +10,7 @@ struct ECpuCore
     std::string name;
     std::string usagePercent;
     std::string frequencyMhz;
-    std::string temperatureC;
+    uint64_t temperatureC;
     std::string cacheSize;
 };
 
@@ -18,7 +18,7 @@ struct ECpuInfo
 {
     uint64_t cache;
     uint64_t coreNumber;
-    double power;
+    uint64_t power;
     std::string modelName;
     std::vector<ECpuCore> threads;
 };
