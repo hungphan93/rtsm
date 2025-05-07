@@ -1,11 +1,12 @@
 #ifndef PSYSTEMMONITOR_H
 #define PSYSTEMMONITOR_H
+#include "entities/esysteminfo.h"
 #include <QObject>
 #include <QString>
 #include <QVector>
 #include <QTimer>
 
-class UCSystemInfoReader;
+struct UCSystemInfoReader;
 
 class PSystemMonitor: public QObject
 {
@@ -28,6 +29,11 @@ class PSystemMonitor: public QObject
     Q_PROPERTY(QString gpuName READ gpuName WRITE setGpuName NOTIFY gpuNameChanged)
     Q_PROPERTY(QString gpuVramTotal READ gpuVramTotal WRITE setGpuVramTotal NOTIFY gpuVramTotalChanged)
     Q_PROPERTY(QString gpuVramUsed READ gpuVramUsed WRITE setGpuVramUsed NOTIFY gpuVramUsedChanged)
+
+    //net
+    Q_PROPERTY(QString netTxBytes READ netTxBytes WRITE setNetTxBytes NOTIFY netTxBytesChanged)
+    Q_PROPERTY(QString netRxBytes READ netRxBytes WRITE setNetRxBytes NOTIFY netRxBytesChanged)
+
 
 public:
     explicit PSystemMonitor(UCSystemInfoReader* useCase = nullptr, QObject *parent = nullptr);
@@ -71,6 +77,14 @@ public:
     void setGpuVramTotal(const QString& newGpuVramTotal);
     void setGpuVramUsed(const QString& newGpuVramUsed);
 
+    //net getter
+    QString netTxBytes() const;
+    QString netRxBytes() const;
+
+    //net setter
+    void setNetTxBytes(const QString& newTxBytes);
+    void setNetRxBytes(const QString& newRxBytes);
+
 signals:
     //CPU
     void cpuModelNameChanged();
@@ -91,8 +105,16 @@ signals:
     void gpuVramTotalChanged();
     void gpuVramUsedChanged();
 
+    //net
+    void netTxBytesChanged();
+    void netRxBytesChanged();
+
 private:
-    void updateSystemInfo();
+    void updateCpu(const ESystemInfo& info);
+    void updateRamGpu(const ESystemInfo& info);
+    void updateDiskNet(const ESystemInfo& info);
+    void updateTemp(const ESystemInfo& info);
+
     UCSystemInfoReader* m_useCase;
     //cpu
     QString m_cpuUsagePercent;
@@ -103,7 +125,11 @@ private:
     QString m_cpuPower;
     QString m_cpuModelName;
 
-    QTimer timer;
+    QTimer m_cpuTimer;
+    QTimer m_ramGpuTimer;
+    QTimer m_diskNetTimer;
+    QTimer m_tempTimer;
+
     //memory
     QString m_memoryPercent;
     double m_memoryUsed;
@@ -112,6 +138,10 @@ private:
     QString m_gpuName;
     QString m_gpuVramTotal;
     QString m_gpuVramUsed;
+
+    //net
+    QString m_netTxBytes;
+    QString m_netRxBytes;
 };
 
 #endif // PSYSTEMMONITOR_H

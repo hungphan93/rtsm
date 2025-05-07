@@ -12,10 +12,19 @@
 #include <chrono>
 #include <regex>
 
+ADLinuxSystemInfoReader::ADLinuxSystemInfoReader(): info{}
+{
 
+}
+ADLinuxSystemInfoReader::~ADLinuxSystemInfoReader()
+{
+}
 ESystemInfo& ADLinuxSystemInfoReader::read()
 {
-    readCpuInfoFromProc();
+    std::thread([this]() {
+        readCpuInfoFromProc();
+        readNetworkInfo();
+    }).detach();
     readCpuTempFromSys();
     readMemoryInfo();
     readGpuInfo();
@@ -109,24 +118,21 @@ void ADLinuxSystemInfoReader::readCpuInfoFromProc()
 void ADLinuxSystemInfoReader::readCpuTempFromSys()
 {
     namespace fs = std::filesystem;
-    const fs::path thermalDir = "/sys/class/hwmon/hwmon1/";
+    const fs::path thermalDir = "/sys/class/hwmon/hwmon1/temp1_input";
 
-    if (!fs::exists(thermalDir) || !fs::is_directory(thermalDir))
-    {
-        std::cerr << "Thermal directory does not exist or is not accessible: " << thermalDir << '\n';
-        return;
-    }
-
-    std::ifstream tempFile(thermalDir / "temp1_input");
+    std::ifstream tempFile(thermalDir);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temperature file: " << (thermalDir / "temp1_input") << '\n';
+        std::cerr << "Failed to open temperature file: " << thermalDir<< ")" << '\n';
         return;
     }
 
     std::string line;
     if (std::getline(tempFile, line)) {
         try {
-            info.cpu.threads.front().temperatureC = std::stoull(line);
+            if (!info.cpu.threads.empty() )
+            {
+                info.cpu.threads.front().temperatureC = std::stoull(line);
+            }
         } catch (const std::exception& e) {
             std::cerr << "Failed to parse temperature: " << e.what() << '\n';
         }
@@ -150,7 +156,7 @@ CpuTimes ADLinuxSystemInfoReader::readCpuTimes()
 
 std::string ADLinuxSystemInfoReader::readCpuUsagePercent() {
     CpuTimes t1 = readCpuTimes();
-    std::this_thread::sleep_for(std::chrono::microseconds(800));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(6000000));
     CpuTimes t2 = readCpuTimes();
 
     unsigned long long idleDiff = t2.idleTime() - t1.idleTime();
@@ -188,7 +194,7 @@ void ADLinuxSystemInfoReader::readMemoryInfo() {
     uint64_t availableMb = availableKb / 1024;
     mem.used_bytes = mem.total_bytes - availableMb;
 
-    double percent = 100.0 * mem.used_bytes / static_cast<double>(mem.total_bytes);
+    double percent = 100.0 * mem.used_bytes / mem.total_bytes;
     char buf[10];
     snprintf(buf, sizeof(buf), "%.1f", percent);
     mem.usage_percent = std::string(buf);
@@ -198,37 +204,66 @@ void ADLinuxSystemInfoReader::readMemoryInfo() {
 
 void ADLinuxSystemInfoReader::readGpuInfo()
 {
-    auto vramBytes = [] (const char* path) -> std::optional<std::string>
-    {
-        std::ifstream file(path);
-        std::string line;
-        if (std::getline(file, line) && !line.empty())
-        {
-            try
-            {
-                return line;
-            }
-            catch (...) {}
-        }
-        return std::nullopt;
-    };
-
-
-    if (auto value = vramBytes("/sys/class/drm/card1/device/uevent"))
+    if (auto value = readLine("/sys/class/drm/card1/device/uevent"))
     {
         if (value->starts_with("DRIVER="))
         {
-           info.gpu.name =  value->substr(value->find("=") + 1);
+            info.gpu.name =  value->substr(value->find("=") + 1);
         }
     }
 
-    if (auto value = vramBytes("/sys/class/drm/card1/device/mem_info_vram_total"))
+    if (auto value = readLine("/sys/class/drm/card1/device/mem_info_vram_total"))
     {
         info.gpu.vramTotal = (std::stoull(*value) / 1024) / 1024;
     }
 
-    if (auto value = vramBytes("/sys/class/drm/card1/device/mem_info_vram_used"))
+    if (auto value = readLine("/sys/class/drm/card1/device/mem_info_vram_used"))
     {
         info.gpu.vramUsed = (std::stoull(*value) / 1024) / 1024;
     }
 }
+
+void ADLinuxSystemInfoReader::readNetworkInfo()
+{
+    uint64_t rxByte = 0;
+    uint64_t txByte = 0;
+    if (auto value = readLine("/sys/class/net/wlp1s0/statistics/rx_bytes"))
+    {
+        rxByte = std::stoull(*value);
+    }
+
+    if (auto value = readLine("/sys/class/net/wlp1s0/statistics/tx_bytes"))
+    {
+        txByte = std::stoull(*value);
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (auto value = readLine("/sys/class/net/wlp1s0/statistics/rx_bytes"))
+    {
+        info.net.rxBytes = (std::stoull(*value) - rxByte) / 1024;
+    }
+
+    if (auto value = readLine("/sys/class/net/wlp1s0/statistics/tx_bytes"))
+    {
+        info.net.txBytes = (std::stoull(*value) - txByte) / 1024;
+    }
+}
+
+std::optional<std::string> ADLinuxSystemInfoReader::readLine(const char* path)
+{
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        return std::nullopt;
+    }
+
+    std::string line;
+    if (std::getline(file, line) && !line.empty())
+    {
+        return line;
+    }
+
+    return std::nullopt;
+}
+

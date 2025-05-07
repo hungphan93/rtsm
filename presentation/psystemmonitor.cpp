@@ -7,15 +7,30 @@ PSystemMonitor::PSystemMonitor(UCSystemInfoReader* useCase, QObject *parent)
     : QObject{parent},
     m_useCase{useCase}
 {
-    connect(&timer, &QTimer::timeout, this, &PSystemMonitor::updateSystemInfo);
-    timer.start(100);
+    auto setupTimer = [this](QTimer& timer, int interval, const std::function<void(const ESystemInfo&)>& handler) {
+        connect(&timer, &QTimer::timeout, this, [this, handler]() {
+            if (m_useCase) {
+                const auto info = m_useCase->execute();
+                handler(info);
+            }
+        });
+        timer.start(interval);
+    };
+
+    setupTimer(m_cpuTimer, 70, [this](const ESystemInfo& info) { updateCpu(info); });
+    setupTimer(m_ramGpuTimer, 200, [this](const ESystemInfo& info) { updateRamGpu(info); });
+    setupTimer(m_diskNetTimer, 1000, [this](const ESystemInfo& info) { updateDiskNet(info); });
+    setupTimer(m_tempTimer, 150, [this](const ESystemInfo& info) { updateTemp(info); });
     qDebug() << "SystemMonitor constructor called:" << this;
-    updateSystemInfo();
 }
 
 PSystemMonitor::~PSystemMonitor()
 {
     qDebug() << "SystemMonitor destructor called:" << this;
+    m_cpuTimer.stop();
+    m_ramGpuTimer.stop();
+    m_diskNetTimer.stop();
+    m_tempTimer.stop();
 }
 
 QString PSystemMonitor::cpuModelName() const
@@ -40,7 +55,7 @@ QString PSystemMonitor::cpuCache() const
 
 void PSystemMonitor::setCpuCache(const QString& newCache)
 {
-    if (m_cpuCache == newCache)
+    if (m_cpuCache != newCache)
     {
         m_cpuCache = newCache;
         emit cpuCacheChanged();
@@ -73,33 +88,6 @@ void PSystemMonitor::setCpuPower(const QString& newPower)
         m_cpuPower = newPower;
         emit cpuPowerChanged();
     }
-}
-void PSystemMonitor::updateSystemInfo()
-{
-    qDebug() << "\nCalling updateSystemInfo funtion\n" << this;
-    if (!m_useCase) return;
-
-    ESystemInfo info = m_useCase->execute();
-
-    setCpuModelName(QString::fromStdString(info.cpu.modelName));
-    setCpuCoreNumber(QString::number(info.cpu.coreNumber));
-    setCpuCache(QString::number(info.cpu.cache));
-    setCpuPower(QString::number(info.cpu.power));
-    setCpuFrequencyMhz(QString::fromStdString(info.cpu.threads.front().frequencyMhz));
-    setCpuUsagePercent(QString::fromStdString(info.cpu.threads.front().usagePercent));
-    setCpuTemperatureC(QString::number(info.cpu.threads.front().temperatureC));
-
-    //memory
-    setMemoryPercent(QString::fromStdString(info.mem.usage_percent));
-    setMemoryUsed(info.mem.used_bytes);
-    setMemoryTotal(info.mem.total_bytes);
-
-    //gpu
-    setGpuName(QString::fromStdString(info.gpu.name));
-    setGpuVramTotal(QString::number(info.gpu.vramTotal));
-    setGpuVramUsed(QString::number(info.gpu.vramUsed));
-
-
 }
 
 QString PSystemMonitor::cpuTemperatureC() const
@@ -226,3 +214,65 @@ void PSystemMonitor::setGpuVramUsed(const QString& newGpuVramUsed)
         emit gpuVramUsedChanged();
     }
 }
+
+QString PSystemMonitor::netTxBytes() const
+{
+    return m_netTxBytes;
+}
+
+void PSystemMonitor::setNetTxBytes(const QString& newTxBytes)
+{
+    if (m_netTxBytes != newTxBytes)
+    {
+        m_netTxBytes = newTxBytes;
+        emit netTxBytesChanged();
+    }
+}
+
+QString PSystemMonitor::netRxBytes() const
+{
+    return m_netRxBytes;
+}
+
+void PSystemMonitor::setNetRxBytes(const QString& newRxBytes)
+{
+    if (m_netRxBytes != newRxBytes)
+    {
+        m_netRxBytes = newRxBytes;
+        emit netRxBytesChanged();
+    }
+}
+
+void PSystemMonitor::updateCpu(const ESystemInfo& info) {
+    setCpuModelName(QString::fromStdString(info.cpu.modelName));
+    setCpuCoreNumber(QString::number(info.cpu.coreNumber));
+    setCpuCache(QString::number(info.cpu.cache));
+    setCpuPower(QString::number(info.cpu.power));
+    if (!info.cpu.threads.empty()) {
+        setCpuFrequencyMhz(QString::fromStdString(info.cpu.threads.front().frequencyMhz));
+        setCpuUsagePercent(QString::fromStdString(info.cpu.threads.front().usagePercent));
+    }
+}
+
+void PSystemMonitor::updateRamGpu(const ESystemInfo& info) {
+    setMemoryPercent(QString::fromStdString(info.mem.usage_percent));
+    setMemoryUsed(info.mem.used_bytes);
+    setMemoryTotal(info.mem.total_bytes);
+    setGpuName(QString::fromStdString(info.gpu.name));
+    setGpuVramTotal(QString::number(info.gpu.vramTotal));
+    setGpuVramUsed(QString::number(info.gpu.vramUsed));
+}
+
+void PSystemMonitor::updateDiskNet(const ESystemInfo& info) {
+    setNetRxBytes(QString::number(info.net.rxBytes));
+    setNetTxBytes(QString::number(info.net.txBytes));
+}
+
+void PSystemMonitor::updateTemp(const ESystemInfo& info) {
+    if (!info.cpu.threads.empty()) {
+        setCpuTemperatureC(QString::number(info.cpu.threads.front().temperatureC));
+    }
+}
+
+
+

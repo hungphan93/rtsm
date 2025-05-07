@@ -7,12 +7,12 @@
 struct EGpuInfo
 {
     std::string name;
-    uint64_t vramTotal;
-    uint64_t vramUsed;
-    uint64_t usagePercent;
-    uint64_t cores;
-    uint64_t frequencyMhz;
-    uint64_t temperatureC;
-    uint64_t power;
+    uint64_t vramTotal = 0;
+    uint64_t vramUsed = 0;
+    uint64_t usagePercent = 0;
+    uint64_t cores = 0;
+    uint64_t frequencyMhz = 0;
+    uint64_t temperatureC = 0;
+    uint64_t power = 0;
 };
 #endif // EGPUINFO_H

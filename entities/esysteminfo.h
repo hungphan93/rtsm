@@ -1,14 +1,16 @@
 #ifndef ESYSTEMINFO_H
 #define ESYSTEMINFO_H
-#include "entities/ecpuinfo.h"
-#include "entities/egpuinfo.h"
-#include "entities/ememoryinfo.h"
+#include "ecpuinfo.h"
+#include "egpuinfo.h"
+#include "ememoryinfo.h"
+#include "enetworkinfo.h"
 
 struct ESystemInfo
 {
     ECpuInfo cpu;
     EGpuInfo gpu;
     EMemoryInfo mem;
+    ENetworkInfo net;
     virtual ~ESystemInfo() = default;
 };
 

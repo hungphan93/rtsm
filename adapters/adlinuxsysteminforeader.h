@@ -6,6 +6,7 @@
 #include <QString>
 #include <optional>
 #include <expected>
+#include <mutex>
 #include <interfaces/isysteminforeader.h>
 
 struct ESystemInfo;
@@ -34,8 +35,9 @@ struct CpuTimes {
 class ADLinuxSystemInfoReader: public ISystemInfoReader
 {
 public:
-    explicit ADLinuxSystemInfoReader() = default;
-    virtual ESystemInfo &read() override;
+    explicit ADLinuxSystemInfoReader();
+    ~ADLinuxSystemInfoReader();
+    virtual ESystemInfo& read() override;
 
 private:
     ESystemInfo info;
@@ -46,6 +48,9 @@ private:
     std::string readCpuUsagePercent();
     void readMemoryInfo();
     void readGpuInfo();
+    void readNetworkInfo();
+    std::optional<std::string> readLine(const char* path);
+    std::mutex m_mutex;
 };
 
 #endif // ADLINUXSYSTEMINFOREADER_H

@@ -23,6 +23,7 @@ qt_add_qml_module(apprtsm
         entities/ememoryinfo.h
         entities/egpuinfo.h
         entities/esysteminfo.h
+        entities/enetworkinfo.h
         interfaces/isysteminforeader.h
         usecases/ucsysteminforeader.h
         usecases/ucsysteminforeader.cc
