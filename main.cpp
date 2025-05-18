@@ -2,8 +2,10 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+#include "adapters/adapterfetchmanager.h"
 #include "usecases/ucsysteminforeader.h"
 #include "presentation/psystemmonitor.h"
+#include <memory>
 
 #if defined(__linux__)
 #include "adapters/adlinuxsysteminforeader.h"
@@ -29,11 +31,21 @@ int main(int argc, char *argv[])
 #endif
 
     UCSystemInfoReader useCase(reader);
-    auto systemMonitor = new PSystemMonitor(&useCase, &engine);
 
-    engine.rootContext()->setContextProperty("systemMonitor", systemMonitor);
+    PSystemMonitor systemMonitor(useCase);
+
+    // std::unique_ptr<PSystemMonitor> systemMonitor (new PSystemMonitor(useCase, &engine));
+
+    //engine.rootContext()->setContextProperty("systemMonitor", systemMonitor.get());
+
+    engine.rootContext()->setContextProperty("systemMonitor", &systemMonitor);
 
     engine.loadFromModule("rtsm", "Main");
+    if (engine.rootObjects().isEmpty())
+    {
+        qCritical() << "Failed to load QML module!";
+        return -1;
+    }
 
     return app.exec();
 }

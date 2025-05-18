@@ -2,8 +2,19 @@ cmake_minimum_required(VERSION 3.16)
 
 project(rtsm VERSION 0.1 LANGUAGES CXX)
 
+#set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+#google test library
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 
@@ -23,12 +34,15 @@ qt_add_qml_module(apprtsm
         entities/ememoryinfo.h
         entities/egpuinfo.h
         entities/esysteminfo.h
+        entities/ediskinfo.h
         entities/enetworkinfo.h
         interfaces/isysteminforeader.h
         usecases/ucsysteminforeader.h
         usecases/ucsysteminforeader.cc
         adapters/adlinuxsysteminforeader.h
         adapters/adlinuxsysteminforeader.cpp
+        adapters/adapterfetchmanager.h
+        adapters/adapterfetchmanager.cpp
         presentation/psystemmonitor.h
         presentation/psystemmonitor.cpp
         interfaces/isysteminfologger.h
@@ -57,3 +71,7 @@ install(TARGETS apprtsm
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+enable_testing()
+# Google Test + unit tests
+add_subdirectory(tests)

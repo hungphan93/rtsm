@@ -6,7 +6,7 @@ struct ESystemInfo;
 struct ISystemInfoReader
 {
     virtual ~ISystemInfoReader() = default;
-    virtual  ESystemInfo& read() = 0;
+    virtual  ESystemInfo read() = 0;
 };
 
 #endif // ISYSTEMINFOREADER_H

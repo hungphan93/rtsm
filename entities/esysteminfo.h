@@ -4,6 +4,7 @@
 #include "egpuinfo.h"
 #include "ememoryinfo.h"
 #include "enetworkinfo.h"
+#include "ediskinfo.h"
 
 struct ESystemInfo
 {
@@ -11,6 +12,7 @@ struct ESystemInfo
     EGpuInfo gpu;
     EMemoryInfo mem;
     ENetworkInfo net;
+    EDiskInfo disk;
     virtual ~ESystemInfo() = default;
 };
 

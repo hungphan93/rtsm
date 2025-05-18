@@ -3,23 +3,24 @@
 
 #include "entities/esysteminfo.h"
 #include <string>
-#include <QString>
 #include <optional>
 #include <expected>
 #include <mutex>
 #include <interfaces/isysteminforeader.h>
+#include <gtest/gtest_prod.h>
 
 struct ESystemInfo;
 
-struct CpuTimes {
-    unsigned long long user;
-    unsigned long long nice;
-    unsigned long long system;
-    unsigned long long idle;
-    unsigned long long iowait;
-    unsigned long long irq;
-    unsigned long long softirq;
-    unsigned long long steal;
+struct CpuTimes
+{
+    unsigned long long user = 0;
+    unsigned long long nice = 0;
+    unsigned long long system = 0;
+    unsigned long long idle = 0;
+    unsigned long long iowait = 0;
+    unsigned long long irq = 0;
+    unsigned long long softirq = 0;
+    unsigned long long steal = 0;
 
     unsigned long long total() const
     {
@@ -37,7 +38,7 @@ class ADLinuxSystemInfoReader: public ISystemInfoReader
 public:
     explicit ADLinuxSystemInfoReader();
     ~ADLinuxSystemInfoReader();
-    virtual ESystemInfo& read() override;
+    virtual ESystemInfo read() override;
 
 private:
     ESystemInfo info;
@@ -49,8 +50,10 @@ private:
     void readMemoryInfo();
     void readGpuInfo();
     void readNetworkInfo();
-    std::optional<std::string> readLine(const char* path);
+    void readDiskInfo();
+    std::string readLine(const char* path);
     std::mutex m_mutex;
+    FRIEND_TEST(ADLinuxSystemInfoReaderTest, ReadCpuModel_NotEmpty);
 };
 
 #endif // ADLINUXSYSTEMINFOREADER_H
