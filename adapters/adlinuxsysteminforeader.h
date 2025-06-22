@@ -4,10 +4,8 @@
 #include "entities/esysteminfo.h"
 #include <string>
 #include <optional>
-#include <expected>
 #include <mutex>
 #include <interfaces/isysteminforeader.h>
-#include <gtest/gtest_prod.h>
 
 struct ESystemInfo;
 
@@ -53,7 +51,6 @@ private:
     void readDiskInfo();
     std::string readLine(const char* path);
     std::mutex m_mutex;
-    FRIEND_TEST(ADLinuxSystemInfoReaderTest, ReadCpuModel_NotEmpty);
 };
 
 #endif // ADLINUXSYSTEMINFOREADER_H
