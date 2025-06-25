@@ -55,6 +55,10 @@ qt_add_qml_module(apprtsm
         SOURCES entity/gpu.hpp
         SOURCES entity/memory.hpp
         SOURCES entity/net.hpp
+        SOURCES adapter/linux/system_info_reader_linux.hpp
+        SOURCES adapter/linux/system_info_reader_linux.cpp
+        SOURCES adapter/window/system_info_reader_window.hpp
+        SOURCES adapter/window/system_info_reader_window.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

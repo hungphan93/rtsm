@@ -3,37 +3,44 @@
 
 #include <string>
 #include <cstdint>
-#include <vector>
 
 namespace entity {
 
 struct cpu {
-    struct core
-    {
-        /// core name string
-        std::string name;
+    /// Name cpu
+    std::string model_name;
 
-        /// a core usage percent in range [0.0f – 100.0f]
-        float usage_percent = 0.0f;
+    /// Number of logical threads in this CPU (siblings)
+    uint16_t siblings = 0;
 
-        /// frequency mhz a core
-        float frequency_mhz = 0.0f;
+    /// Local core ID within the physical CPU
+    uint16_t core_id = 0;
 
-        /// temperature Celsius a core
-        float temperature_c = 0.0f;
-    };
+    /// Number of physical cores in this CPU
+    uint16_t cpu_cores = 0;
 
-    /// CPU cache size in KiB
-    uint16_t cache_size = 0; // KiB?
+    /// A core usage percent in range [0.0f – 100.0f]
+    float usage_percent = 0.0f;
 
-    /// Power consumption in mW
-    float power = 0.0f;
+    /// Frequency of this thread/core in MHz
+    float frequency_mhz = 0.0f;
 
-    /// CPU name string
-    std::string name;
+    /// Temperature of this thread/core in Celsius (if available)
+    float temperature_c = 0.0f;
 
-    /// List of core/thread info
-    std::vector<core> threads;
+    /// Physical CPU identifier (0 for single-socket systems)
+    uint16_t physical_id = 0;
+
+    /// Cache sizes (in KiB)
+    std::uint16_t l1_cache_kib = 0;
+    std::uint32_t l2_cache_kib = 0;
+    std::uint32_t l3_cache_kib = 0;
+
+    /// Estimated power consumption (mW), if available
+    float power_mw = 0.0f;
+
+    /// Logical processor/thread ID
+    uint8_t processor_id = 0;
 };
 
 } // namespace entity
