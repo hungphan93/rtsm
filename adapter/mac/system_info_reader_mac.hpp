@@ -1,0 +1,31 @@
+#ifndef ADAPTER_MAC_SYSTEM_INFO_READER_MAC_HPP
+#define ADAPTER_MAC_SYSTEM_INFO_READER_MAC_HPP
+
+#include "use_case/system_info_reader.hpp"
+#include "entity/cpu.hpp"
+#include "entity/disk.hpp"
+#include "entity/gpu.hpp"
+#include "entity/memory.hpp"
+#include "entity/net.hpp"
+
+namespace adapter {
+namespace mac {
+
+class system_info_reader_mac : public usecase::system_info_reader {
+
+public:
+    entity::cpu read_cpu() const override;
+
+    entity::memory read_memory() const override;
+
+    entity::gpu read_gpu() const override;
+
+    entity::disk read_disk() const override;
+
+    entity::net read_net() const override;
+};
+
+} // namespace mac
+} // namespace adapter
+
+#endif // ADAPTER_MAC_SYSTEM_INFO_READER_MAC_HPP

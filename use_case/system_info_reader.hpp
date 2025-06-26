@@ -29,6 +29,6 @@ struct system_info_reader {
     virtual entity::net read_net() const = 0;
 };
 
-} // namespace useca
+} // namespace usecase
 
 #endif // USECASE_SYSTEM_INFO_READER_HPP
