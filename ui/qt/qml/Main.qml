@@ -21,7 +21,7 @@ Window {
                 width: parent.width / 4 + 90
                 height: parent.height
                 Label {
-                    text: systemMonitor ? systemMonitor.cpuModelName : ""
+                    text: system_monitor ? system_monitor.cpu_model_name : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#04fc00"
@@ -34,7 +34,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text: systemMonitor ? systemMonitor.cpuTemperatureC/1000 + " °C" : ""
+                    text: system_monitor ? system_monitor.cpu_temperature_c/1000 + " °C" : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -45,7 +45,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text: systemMonitor ? systemMonitor.cpuUsagePercent + " %" : ""
+                    text: system_monitor ? system_monitor.cpu_usage_percent + " %" : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -56,7 +56,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text: systemMonitor ? systemMonitor.cpuFrequencyMhz + " MHZ" : ""
+                    text: system_monitor.cpu_frequency_mhz
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"

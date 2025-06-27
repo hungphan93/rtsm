@@ -35,6 +35,10 @@ set(APP_SOURCES
 
   presenter/system_monitor.cpp
   presentation/psystemmonitor.cpp
+
+  ui/qt/system_monitor_qt.cpp
+
+  scheduler/system_fetch_manager.cpp
 )
 
 # Header files (for IDE and includes)
@@ -62,6 +66,10 @@ set(APP_HEADERS
 
   interfaces/isysteminforeader.h
   interfaces/isysteminfologger.h
+
+  ui/qt/system_monitor_qt.hpp
+
+  scheduler/system_fetch_manager.hpp
 )
 
 # Add executable target
@@ -76,7 +84,7 @@ qt_add_qml_module(
   URI rtsm
   VERSION 1.0
   QML_FILES
-    ui/qt/qml/Main.qml
+  ui/qt/qml/Main.qml
 )
 
 # Set bundle metadata (macOS/Windows)

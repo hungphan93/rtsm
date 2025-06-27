@@ -20,7 +20,10 @@ bool parse_number(const std::string& text, T& out) {
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), out);
     return ec == std::errc();
 }
+
 }
+
+system_info_reader_linux::system_info_reader_linux() noexcept {}
 
 entity::cpu system_info_reader_linux::read_cpu() const {
     entity::cpu result;

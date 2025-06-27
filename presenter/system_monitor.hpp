@@ -7,7 +7,13 @@ namespace presenter {
 class system_monitor {
 
 public:
-    explicit system_monitor(const usecase::system_info_reader& reader);
+    explicit system_monitor(const usecase::system_info_reader& reader) noexcept;
+
+    entity::cpu cpu() const;
+    entity::memory memory() const;
+    entity::gpu gpu() const;
+    entity::disk disk() const;
+    entity::net net() const;
 
 private:
     const usecase::system_info_reader& reader_;

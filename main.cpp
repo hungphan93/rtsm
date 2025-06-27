@@ -5,6 +5,7 @@
 
 #if defined(__linux__)
 #include "adapter/linux/system_info_reader_linux.hpp"
+#include "ui/qt/system_monitor_qt.hpp"
 #elif defined(_WIN32)
 #include "adapter/window/system_info_reader_window.hpp"
 #elif defined(__APPLE__)
@@ -24,19 +25,12 @@ int main(int argc, char *argv[]) {
 #elif defined(__APPLE__)
     adapter::mac::system_info_reader_mac reader;
 #endif
+    presenter::system_monitor presenter(reader);
 
-    //  UCSystemInfoReader useCase(reader);
-    //   usecase::system_info_reader use_case(reader);
+    ui::qt::system_monitor_qt system_monitor(&presenter);
 
-    //PSystemMonitor systemMonitor(useCase);
-
-    // std::unique_ptr<PSystemMonitor> systemMonitor (new PSystemMonitor(useCase, &engine));
-
-    //engine.rootContext()->setContextProperty("systemMonitor", systemMonitor.get());
-
-    //engine.rootContext()->setContextProperty("systemMonitor", &systemMonitor);
+    engine.rootContext()->setContextProperty("system_monitor", &system_monitor);
     engine.loadFromModule("rtsm", "Main");
- //   engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
     if (engine.rootObjects().isEmpty()) {
         qCritical() << "Failed to load QML module!";
         return -1;

@@ -6,9 +6,10 @@
 namespace adapter {
 namespace linux2 {
 
-class system_info_reader_linux : public usecase::system_info_reader {
+struct system_info_reader_linux : public usecase::system_info_reader {
 
-public:
+    explicit system_info_reader_linux() noexcept;
+
     entity::cpu read_cpu() const override;
 
     entity::memory read_memory() const override;
