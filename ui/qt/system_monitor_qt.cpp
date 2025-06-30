@@ -1,10 +1,16 @@
 #include "system_monitor_qt.hpp"
+#include <QTimer>
 
 namespace ui {
 namespace qt {
 
 system_monitor_qt::system_monitor_qt(presenter::system_monitor* presenter,QObject* parent) :
     QObject(parent), presenter_(presenter) {
+    auto timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, [this] {
+        emit cpu_changed();
+    });
+    timer->start(100);
 }
 
 QString system_monitor_qt::cpu_model_name() const {

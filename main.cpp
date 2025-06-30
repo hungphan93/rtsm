@@ -25,11 +25,11 @@ int main(int argc, char *argv[]) {
 #elif defined(__APPLE__)
     adapter::mac::system_info_reader_mac reader;
 #endif
-    presenter::system_monitor presenter(reader);
+    presenter::system_monitor monitor(reader);
 
-    ui::qt::system_monitor_qt system_monitor(&presenter);
+    ui::qt::system_monitor_qt monitor_qt(&monitor);
 
-    engine.rootContext()->setContextProperty("system_monitor", &system_monitor);
+    engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
     engine.loadFromModule("rtsm", "Main");
     if (engine.rootObjects().isEmpty()) {
         qCritical() << "Failed to load QML module!";
