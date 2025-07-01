@@ -82,14 +82,21 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 
         const std::string value = extract_value(line);
 
+        // if (line.starts_with("model name")) {
+        //     std::smatch match;
+        //     if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
+        //         if (!match.empty()) {
+        //             result.model_name = match[0];
+        //         } else {
+        //             result.model_name = value;
+        //         }
+        //     }
+        //     else {
+        //         result.model_name = value;
+        //     }
+        // }
         if (line.starts_with("model name")) {
-            std::smatch match;
-            if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
-                result.model_name = match.str();
-            }
-            else {
-                result.model_name = value; /// unknow
-            }
+            result.model_name = value;
         }
 
         else if (line.starts_with("cpu cores")) {
@@ -116,7 +123,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
             parse_number<uint16_t>(value,  result.siblings);
         }
 
-        else if (line.starts_with("cpu cores")) {
+        else if (line.starts_with("core id")) {
             parse_number<uint16_t>(value, result.core_id);
         }
     }

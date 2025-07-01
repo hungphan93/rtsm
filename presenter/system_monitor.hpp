@@ -10,7 +10,7 @@ class system_monitor {
 
 public:
     explicit system_monitor(const usecase::system_info_reader& reader) noexcept;
-    ~system_monitor() noexcept = default;
+    ~system_monitor() noexcept;
 
     [[nodiscard]] entity::cpu cpu() const noexcept;
     [[nodiscard]] entity::memory memory() const noexcept;

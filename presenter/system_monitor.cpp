@@ -6,6 +6,10 @@ system_monitor::system_monitor(const usecase::system_info_reader& reader) noexce
     start_periodic_tasks();
 }
 
+system_monitor::~system_monitor() noexcept {
+    scheduler_.stop_all();
+}
+
 entity::cpu system_monitor::cpu() const noexcept {
     std::scoped_lock lock(mutex_);
     return last_cpu_;
