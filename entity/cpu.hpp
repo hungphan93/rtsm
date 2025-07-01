@@ -41,6 +41,8 @@ struct cpu {
 
     /// Logical processor/thread ID
     uint8_t processor_id = 0;
+
+    auto operator <=> (const cpu&) const = default;
 };
 
 } // namespace entity

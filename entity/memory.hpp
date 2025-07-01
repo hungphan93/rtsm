@@ -1,7 +1,9 @@
 #ifndef ENTITY_MEMORY_HPP
 #define ENTITY_MEMORY_HPP
+
 #include <cstdint>
 #include <string>
+
 namespace entity {
 
 struct memory {
@@ -14,6 +16,7 @@ struct memory {
     double voltage = 0;
     double buss = 0;
     double swap = 0;
+    auto operator <=> (const memory&) const = default;
 };
 
 } // namespace entity

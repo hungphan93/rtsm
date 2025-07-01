@@ -1,5 +1,6 @@
 #ifndef ENTITY_GPU_HPP
 #define ENTITY_GPU_HPP
+
 #include <cstdint>
 #include <string>
 
@@ -14,6 +15,8 @@ struct gpu {
     uint64_t frequency_mhz = 0;
     uint64_t temperature_c = 0;
     uint64_t power = 0;
+
+    auto operator <=> (const gpu&) const = default;
 };
 
 } // namespace entity

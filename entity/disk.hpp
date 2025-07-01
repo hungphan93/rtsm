@@ -1,5 +1,6 @@
 #ifndef ENTITY_DISK_HPP
 #define ENTITY_DISK_HPP
+
 #include <string>
 #include <cstdint>
 
@@ -23,6 +24,8 @@ struct disk {
 
     /// size of disk
     float size = 0.0f;
+
+    auto operator <=> (const disk&) const = default;
 };
 
 } // namespace entity
