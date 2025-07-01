@@ -24,17 +24,11 @@ qt_policy(SET QTP0004 NEW)
 
 # Source files (CPP only)
 set(APP_SOURCES
-
-  usecases/ucsysteminforeader.cc
-  adapters/adapterfetchmanager.cpp
-  adapters/adlinuxsysteminforeader.cpp
-
   adapter/linux/system_info_reader_linux.cpp
   adapter/window/system_info_reader_window.cpp
   adapter/mac/system_info_reader_mac.cpp
 
   presenter/system_monitor.cpp
-  presentation/psystemmonitor.cpp
 
   ui/qt/system_monitor_qt.cpp
 
@@ -52,20 +46,12 @@ set(APP_HEADERS
   entity/net.hpp
 
   use_case/system_info_reader.hpp
-  usecases/ucsysteminforeader.h
 
   adapter/linux/system_info_reader_linux.hpp
   adapter/window/system_info_reader_window.hpp
   adapter/mac/system_info_reader_mac.hpp
 
-  adapters/adlinuxsysteminforeader.h
-  adapters/adapterfetchmanager.h
-
   presenter/system_monitor.hpp
-  presentation/psystemmonitor.h
-
-  interfaces/isysteminforeader.h
-  interfaces/isysteminfologger.h
 
   ui/qt/system_monitor_qt.hpp
 

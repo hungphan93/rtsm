@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
     adapter::mac::system_info_reader_mac reader;
 #endif
     presenter::system_monitor monitor(reader);
-
     ui::qt::system_monitor_qt monitor_qt(&monitor);
 
     engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);

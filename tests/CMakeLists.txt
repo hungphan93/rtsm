@@ -1,6 +1,4 @@
 add_executable(unit_tests
-    adlinuxsysteminforeader_test.cpp
-    ../adapters/adlinuxsysteminforeader.cpp
 )
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
