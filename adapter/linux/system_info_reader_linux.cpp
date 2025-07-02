@@ -72,6 +72,17 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         return result;
     }
 
+    cpu_times t1 = read_cpu_times();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    cpu_times t2 = read_cpu_times();
+
+    const auto idle_diff = t2.idle_time() - t1.idle_time();
+    const auto total_diff = t2.total() - t1.total();
+
+    if (total_diff > 0) {
+        result.usage_percent = 100.0 * (total_diff - idle_diff) / total_diff;
+    }
+
     std::string line;
     /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
     const std::regex amd_pattern(R"(AMD\s+Ryzen\s+\d+\s+\d+\w*)", std::regex::icase);
@@ -82,21 +93,18 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 
         const std::string value = extract_value(line);
 
-        // if (line.starts_with("model name")) {
-        //     std::smatch match;
-        //     if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
-        //         if (!match.empty()) {
-        //             result.model_name = match[0];
-        //         } else {
-        //             result.model_name = value;
-        //         }
-        //     }
-        //     else {
-        //         result.model_name = value;
-        //     }
-        // }
         if (line.starts_with("model name")) {
-            result.model_name = value;
+            std::smatch match;
+            if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
+                if (!match.empty()) {
+                    result.model_name = match[0];
+                } else {
+                    result.model_name = value;
+                }
+            }
+            else {
+                result.model_name = value;
+            }
         }
 
         else if (line.starts_with("cpu cores")) {
@@ -128,17 +136,6 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         }
     }
 
-    cpu_times t1 = read_cpu_times();
-    std::this_thread::sleep_for(std::chrono::milliseconds(19));
-    cpu_times t2 = read_cpu_times();
-
-    const auto idle_diff = t2.idle_time() - t1.idle_time();
-    const auto total_diff = t2.total() - t1.total();
-
-    if (total_diff > 0) {
-        result.usage_percent = 100.0 * (total_diff - idle_diff) / total_diff;
-    }
-
     std::ifstream temp_file("/sys/class/hwmon/hwmon1/temp1_input");
     if (temp_file.is_open() && std::getline(temp_file, line)) {
         result.temperature_c = std::stoull(line);
@@ -164,15 +161,19 @@ entity::memory system_info_reader_linux::read_memory() const {
             available_kb = std::stoull(line.substr(13));
         }
 
+        else if (line.starts_with("MemFree:")) {
+            result.vram_free = std::stoull(line.substr(8));
+        }
+
         if (total_bytes > 0 && available_kb > 0) break;
     }
 
-    result.total_bytes = total_bytes / 1024;
+    result.vram_total = total_bytes / 1024;
 
     uint64_t available_mb = available_kb / 1024;
 
-    result.used_bytes = result.total_bytes - available_mb;
-    result.usage_percent = 100.0 * result.used_bytes / result.total_bytes;
+    result.vram_used = result.vram_total - available_mb;
+    result.usage_percent = (100.0 * result.vram_used) / result.vram_total;
 
     return result;
 }
@@ -194,6 +195,8 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     if (!value.empty()) {
         result.vram_used = (std::stoull(value) / 1024) / 1024;
     }
+
+    result.usage_percent = (100 * result.vram_used) / result.vram_total;
 
     return result;
 }

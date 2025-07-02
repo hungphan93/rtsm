@@ -7,7 +7,7 @@ namespace qt {
 system_monitor_qt::system_monitor_qt(presenter::system_monitor* presenter,QObject* parent) :
     QObject(parent), presenter_(presenter) {
     connect(&timer_, &QTimer::timeout, this, &system_monitor_qt::refresh_ui);
-    timer_.start(100); //
+    timer_.start(100);
 }
 
 QString system_monitor_qt::cpu_model_name() const {
@@ -21,14 +21,14 @@ QString system_monitor_qt::cpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.usage_percent, 2, 0) + "%";
+    return QString::number(cpu.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::cpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.frequency_mhz, 2, 0) + "mhz";
+    return QString::number(cpu.frequency_mhz, 2, 2) + "MHZ";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
@@ -49,21 +49,21 @@ QString system_monitor_qt::memory_total_bytes() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.total_bytes);
+    return QString::number(memory.vram_total);
 }
 
 QString system_monitor_qt::memory_used_bytes() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.used_bytes);
+    return QString::number(memory.vram_used);
 }
 
 QString system_monitor_qt::memory_usage_percent() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::fromStdString(memory.usage_percent);
+    return QString::number(memory.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::memory_name() const {
@@ -99,7 +99,7 @@ QString system_monitor_qt::gpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.usage_percent);
+    return QString::number(gpu.usage_percent) + "%";
 }
 
 QString system_monitor_qt::gpu_cores() const {
@@ -176,7 +176,6 @@ QString system_monitor_qt::net_rx_bytes() const {
 
 QString system_monitor_qt::net_tx_bytes() const {
     if (!presenter_) return {};
-
     const auto net = presenter_->net();
     return QString::number(net.tx_bytes);
 }

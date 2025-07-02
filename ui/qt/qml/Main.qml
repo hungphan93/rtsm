@@ -89,7 +89,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text: system_monitor ? system_monitor.memory_vram_used : ""
+                    text: system_monitor ? system_monitor.memory_usage_percent : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -131,7 +131,7 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text: system_monitor ? system_monitor.gpu_vram_total + " MB": ""
+                    text: system_monitor ? system_monitor.gpu_usage_percent : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -142,7 +142,7 @@ Window {
                 width: parent.width / 4 - 30
                 height: parent.height
                 Label {
-                    text: system_monitor ? system_monitor.gpu_vram_used + " MB" : ""
+                    text: system_monitor ? system_monitor.gpu_vram_used + "MB of " + system_monitor.gpu_vram_total + "MB" : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
@@ -173,24 +173,25 @@ Window {
                 width: parent.width / 4 - 50
                 height: parent.height
                 Label {
-                    text:  system_monitor ? "Download: " + system_monitor.net_rx_bytes + " KB/s | " : ""
+                    text:  system_monitor ? "Down: " + system_monitor.net_rx_bytes + " KB/S | " +
+                                            " Up: " + system_monitor.net_tx_bytes + " KB/S"  : ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
                     anchors.centerIn: parent
                 }
             }
-            Rectangle {
-                width: parent.width / 4 - 30
-                height: parent.height
-                Label {
-                    text:  system_monitor ? "Upload: " + system_monitor.net_tx_bytes + " KB/s" : ""
-                    font.pixelSize: 22
-                    font.bold: true
-                    color: "#e50bc3"
-                    anchors.centerIn: parent
-                }
-            }
+            // Rectangle {
+            //     width: parent.width / 4 - 30
+            //     height: parent.height
+            //     Label {
+            //         text:  system_monitor ? "Up: " + system_monitor.net_tx_bytes + " KB/S" : ""
+            //         font.pixelSize: 22
+            //         font.bold: true
+            //         color: "#e50bc3"
+            //         anchors.centerIn: parent
+            //     }
+            // }
         }
 
         Row {
@@ -212,27 +213,28 @@ Window {
                 }
             }
             Rectangle {
-                width: parent.width / 4 - 50
+                width: parent.width / 4 + 200
                 height: parent.height
                 Label {
-                    text: system_monitor ? "Read: "  + system_monitor.disk_read_speed + " MB/s | " : ""
+                    text: system_monitor ? "Read: "  + system_monitor.disk_read_speed + " MB/S | " +
+                                           " Write: " + system_monitor.disk_write_speed + " MB/S": ""
                     font.pixelSize: 22
                     font.bold: true
                     color: "#e50bc3"
                     anchors.centerIn: parent
                 }
             }
-            Rectangle {
-                width: parent.width / 4 - 30
-                height: parent.height
-                Label {
-                    text: system_monitor ? "Write: " + system_monitor.disk_write_speed + " MB/s" : ""
-                    font.pixelSize: 22
-                    font.bold: true
-                    color: "#e50bc3"
-                    anchors.centerIn: parent
-                }
-            }
+            // Rectangle {
+            //     width: parent.width / 4 - 30
+            //     height: parent.height
+            //     Label {
+            //         text: system_monitor ? "Write: " + system_monitor.disk_write_speed + " MB/S" : ""
+            //         font.pixelSize: 22
+            //         font.bold: true
+            //         color: "#e50bc3"
+            //         anchors.centerIn: parent
+            //     }
+            // }
         }
     }
 }

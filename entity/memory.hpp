@@ -7,11 +7,11 @@
 namespace entity {
 
 struct memory {
+    uint64_t vram_free = 0;
     uint64_t vram_total = 0;
     uint64_t vram_used = 0;
-    uint64_t total_bytes = 0;
-    uint64_t used_bytes = 0;
-    std::string usage_percent;
+    float usage_percent =0.0f;
+    uint64_t cached = 0;
     std::string name;
     double voltage = 0;
     double buss = 0;
