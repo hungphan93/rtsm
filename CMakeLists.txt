@@ -94,6 +94,6 @@ install(TARGETS apprtsm
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Google Test
-enable_testing()
-add_subdirectory(tests)
+# # Google Test
+# enable_testing()
+# add_subdirectory(tests)

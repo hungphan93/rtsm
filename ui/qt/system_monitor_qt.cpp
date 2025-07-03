@@ -28,7 +28,7 @@ QString system_monitor_qt::cpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.frequency_mhz, 2, 2) + "MHZ";
+    return QString::number(cpu.frequency_mhz, 2, 2) + "Mhz";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {

@@ -1,6 +1,7 @@
 #include "system_info_reader_linux.hpp"
 #include <charconv>
 #include <fstream>
+#include <iostream>
 #include <regex>
 #include <thread>
 
@@ -253,35 +254,54 @@ entity::disk system_info_reader_linux::read_disk() const {
 }
 
 entity::net system_info_reader_linux::read_net() const {
-    entity::net result;
+    auto get_active_net_bytes = []() -> std::pair<uint64_t, uint64_t> {
+        std::ifstream proc("/proc/net/dev");
+        if (!proc.is_open()) {
+            return {};
+        }
 
-    uint64_t rx_byte = 0;
-    uint64_t tx_byte = 0;
+        std::string line;
+        // skip 2 header lines
+        std::getline(proc, line);
+        std::getline(proc, line);
 
-    std::string value = read_line("/sys/class/net/wlp1s0/statistics/rx_bytes");
-    if (!value.empty()) {
-        rx_byte = std::stoull(value);
-    }
+        while (std::getline(proc, line)) {
+            std::istringstream iss(line);
+            std::string iface;
+            uint64_t rx = 0, tx = 0;
 
-    value = read_line("/sys/class/net/wlp1s0/statistics/tx_bytes");
-    if (!value.empty()) {
-        rx_byte = std::stoull(value);
-    }
+            // parse "<iface>:"
+            std::getline(iss, iface, ':');
+            iface.erase(0, iface.find_first_not_of(" \t"));
+            iface.erase(iface.find_last_not_of(" \t") + 1);
 
+            if (iface == "lo") {
+                continue;
+            }
+
+            uint64_t skip;
+            iss >> rx >> skip >> skip >> skip >> skip >> skip >> skip >> skip >> tx;
+
+            if (rx > 0) {
+                return {rx, tx};
+            }
+        }
+
+        return {0, 0};
+    };
+
+    auto [rx0, tx0] = get_active_net_bytes();
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    auto [rx1, tx1] = get_active_net_bytes();
 
-    value = read_line("/sys/class/net/wlp1s0/statistics/rx_bytes");
-    if (!value.empty()) {
-        result.rx_bytes = (std::stoull(value) - rx_byte) / 1024;
-    }
-
-    value = read_line("/sys/class/net/wlp1s0/statistics/tx_bytes");
-    if (!value.empty()) {
-        result.tx_bytes = (std::stoull(value) - tx_byte) / 1024;
-    }
+    entity::net result;
+    result.rx_bytes = (rx1 > rx0) ? (rx1 - rx0) / 1024 : 0; // KB/s
+    result.tx_bytes = (tx1 > tx0) ? (tx1 - tx0) / 1024 : 0;
 
     return result;
 }
+
+
 
 } // namespace adapter
 } // namespace adapter
