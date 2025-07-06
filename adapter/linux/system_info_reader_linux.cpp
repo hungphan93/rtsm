@@ -61,6 +61,17 @@ std::string read_line(const std::string path) {
     return (file.is_open() && std::getline(file, line)) ? line : "";
 };
 
+std::string exec_cmd(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
 }
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
@@ -174,7 +185,10 @@ entity::memory system_info_reader_linux::read_memory() const {
     uint64_t available_mb = available_kb / 1024;
 
     result.vram_used = result.vram_total - available_mb;
-    result.usage_percent = (100.0 * result.vram_used) / result.vram_total;
+
+    if (result.vram_used > 0) {
+        result.usage_percent = (100 * result.vram_used) / result.vram_total;
+    }
 
     return result;
 }
@@ -197,7 +211,46 @@ entity::gpu system_info_reader_linux::read_gpu() const {
         result.vram_used = (std::stoull(value) / 1024) / 1024;
     }
 
-    result.usage_percent = (100 * result.vram_used) / result.vram_total;
+    if (result.vram_used > 0) {
+        result.usage_percent = (100 * result.vram_used) / result.vram_total;
+    }
+
+    /// reading for nvidia card
+    value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
+    if (!value.empty()) {
+        // Example line: GeForce RTX 3060, 12288, 2205, 37
+        std::istringstream iss(value);
+        std::string text;
+        std::getline(iss, text,',');
+
+        auto trim = [](std::string& s) {
+            s.erase(0, s.find_first_not_of(" \t\n\r"));
+            s.erase(s.find_last_not_of(" \t\n\r") + 1);
+        };
+
+        trim(text);
+        result.name = text;
+
+        iss.ignore(1); // skip comma
+
+        iss >> text;
+        trim(text);
+        result.vram_total = std::stoull(text);
+
+        iss.ignore(1); // skip comma
+
+        iss >> text;
+        trim(text);
+        result.vram_used = std::stoull(text);
+
+        iss >> text;
+        trim(text);
+        result.temperature_c = std::stoull(text);
+    }
+
+    if (result.vram_used > 0) {
+        result.usage_percent = 100 * result.vram_used / result.vram_total;
+    }
 
     return result;
 }
