@@ -65,7 +65,9 @@ std::string exec_cmd(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
     }
@@ -216,6 +218,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     /// reading for nvidia card
+    /// value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
     value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
     if (!value.empty()) {
         // Example line: GeForce RTX 3060, 12288, 2205, 37
