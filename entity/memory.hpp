@@ -7,15 +7,16 @@
 namespace entity {
 
 struct memory {
-    uint64_t vram_free = 0;
-    uint64_t vram_total = 0;
-    uint64_t vram_used = 0;
+    float vram_free = 0;
+    float vram_total = 0;
+    float vram_used = 0;
     float usage_percent =0.0f;
     uint64_t cached = 0;
     std::string name;
-    double voltage = 0;
+    double power_mw = 0;
     double buss = 0;
     double swap = 0;
+    float frequency_mhz = 0.0f;
     auto operator <=> (const memory&) const = default;
 };
 

@@ -163,8 +163,8 @@ entity::memory system_info_reader_linux::read_memory() const {
 
     std::ifstream proc("/proc/meminfo");
     std::string line;
-    uint64_t total_bytes = 0;
-    uint64_t available_kb = 0;
+    float total_bytes = 0;
+    float available_kb = 0;
 
     while (std::getline(proc, line)) {
         if (line.starts_with("MemTotal:")) {
@@ -182,9 +182,9 @@ entity::memory system_info_reader_linux::read_memory() const {
         if (total_bytes > 0 && available_kb > 0) break;
     }
 
-    result.vram_total = total_bytes / 1024;
+    result.vram_total = total_bytes / 1024 / 1024;
 
-    uint64_t available_mb = available_kb / 1024;
+    float available_mb = available_kb / 1024 / 1024;
 
     result.vram_used = result.vram_total - available_mb;
 
@@ -205,12 +205,12 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
     value = read_line("/sys/class/drm/card1/device/mem_info_vram_total");
     if (!value.empty()) {
-        result.vram_total = (std::stoull(value) / 1024) / 1024;
+        result.vram_total = (std::stoull(value) / 1024);
     }
 
     value = read_line("/sys/class/drm/card1/device/mem_info_vram_used");
     if (!value.empty()) {
-        result.vram_used = (std::stoull(value) / 1024) / 1024;
+        result.vram_used = (std::stoull(value) / 1024);
     }
 
     if (result.vram_used > 0) {
@@ -218,8 +218,8 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     /// reading for nvidia card
-    /// value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
-    value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
+    value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
+    /// value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
     if (!value.empty()) {
         // Example line: GeForce RTX 3060, 12288, 2205, 37
         std::istringstream iss(value);
@@ -249,6 +249,12 @@ entity::gpu system_info_reader_linux::read_gpu() const {
         iss >> text;
         trim(text);
         result.temperature_c = std::stoull(text);
+    }
+
+    /// for gpu amd onboard
+    value = read_line("/sys/class/hwmon/hwmon7/temp1_input");
+    if (!value.empty()) {
+        result.temperature_c = std::stoull(value) / 1000;
     }
 
     if (result.vram_used > 0) {
@@ -290,7 +296,7 @@ entity::disk system_info_reader_linux::read_disk() const {
                     tokens.push_back(token);
 
                 if (tokens.size() > 9)
-                    return {std::stoull(tokens[5]),std::stoull(tokens[9])};
+                    return {std::stoull(tokens[5]), std::stoull(tokens[9])};
 
                 break;
             }
@@ -356,8 +362,6 @@ entity::net system_info_reader_linux::read_net() const {
 
     return result;
 }
-
-
 
 } // namespace adapter
 } // namespace adapter

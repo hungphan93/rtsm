@@ -21,7 +21,7 @@ QString system_monitor_qt::cpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.usage_percent, 2, 2) + "%";
+    return ": " + QString::number(cpu.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::cpu_frequency_mhz() const {
@@ -38,6 +38,13 @@ QString system_monitor_qt::cpu_temperature_c() const {
     return QString::number(cpu.temperature_c / 1000) + "°C";
 }
 
+QString system_monitor_qt::cpu_power_mw() const {
+    if (!presenter_) return {};
+
+    const auto cpu = presenter_->cpu();
+    return QString::number(cpu.temperature_c / 1000) + "mW";
+}
+
 QString system_monitor_qt::memory_vram_used() const {
     if (!presenter_) return {};
 
@@ -49,21 +56,21 @@ QString system_monitor_qt::memory_total_bytes() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.vram_total);
+    return QString::number(memory.vram_total, 2, 1);
 }
 
 QString system_monitor_qt::memory_used_bytes() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.vram_used);
+    return QString::number(memory.vram_used, 2, 1);
 }
 
 QString system_monitor_qt::memory_usage_percent() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.usage_percent, 2, 2) + "%";
+    return ": "+ QString::number(memory.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::memory_name() const {
@@ -71,6 +78,20 @@ QString system_monitor_qt::memory_name() const {
 
     const auto memory = presenter_->memory();
     return QString::fromStdString(memory.name);
+}
+
+QString system_monitor_qt::memory_power_mw() const {
+    if (!presenter_) return {};
+
+    const auto memory = presenter_->memory();
+    return QString::fromStdString(memory.name) + "mW";
+}
+
+QString system_monitor_qt::memory_frequency_mhz() const {
+    if (!presenter_) return {};
+
+    const auto memory = presenter_->memory();
+    return QString::fromStdString(memory.name) + "mhz";
 }
 
 /// gpu
@@ -85,21 +106,21 @@ QString system_monitor_qt::gpu_vram_total() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_total);
+    return QString::number(gpu.vram_total / 1024);
 }
 
 QString system_monitor_qt::gpu_vram_used() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_used);
+    return QString::number(gpu.vram_used / 1024);
 }
 
 QString system_monitor_qt::gpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.usage_percent) + "%";
+    return ": " + QString::number(gpu.usage_percent) + "%";
 }
 
 QString system_monitor_qt::gpu_cores() const {
@@ -113,14 +134,14 @@ QString system_monitor_qt::gpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.frequency_mhz);
+    return QString::number(gpu.frequency_mhz) + "mhz";
 }
 
 QString system_monitor_qt::gpu_temperature_c() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.temperature_c);
+    return QString::number(gpu.temperature_c) + "°C";
 }
 
 /// disk
@@ -164,6 +185,13 @@ QString system_monitor_qt::disk_size() const {
 
     const auto disk = presenter_->disk();
     return QString::number(disk.size);
+}
+
+QString system_monitor_qt::disk_usage_percent() const {
+    if (!presenter_) return {};
+
+    const auto disk = presenter_->disk();
+    return ": " + QString::number((100 * disk.size)) + "%";
 }
 
 /// net

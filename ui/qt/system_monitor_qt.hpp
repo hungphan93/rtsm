@@ -16,6 +16,7 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString cpu_usage_percent READ cpu_usage_percent NOTIFY cpu_changed)
     Q_PROPERTY(QString cpu_frequency_mhz READ cpu_frequency_mhz NOTIFY cpu_changed)
     Q_PROPERTY(QString cpu_temperature_c READ cpu_temperature_c NOTIFY cpu_changed)
+    Q_PROPERTY(QString cpu_power_mw READ cpu_power_mw NOTIFY cpu_changed)
 
     /// memory
     Q_PROPERTY(QString memory_vram_used READ memory_vram_used NOTIFY memory_changed)
@@ -23,6 +24,8 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString memory_used_bytes READ memory_used_bytes NOTIFY memory_changed)
     Q_PROPERTY(QString memory_usage_percent READ memory_usage_percent NOTIFY memory_changed)
     Q_PROPERTY(QString memory_name READ memory_name NOTIFY memory_changed)
+    Q_PROPERTY(QString memory_power_mw READ memory_power_mw NOTIFY memory_changed)
+    Q_PROPERTY(QString memory_frequency_mhz READ memory_frequency_mhz NOTIFY memory_changed)
 
     /// gpu
     Q_PROPERTY(QString gpu_name READ gpu_name NOTIFY gpu_changed)
@@ -34,6 +37,7 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString gpu_temperature_c READ gpu_temperature_c NOTIFY gpu_changed)
 
     /// disk
+    Q_PROPERTY(QString disk_usage_percent READ disk_usage_percent NOTIFY disk_changed)
     Q_PROPERTY(QString disk_read_speed READ disk_read_speed NOTIFY disk_changed)
     Q_PROPERTY(QString disk_write_speed READ disk_write_speed NOTIFY disk_changed)
     Q_PROPERTY(QString disk_sector_size READ disk_sector_size NOTIFY disk_changed)
@@ -53,6 +57,7 @@ public:
     QString cpu_usage_percent() const;
     QString cpu_frequency_mhz() const;
     QString cpu_temperature_c() const;
+    QString cpu_power_mw() const;
 
     /// memory
     QString memory_vram_used() const;
@@ -60,6 +65,8 @@ public:
     QString memory_used_bytes() const;
     QString memory_usage_percent() const;
     QString memory_name() const;
+    QString memory_power_mw() const;
+    QString memory_frequency_mhz() const;
 
     /// gpu
     QString gpu_name() const;
@@ -77,6 +84,8 @@ public:
     QString disk_model() const;
     QString disk_serial_number() const;
     QString disk_size() const;
+    QString disk_usage_percent() const;
+
 
     /// net
     QString net_rx_bytes() const;
