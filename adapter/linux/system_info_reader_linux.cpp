@@ -74,6 +74,11 @@ std::string exec_cmd(const char* cmd) {
     return result;
 }
 
+void trim(std::string& s) {
+    s.erase(0, s.find_first_not_of(" \t\n\r"));
+    s.erase(s.find_last_not_of(" \t\n\r") + 1);
+};
+
 }
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
@@ -155,6 +160,12 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         result.temperature_c = std::stoull(line);
     }
 
+    /// for chip amd onboard
+    std::ifstream gpu_pwr("/sys/class/hwmon/hwmon7/power1_input");
+    if (gpu_pwr.is_open() && std::getline(gpu_pwr, line)) {
+        result.power_mw = std::stoull(line);
+    }
+
     return result;
 }
 
@@ -190,6 +201,31 @@ entity::memory system_info_reader_linux::read_memory() const {
 
     if (result.vram_used > 0) {
         result.usage_percent = (100 * result.vram_used) / result.vram_total;
+    }
+
+    std::string value = exec_cmd(
+        "cat /home/hungphan/password.txt | sudo -S -p '' dmidecode --type 17 2>/dev/null "
+        "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
+        "| grep -v 'Unknown' "
+        "| awk -F: '{print $2}' "
+        "| sed 's/ MT\\/s//' "
+        "| sed 's/ V//' "
+        "| head -n 3"
+        );
+
+    if (!value.empty()) {
+        std::istringstream iss(value);
+
+        std::getline(iss, line);
+
+        trim(line);
+        result.name = line;
+
+        iss >> line;
+        parse_number(line, result.frequency_mhz);
+
+        iss >> line;
+        parse_number(line, result.power_mw);
     }
 
     return result;
@@ -259,6 +295,12 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
     if (result.vram_used > 0) {
         result.usage_percent = 100 * result.vram_used / result.vram_total;
+    }
+
+    /// gpu get frequency mhz
+    value = exec_cmd(R"delim(cat /sys/class/drm/card1/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
+    if (!value.empty()) {
+        result.frequency_mhz = std::stoull(value);
     }
 
     return result;

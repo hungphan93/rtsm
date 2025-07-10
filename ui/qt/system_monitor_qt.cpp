@@ -21,14 +21,14 @@ QString system_monitor_qt::cpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return ": " + QString::number(cpu.usage_percent, 2, 2) + "%";
+    return QString::number(cpu.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::cpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.frequency_mhz, 2, 2) + "Mhz";
+    return QString::number(cpu.frequency_mhz, 2, 0) + "mhz";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
@@ -42,7 +42,7 @@ QString system_monitor_qt::cpu_power_mw() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.temperature_c / 1000) + "mW";
+    return QString::number(cpu.power_mw / 1000000) + "mw";
 }
 
 QString system_monitor_qt::memory_vram_used() const {
@@ -70,7 +70,7 @@ QString system_monitor_qt::memory_usage_percent() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return ": "+ QString::number(memory.usage_percent, 2, 2) + "%";
+    return QString::number(memory.usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::memory_name() const {
@@ -84,14 +84,14 @@ QString system_monitor_qt::memory_power_mw() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::fromStdString(memory.name) + "mW";
+    return QString::number(memory.power_mw, 2, 1) + "V";
 }
 
 QString system_monitor_qt::memory_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::fromStdString(memory.name) + "mhz";
+    return QString::number(memory.frequency_mhz / 2, 2, 0) + "mhz";
 }
 
 /// gpu
@@ -120,7 +120,7 @@ QString system_monitor_qt::gpu_usage_percent() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return ": " + QString::number(gpu.usage_percent) + "%";
+    return QString::number(gpu.usage_percent) + "%";
 }
 
 QString system_monitor_qt::gpu_cores() const {
@@ -191,7 +191,7 @@ QString system_monitor_qt::disk_usage_percent() const {
     if (!presenter_) return {};
 
     const auto disk = presenter_->disk();
-    return ": " + QString::number((100 * disk.size)) + "%";
+    return QString::number((100 * disk.size)) + "%";
 }
 
 /// net
