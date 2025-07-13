@@ -3,7 +3,8 @@
 #include <QQmlContext>
 #include <QDebug>
 #include <qicon.h>
-#include <QSharedMemory>
+#include <QLockFile>
+#include <QDir>
 
 #if defined(__linux__)
 #include "adapter/linux/system_info_reader_linux.hpp"
@@ -17,12 +18,14 @@
 #endif
 
 int main(int argc, char *argv[]) {
-    QSharedMemory sharedMemory("rtsm_unique_key"); // use a unique key
+    QLockFile lockFile(QDir::tempPath() + "/rtsm.lock");
+    lockFile.setStaleLockTime(1000); // 1 second
 
-    if (!sharedMemory.create(1)) {
-        qWarning() << "Another instance is already running byby";
+    if (!lockFile.tryLock(100)) {
+        qDebug() << "Another instance is already running. Exiting bye bye.";
         return 0;
     }
+
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
     app.setWindowIcon(QIcon(":/icons/app_icon.png"));

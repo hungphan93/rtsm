@@ -7,7 +7,7 @@ Window {
     width: 1100
     height: 250
     visible: true
-    flags: Qt.SplashScreen
+    flags: Qt.SplashScreen | Qt.WindowStaysOnBottomHint
     color: "transparent"
     title: "Real-time system monitoring"
     x: 40
