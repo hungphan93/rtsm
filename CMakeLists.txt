@@ -15,7 +15,11 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Install your icon
+install(FILES icons/app_icon.png DESTINATION share/icons/hicolor/48x48/apps)
 
+# Install your .desktop file
+install(FILES rtsm.desktop DESTINATION share/applications)
 
 # Qt Setup
 find_package(Qt6 REQUIRED COMPONENTS Quick)

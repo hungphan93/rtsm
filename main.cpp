@@ -2,6 +2,8 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+#include <qicon.h>
+#include <QSharedMemory>
 
 #if defined(__linux__)
 #include "adapter/linux/system_info_reader_linux.hpp"
@@ -15,8 +17,15 @@
 #endif
 
 int main(int argc, char *argv[]) {
+    QSharedMemory sharedMemory("rtsm_unique_key"); // use a unique key
+
+    if (!sharedMemory.create(1)) {
+        qWarning() << "Another instance is already running byby";
+        return 0;
+    }
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
+    app.setWindowIcon(QIcon(":/icons/app_icon.png"));
 
 #if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
