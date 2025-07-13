@@ -28,7 +28,7 @@ QString system_monitor_qt::cpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.frequency_mhz, 2, 0) + "mhz";
+    return QString::number(cpu.frequency_mhz, 2, 0) + "Mhz";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
@@ -42,7 +42,7 @@ QString system_monitor_qt::cpu_power_mw() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.power_mw / 1000000) + "mw";
+    return QString::number(cpu.power_mw / 1000000) + "Mw";
 }
 
 QString system_monitor_qt::memory_vram_used() const {
@@ -91,7 +91,7 @@ QString system_monitor_qt::memory_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto memory = presenter_->memory();
-    return QString::number(memory.frequency_mhz / 2, 2, 0) + "mhz";
+    return QString::number(memory.frequency_mhz / 2, 2, 0) + "Mhz";
 }
 
 /// gpu
@@ -134,7 +134,7 @@ QString system_monitor_qt::gpu_frequency_mhz() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.frequency_mhz) + "mhz";
+    return QString::number(gpu.frequency_mhz) + "Mhz";
 }
 
 QString system_monitor_qt::gpu_temperature_c() const {
@@ -191,7 +191,7 @@ QString system_monitor_qt::disk_usage_percent() const {
     if (!presenter_) return {};
 
     const auto disk = presenter_->disk();
-    return QString::number((100 * disk.size)) + "%";
+    return QString::number(100 * (disk.used / disk.total), 2, 2) + "%";
 }
 
 /// net

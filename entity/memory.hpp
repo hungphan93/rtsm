@@ -15,7 +15,6 @@ struct memory {
     std::string name;
     float power_mw = 0.0f;
     float buss = 0.0f;
-    float swap = 0.0f;
     float frequency_mhz = 0.0f;
     auto operator <=> (const memory&) const = default;
 };

@@ -1,12 +1,19 @@
 #include "system_info_reader_linux.hpp"
 #include <charconv>
+#include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <qlogging.h>
 #include <regex>
 #include <thread>
+#include <sys/statvfs.h>
+#include <mntent.h>
+#include <unordered_set>
+#include <qdebug.h>
 
 namespace adapter {
 namespace linux2 {
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -79,6 +86,28 @@ void trim(std::string& s) {
     s.erase(s.find_last_not_of(" \t\n\r") + 1);
 };
 
+float to_gb(uint64_t bytes) {
+    return bytes / (1024.0 * 1024.0 * 1024.0);
+}
+
+template<typename T>
+float percent(T used, T total) {
+    return (total > 0) ? (100.0 * used / total) : 0;
+}
+
+std::optional<std::string> find_hwmon_by_name(const std::string& target) {
+    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon")) {
+        std::ifstream name_file(entry.path() / "name");
+        std::string name;
+        if (name_file && std::getline(name_file, name)) {
+            if (name == target) {
+                return entry.path().string();
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 }
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
@@ -99,7 +128,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     const auto total_diff = t2.total() - t1.total();
 
     if (total_diff > 0) {
-        result.usage_percent = 100.0 * (total_diff - idle_diff) / total_diff;
+        result.usage_percent = percent((total_diff - idle_diff), total_diff);
     }
 
     std::string line;
@@ -116,14 +145,10 @@ entity::cpu system_info_reader_linux::read_cpu() const {
             std::smatch match;
             if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
                 if (!match.empty()) {
-                    result.model_name = match[0];
-                } else {
                     result.model_name = value;
                 }
             }
-            else {
-                result.model_name = value;
-            }
+
         }
 
         else if (line.starts_with("cpu cores")) {
@@ -155,15 +180,20 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         }
     }
 
-    std::ifstream temp_file("/sys/class/hwmon/hwmon1/temp1_input");
-    if (temp_file.is_open() && std::getline(temp_file, line)) {
-        result.temperature_c = std::stoull(line);
+    /// dynamically find CPU temp from k10temp
+    if (auto hwmon_cpu = find_hwmon_by_name("k10temp")) {
+        std::ifstream temp_file(*hwmon_cpu + "/temp1_input");
+        if (temp_file && std::getline(temp_file, line)) {
+            result.temperature_c = std::stoull(line);
+        }
     }
 
-    /// for chip amd onboard
-    std::ifstream gpu_pwr("/sys/class/hwmon/hwmon7/power1_input");
-    if (gpu_pwr.is_open() && std::getline(gpu_pwr, line)) {
-        result.power_mw = std::stoull(line);
+    /// dynamically find power from amdgpu if integrated APU
+    if (auto hwmon_gpu = find_hwmon_by_name("amdgpu")) {
+        std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
+        if (pwr_file && std::getline(pwr_file, line)) {
+            result.power_mw = std::stoull(line);
+        }
     }
 
     return result;
@@ -200,7 +230,7 @@ entity::memory system_info_reader_linux::read_memory() const {
     result.vram_used = result.vram_total - available_mb;
 
     if (result.vram_used > 0) {
-        result.usage_percent = (100 * result.vram_used) / result.vram_total;
+        result.usage_percent = percent(result.vram_used, result.vram_total);
     }
 
     std::string value = exec_cmd(
@@ -250,7 +280,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     if (result.vram_used > 0) {
-        result.usage_percent = (100 * result.vram_used) / result.vram_total;
+        result.usage_percent = percent(result.vram_used, result.vram_total);
     }
 
     /// reading for nvidia card
@@ -288,13 +318,22 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     /// for gpu amd onboard
-    value = read_line("/sys/class/hwmon/hwmon7/temp1_input");
-    if (!value.empty()) {
-        result.temperature_c = std::stoull(value) / 1000;
+    std::string line;
+    /// first try integrated AMD GPU info via amdgpu
+    if (auto hwmon_gpu = find_hwmon_by_name("amdgpu")) {
+        std::ifstream temp_file(*hwmon_gpu + "/temp1_input");
+        if (temp_file && std::getline(temp_file, line)) {
+            result.temperature_c = std::stoull(line) / 1000.0;
+        }
+
+        std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
+        if (pwr_file && std::getline(pwr_file, line)) {
+            result.power = std::stoull(line) / 1000.0;
+        }
     }
 
     if (result.vram_used > 0) {
-        result.usage_percent = 100 * result.vram_used / result.vram_total;
+        result.usage_percent = percent(result.vram_used, result.vram_total);
     }
 
     /// gpu get frequency mhz
@@ -308,6 +347,49 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
 entity::disk system_info_reader_linux::read_disk() const {
     entity::disk result;
+
+    /// read swap space used
+    float swap_total_kb = 0, swap_free_kb = 0;
+    std::string line;
+
+    for (std::ifstream meminfo("/proc/meminfo"); std::getline(meminfo, line); ) {
+        if (line.starts_with("SwapTotal:")) {
+            swap_total_kb = std::stoull(line.substr(10));
+        }
+        else if (line.starts_with("SwapFree:")) {
+            swap_free_kb = std::stoull(line.substr(9));
+        }
+    }
+
+    float swap_used_gb = (swap_total_kb - swap_free_kb) / (1024.0 * 1024.0);
+    result.swap = swap_used_gb;
+
+    FILE* mnt_file = setmntent("/proc/mounts", "r");
+    if (!mnt_file) return result;
+
+    std::unordered_set<std::string> seen;
+    struct mntent* mnt = nullptr;
+    while ((mnt = getmntent(mnt_file)) != nullptr) {
+        std::string fsname = mnt->mnt_fsname;
+        if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
+        if (!seen.insert(fsname).second) continue;
+
+        struct statvfs stat;
+        if (statvfs(mnt->mnt_dir, &stat) != 0) continue;
+
+        /// /dev/nvme0n1p1
+        /// /dev/nvme0n1p2
+        /// /dev/nvme0n1p3
+        /// /dev/nvme0n1p5
+        double total_gb = to_gb(stat.f_blocks * stat.f_frsize);
+        double free_gb  = to_gb(stat.f_bfree  * stat.f_frsize);
+        result.total += total_gb;
+        result.free  += free_gb;
+        result.used  += total_gb - free_gb;
+    }
+    endmntent(mnt_file);
+
+    result.used += swap_used_gb;
 
     std::string device = "nvme0n1";
     std::string str = "/sys/block/" + device + "/queue/hw_sector_size";

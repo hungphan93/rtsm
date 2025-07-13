@@ -25,6 +25,11 @@ struct disk {
     /// size of disk
     float size = 0.0f;
 
+    float swap = 0.0f;
+    float used = 0.0f;
+    float total = 0.0f;
+    float free = 0.0f;
+
     auto operator <=> (const disk&) const = default;
 };
 

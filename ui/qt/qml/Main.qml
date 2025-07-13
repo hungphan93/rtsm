@@ -38,8 +38,8 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.memory_usage_percent : "",
-                system_monitor ? system_monitor.memory_used_bytes + "gb of " +
-                                 system_monitor.memory_total_bytes + "gb" : "",
+                system_monitor ? system_monitor.memory_used_bytes + "Gb of " +
+                                 system_monitor.memory_total_bytes + "Gb" : "",
                 system_monitor ? system_monitor.memory_power_mw : "",
                 system_monitor ? system_monitor.memory_frequency_mhz : "",
             ]
@@ -51,8 +51,8 @@ Window {
                 [
                 system_monitor ? system_monitor.gpu_usage_percent : "",
                 system_monitor ? system_monitor.gpu_temperature_c : "",
-                system_monitor ? system_monitor.gpu_vram_used + "mb of " +
-                                 system_monitor.gpu_vram_total + "mb" : "",
+                system_monitor ? system_monitor.gpu_vram_used + "Mb of " +
+                                 system_monitor.gpu_vram_total + "Mb" : "",
                 system_monitor ? system_monitor.gpu_frequency_mhz : "",
             ]
         },
@@ -62,8 +62,8 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.disk_usage_percent : "",
-                system_monitor ? "Read: " + system_monitor.disk_read_speed + " mb/s | Write: " +
-                                 system_monitor.disk_write_speed + " mb/s" : ""
+                system_monitor ? "Read: " + system_monitor.disk_read_speed + "Mb/s | Write: " +
+                                 system_monitor.disk_write_speed + "Mb/s" : ""
             ]
         },
 
@@ -71,8 +71,8 @@ Window {
             title: "Network",
             contents:
                 [
-                system_monitor ? "Down: " + system_monitor.net_rx_bytes + " kb/s | Up: " +
-                                 system_monitor.net_tx_bytes + " kb/s" : ""
+                system_monitor ? "Down: " + system_monitor.net_rx_bytes + "Kb/s | Up: " +
+                                 system_monitor.net_tx_bytes + "Kb/s" : ""
             ]
         },
 
