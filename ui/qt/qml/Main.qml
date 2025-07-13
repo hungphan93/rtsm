@@ -104,8 +104,6 @@ Window {
             Rectangle {
                 Layout.preferredWidth: root.width * 2/3
                 height: parent.height
-                //   color: "#202020"
-                //  color: color_device_name
                 RowLayout {
                     anchors.fill: parent
                     spacing: 2

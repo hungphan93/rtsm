@@ -37,19 +37,19 @@ entity::net system_monitor::net() const noexcept {
 
 void system_monitor::start_periodic_tasks() noexcept {
     using namespace std::chrono;
-    scheduler_.add_fetcher("cpu", 100ms, [this] {
+    scheduler_.add_fetcher("cpu", 300ms, [this] {
         auto data = reader_.read_cpu();
         std::scoped_lock lock(mutex_);
         last_cpu_ = std::move(data);
     });
 
-    scheduler_.add_fetcher("memory", 200ms, [this] {
+    scheduler_.add_fetcher("memory", 500ms, [this] {
         auto data = reader_.read_memory();
         std::scoped_lock lock(mutex_);
         last_memory_ = std::move(data);
     });
 
-    scheduler_.add_fetcher("gpu", 200ms, [this] {
+    scheduler_.add_fetcher("gpu", 500ms, [this] {
         auto data = reader_.read_gpu();
         std::scoped_lock lock(mutex_);
         last_gpu_ = std::move(data);
