@@ -7,7 +7,11 @@ Window {
     width: 1100
     height: 250
     visible: true
+    flags: Qt.SplashScreen
+    color: "transparent"
     title: "Real-time system monitoring"
+    x: 40
+    y: 30
     readonly property font system_font: ({
                                              family: "Ubuntu Sans",
                                              pointSize: 14,
