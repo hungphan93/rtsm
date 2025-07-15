@@ -2,13 +2,15 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
-#include <qicon.h>
+#include <QIcon>
 #include <QLockFile>
 #include <QDir>
+#include <QWindow>
+#include "ui/qt/system_monitor_qt.hpp"
+#include "platform/window_sticky.hpp"
 
 #if defined(__linux__)
 #include "adapter/linux/system_info_reader_linux.hpp"
-#include "ui/qt/system_monitor_qt.hpp"
 #elif defined(_WIN32)
 #include "adapter/window/system_info_reader_window.hpp"
 #elif defined(__APPLE__)
@@ -18,10 +20,10 @@
 #endif
 
 int main(int argc, char *argv[]) {
-    QLockFile lockFile(QDir::tempPath() + "/rtsm.lock");
-    lockFile.setStaleLockTime(1000); // 1 second
+    QLockFile lock_file(QDir::tempPath() + "/rtsm.lock");
+    lock_file.setStaleLockTime(1000); // 1 second
 
-    if (!lockFile.tryLock(100)) {
+    if (!lock_file.tryLock(100)) {
         qDebug() << "Another instance is already running. Exiting bye bye.";
         return 0;
     }
@@ -30,6 +32,7 @@ int main(int argc, char *argv[]) {
     QQmlApplicationEngine engine;
     app.setWindowIcon(QIcon(":/icons/app_icon.png"));
 
+/// Construct platform-appropriate system info reader
 #if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
 #elif defined(_WIN32)
@@ -37,15 +40,36 @@ int main(int argc, char *argv[]) {
 #elif defined(__APPLE__)
     adapter::mac::system_info_reader_mac reader;
 #endif
+
     presenter::system_monitor monitor(reader);
     ui::qt::system_monitor_qt monitor_qt(&monitor);
 
     engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
     engine.loadFromModule("rtsm", "Main");
-    if (engine.rootObjects().isEmpty()) {
+
+    const auto& roots = engine.rootObjects();
+    if (roots.isEmpty()) {
         qCritical() << "Failed to load QML module!";
         return -1;
     }
+
+    // Use QPointer (safe weak reference) to ensure auto null on QML deletion
+    //  QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
+    // QWindow* window = qobject_cast<QWindow*>(roots.first());
+    // if (window) {
+    //     qWarning() << "Running X11.";
+    //     platform::make_window_sticky(window);
+    // } else {
+    //     qWarning() << "Root object is not a QWindow.";
+    // }
+
+    QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
+    if (window) {
+        platform::make_window_sticky(window);
+    }
+
+
+
 
     return app.exec();
 }

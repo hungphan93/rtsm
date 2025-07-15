@@ -5,6 +5,11 @@ project(rtsm VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find X11 package for Linux
+if(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+endif()
+
 #google test library
 include(FetchContent)
 FetchContent_Declare(
@@ -75,6 +80,7 @@ qt_add_qml_module(
   VERSION 1.0
   QML_FILES
   ui/qt/qml/Main.qml
+  SOURCES platform/window_sticky.hpp
 )
 
 # Set bundle metadata (macOS/Windows)
@@ -88,7 +94,15 @@ set_target_properties(apprtsm PROPERTIES
 # Link Qt libraries
 target_link_libraries(apprtsm
   PRIVATE Qt6::Quick
+  ${X11_LIBRARIES}
 )
+
+# Include directories for X11
+if(UNIX AND NOT APPLE)
+    target_include_directories(apprtsm PRIVATE
+        ${X11_INCLUDE_DIR}
+    )
+endif()
 
 # Installation (Linux/macOS)
 include(GNUInstallDirs)
