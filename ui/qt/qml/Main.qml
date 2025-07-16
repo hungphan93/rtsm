@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 Window {
     id: root
-    width: 1100
+    width: 1200
     height: 250
     visible: true
     flags: Qt.SplashScreen | Qt.WindowStaysOnBottomHint
@@ -38,9 +38,9 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.memory_usage_percent : "",
+                system_monitor ? system_monitor.memory_power_mw : "",
                 system_monitor ? system_monitor.memory_used_bytes + "Gb of " +
                                  system_monitor.memory_total_bytes + "Gb" : "",
-                system_monitor ? system_monitor.memory_power_mw : "",
                 system_monitor ? system_monitor.memory_frequency_mhz : "",
             ]
         },
