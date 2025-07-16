@@ -1,6 +1,4 @@
 #include "system_info_reader_linux.hpp"
-#include <charconv>
-#include <filesystem>
 #include <fstream>
 #include <qlogging.h>
 #include <regex>
@@ -9,106 +7,10 @@
 #include <mntent.h>
 #include <unordered_set>
 #include <qdebug.h>
+#include "./detail/system_info_reader_linux_detail.hpp"
 
 namespace adapter {
 namespace linux2 {
-
-namespace fs = std::filesystem;
-
-namespace {
-
-std::string extract_value(const std::string& line) {
-    auto pos = line.find(':');
-    return (pos == std::string::npos || pos + 2 >= line.size())
-               ? "" : line.substr(pos + 2);
-}
-
-template<typename T>
-bool parse_number(const std::string& text, T& out) {
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), out);
-    return ec == std::errc();
-}
-
-struct cpu_times {
-    uint64_t user = 0;
-    uint64_t nice = 0;
-    uint64_t system = 0;
-    uint64_t idle = 0;
-    uint64_t iowait = 0;
-    uint64_t irq = 0;
-    uint64_t softirq = 0;
-    uint64_t steal = 0;
-
-    uint64_t total() const noexcept {
-        return user + nice + system + idle + iowait + irq + softirq + steal;
-    }
-
-    uint64_t idle_time() const noexcept {
-        return idle + iowait;
-    }
-};
-
-cpu_times read_cpu_times() {
-    cpu_times times;
-    std::ifstream proc("/proc/stat");
-    if (!proc.is_open()) return times;
-
-    std::string line;
-    std::getline(proc, line);
-    std::istringstream iss(line);
-    std::string cpu_label;
-    iss >> cpu_label >> times.user >> times.nice >> times.system
-        >> times.idle >> times.iowait >> times.irq >> times.softirq >> times.steal;
-    return times;
-}
-
-std::string read_line(const std::string path) {
-    std::ifstream file(path);
-    std::string line;
-    return (file.is_open() && std::getline(file, line)) ? line : "";
-};
-
-std::string exec_cmd(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) {
-        throw std::runtime_error("popen() failed!");
-    }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    return result;
-}
-
-void trim(std::string& s) {
-    s.erase(0, s.find_first_not_of(" \t\n\r"));
-    s.erase(s.find_last_not_of(" \t\n\r") + 1);
-};
-
-float to_gb(uint64_t bytes) {
-    return bytes / (1024.0 * 1024.0 * 1024.0);
-}
-
-template<typename T>
-float percent(T used, T total) {
-    return (total > 0) ? (100.0 * used / total) : 0;
-}
-
-std::optional<std::string> find_hwmon_by_name(const std::string& target) {
-    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon")) {
-        std::ifstream name_file(entry.path() / "name");
-        std::string name;
-        if (name_file && std::getline(name_file, name)) {
-            if (name == target) {
-                return entry.path().string();
-            }
-        }
-    }
-    return std::nullopt;
-}
-
-}
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
 
@@ -120,68 +22,66 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         return result;
     }
 
-    cpu_times t1 = read_cpu_times();
+    detail::cpu_times t1 = detail::read_cpu_times();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    cpu_times t2 = read_cpu_times();
+    detail::cpu_times t2 = detail::read_cpu_times();
 
     const auto idle_diff = t2.idle_time() - t1.idle_time();
     const auto total_diff = t2.total() - t1.total();
 
     if (total_diff > 0) {
-        result.usage_percent = percent((total_diff - idle_diff), total_diff);
+        result.usage_percent = detail::percent((total_diff - idle_diff), total_diff);
     }
 
     std::string line;
     /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-    const std::regex amd_pattern(R"(AMD\s+Ryzen\s+\d+\s+\d+\w*)", std::regex::icase);
+    const std::regex amd_pattern(R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b)", std::regex::icase);
     const std::regex intel_pattern(R"(Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)", std::regex::icase);
 
     while(std::getline(proc, line)) {
         if (line.empty()) continue;
 
-        const std::string value = extract_value(line);
+        auto value = detail::trim(detail::extract_value(line));
 
         if (line.starts_with("model name")) {
             std::smatch match;
-            if (std::regex_search(value, match, amd_pattern) || std::regex_search(value, match, intel_pattern)) {
-                if (!match.empty()) {
-                    result.model_name = value;
-                }
+            std::string sv_str(value);
+            if (std::regex_search(sv_str, match, std::regex(R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)", std::regex::icase))) {
+                result.model_name = match.str();
             }
-
         }
 
         else if (line.starts_with("cpu cores")) {
-            parse_number<uint16_t>(value, result.cpu_cores);
+            detail::parse_number(value, result.cpu_cores);
         }
 
         else if (line.starts_with("processor")) {
-            parse_number<uint8_t>(value, result.processor_id);
+            detail::parse_number(value, result.processor_id);
         }
 
         else if (line.starts_with("cache size")) {
-            parse_number<uint32_t>(value, result.l2_cache_kib);
+            detail::parse_number(value, result.l2_cache_kib);
         }
 
         else if (line.starts_with("cpu MHz")) {
-            parse_number<float>(value,  result.frequency_mhz);
+            detail::parse_number(value,  result.frequency_mhz);
         }
 
         else if (line.starts_with("physical id")) {
-            parse_number<uint16_t>(value, result.physical_id);
+            detail::parse_number(value, result.physical_id);
         }
 
         else if (line.starts_with("siblings")) {
-            parse_number<uint16_t>(value,  result.siblings);
+            detail::parse_number(value,  result.siblings);
         }
 
         else if (line.starts_with("core id")) {
-            parse_number<uint16_t>(value, result.core_id);
+            detail::parse_number(value, result.core_id);
         }
     }
 
     /// dynamically find CPU temp from k10temp
-    if (auto hwmon_cpu = find_hwmon_by_name("k10temp")) {
+    if (auto hwmon_cpu = detail::find_hwmon_by_name("k10temp")) {
         std::ifstream temp_file(*hwmon_cpu + "/temp1_input");
         if (temp_file && std::getline(temp_file, line)) {
             result.temperature_c = std::stoull(line);
@@ -189,7 +89,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     }
 
     /// dynamically find power from amdgpu if integrated APU
-    if (auto hwmon_gpu = find_hwmon_by_name("amdgpu")) {
+    if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
         std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
         if (pwr_file && std::getline(pwr_file, line)) {
             result.power_mw = std::stoull(line);
@@ -230,11 +130,11 @@ entity::memory system_info_reader_linux::read_memory() const {
     result.vram_used = result.vram_total - available_mb;
 
     if (result.vram_used > 0) {
-        result.usage_percent = percent(result.vram_used, result.vram_total);
+        result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
-    std::string value = exec_cmd(
-        "cat /home/hungphan/password.txt | sudo -S -p '' dmidecode --type 17 2>/dev/null "
+    std::string value = detail::exec_cmd(
+        "cat /home/$USER/password.txt | sudo -S -p '' dmidecode --type 17 2>/dev/null "
         "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
         "| grep -v 'Unknown' "
         "| awk -F: '{print $2}' "
@@ -248,14 +148,13 @@ entity::memory system_info_reader_linux::read_memory() const {
 
         std::getline(iss, line);
 
-        trim(line);
-        result.name = line;
+        result.name = detail::trim(line);
 
         iss >> line;
-        parse_number(line, result.frequency_mhz);
+        detail::parse_number(detail::trim(line), result.frequency_mhz);
 
         iss >> line;
-        parse_number(line, result.power_mw);
+        detail::parse_number(detail::trim(line), result.power_mw);
     }
 
     return result;
@@ -264,27 +163,27 @@ entity::memory system_info_reader_linux::read_memory() const {
 entity::gpu system_info_reader_linux::read_gpu() const {
     entity::gpu result;
 
-    std::string value = read_line("/sys/class/drm/card1/device/uevent");
+    std::string value = detail::read_line("/sys/class/drm/card1/device/uevent");
     if (!value.empty()) {
         result.name =  value.substr(value.find("=") + 1);
     }
 
-    value = read_line("/sys/class/drm/card1/device/mem_info_vram_total");
+    value = detail::read_line("/sys/class/drm/card1/device/mem_info_vram_total");
     if (!value.empty()) {
         result.vram_total = (std::stoull(value) / 1024);
     }
 
-    value = read_line("/sys/class/drm/card1/device/mem_info_vram_used");
+    value = detail::read_line("/sys/class/drm/card1/device/mem_info_vram_used");
     if (!value.empty()) {
         result.vram_used = (std::stoull(value) / 1024);
     }
 
     if (result.vram_used > 0) {
-        result.usage_percent = percent(result.vram_used, result.vram_total);
+        result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
     /// reading for nvidia card
-    value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
+    value = detail::exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
     /// value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
     if (!value.empty()) {
         // Example line: GeForce RTX 3060, 12288, 2205, 37
@@ -320,7 +219,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     /// for gpu amd onboard
     std::string line;
     /// first try integrated AMD GPU info via amdgpu
-    if (auto hwmon_gpu = find_hwmon_by_name("amdgpu")) {
+    if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
         std::ifstream temp_file(*hwmon_gpu + "/temp1_input");
         if (temp_file && std::getline(temp_file, line)) {
             result.temperature_c = std::stoull(line) / 1000.0;
@@ -333,11 +232,11 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     if (result.vram_used > 0) {
-        result.usage_percent = percent(result.vram_used, result.vram_total);
+        result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
     /// gpu get frequency mhz
-    value = exec_cmd(R"delim(cat /sys/class/drm/card1/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
+    value = detail::exec_cmd(R"delim(cat /sys/class/drm/card1/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
     if (!value.empty()) {
         result.frequency_mhz = std::stoull(value);
     }
@@ -381,8 +280,8 @@ entity::disk system_info_reader_linux::read_disk() const {
         /// /dev/nvme0n1p2
         /// /dev/nvme0n1p3
         /// /dev/nvme0n1p5
-        double total_gb = to_gb(stat.f_blocks * stat.f_frsize);
-        double free_gb  = to_gb(stat.f_bfree  * stat.f_frsize);
+        double total_gb = detail::to_gb(stat.f_blocks * stat.f_frsize);
+        double free_gb  = detail::to_gb(stat.f_bfree  * stat.f_frsize);
         result.total += total_gb;
         result.free  += free_gb;
         result.used  += total_gb - free_gb;
@@ -393,13 +292,13 @@ entity::disk system_info_reader_linux::read_disk() const {
 
     std::string device = "nvme0n1";
     std::string str = "/sys/block/" + device + "/queue/hw_sector_size";
-    std::string value = read_line(str.c_str());
+    std::string value = detail::read_line(str.c_str());
 
     if (value.empty()) return result;
     result.sector_size = std::stoull(value);
 
     std::string str2 = "/sys/block/" + device + "/device/model";
-    std::string value2 = read_line(str2.c_str());
+    std::string value2 = detail::read_line(str2.c_str());
 
     if (value2.empty()) return result;
     result.model = value2;

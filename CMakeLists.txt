@@ -81,6 +81,7 @@ qt_add_qml_module(
   QML_FILES
   ui/qt/qml/Main.qml
   SOURCES platform/window_sticky.hpp
+  SOURCES adapter/linux/detail/system_info_reader_linux_detail.hpp
 )
 
 # Set bundle metadata (macOS/Windows)

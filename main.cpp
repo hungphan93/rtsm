@@ -53,23 +53,10 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    // Use QPointer (safe weak reference) to ensure auto null on QML deletion
-    //  QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
-    // QWindow* window = qobject_cast<QWindow*>(roots.first());
-    // if (window) {
-    //     qWarning() << "Running X11.";
-    //     platform::make_window_sticky(window);
-    // } else {
-    //     qWarning() << "Root object is not a QWindow.";
-    // }
-
     QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
     if (window) {
         platform::make_window_sticky(window);
     }
-
-
-
 
     return app.exec();
 }
