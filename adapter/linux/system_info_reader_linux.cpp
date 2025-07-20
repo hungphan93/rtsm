@@ -134,7 +134,7 @@ entity::memory system_info_reader_linux::read_memory() const {
     }
 
     std::string value = detail::exec_cmd(
-        "cat /home/$USER/password.txt | sudo -S -p '' dmidecode --type 17 2>/dev/null "
+        "sudo -p '' dmidecode --type 17 2>/dev/null "
         "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
         "| grep -v 'Unknown' "
         "| awk -F: '{print $2}' "

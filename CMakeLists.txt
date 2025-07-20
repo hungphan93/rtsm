@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22.1)
 
 project(rtsm VERSION 0.1 LANGUAGES CXX)
 
@@ -7,24 +7,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find X11 package for Linux
 if(UNIX AND NOT APPLE)
-    find_package(X11 REQUIRED)
+  find_package(X11 REQUIRED)
 endif()
 
-#google test library
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
+# #google test library
+# include(FetchContent)
+# FetchContent_Declare(
+#   googletest
+#   URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+# )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+# set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+# FetchContent_MakeAvailable(googletest)
 
-# Install your icon
-install(FILES icons/app_icon.png DESTINATION share/icons/hicolor/48x48/apps)
+# # Install your icon
+# install(FILES icons/app_icon.png DESTINATION share/icons/hicolor/48x48/apps)
 
-# Install your .desktop file
-install(FILES rtsm.desktop DESTINATION share/applications)
+# # Install your .desktop file
+# install(FILES rtsm.desktop DESTINATION share/applications)
 
 # Qt Setup
 find_package(Qt6 REQUIRED COMPONENTS Quick)
@@ -65,6 +65,9 @@ set(APP_HEADERS
   ui/qt/system_monitor_qt.hpp
 
   scheduler/system_fetch_manager.hpp
+
+  platform/window_sticky.hpp
+  adapter/linux/detail/system_info_reader_linux_detail.hpp
 )
 
 # Add executable target
@@ -80,8 +83,6 @@ qt_add_qml_module(
   VERSION 1.0
   QML_FILES
   ui/qt/qml/Main.qml
-  SOURCES platform/window_sticky.hpp
-  SOURCES adapter/linux/detail/system_info_reader_linux_detail.hpp
 )
 
 # Set bundle metadata (macOS/Windows)
@@ -100,9 +101,9 @@ target_link_libraries(apprtsm
 
 # Include directories for X11
 if(UNIX AND NOT APPLE)
-    target_include_directories(apprtsm PRIVATE
-        ${X11_INCLUDE_DIR}
-    )
+  target_include_directories(apprtsm PRIVATE
+    ${X11_INCLUDE_DIR}
+  )
 endif()
 
 # Installation (Linux/macOS)
