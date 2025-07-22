@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=RTSM
-Exec=rtsm
+Exec=apprtsm
 Icon=app_icon
 Type=Application
 Categories=Utility;

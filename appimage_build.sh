@@ -1,50 +1,50 @@
 #!/bin/bash
 
-set -ex  # Exit on error, and print all commands
+set -ex
 
-# === CONFIGURATION ===
 REPO_ROOT=$(readlink -f "$(dirname "$0")")
 BUILD_DIR="$REPO_ROOT/build"
 APPDIR="$BUILD_DIR/AppDir"
 INSTALL_PREFIX=/usr
-APP_NAME=rtsm
+EXECUTABLE_PATH="$APPDIR/usr/bin/apprtsm"
 
-# === CLEAN BUILD DIR ===
+DESKTOP_FILE="$APPDIR/usr/share/applications/rtsm.desktop"
+ICON_TARGET="$APPDIR/usr/share/icons/hicolor/256x256/apps/app_icon.png"
+ICON_SOURCE="$REPO_ROOT/icons/app_icon.png"
+
 rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
+mkdir -p "$APPDIR/usr/share/applications"
+mkdir -p "$(dirname "$ICON_TARGET")"
+
 pushd "$BUILD_DIR"
 
-# === CONFIGURE & BUILD IN RELEASE MODE ===
+# === Build app ===
 cmake "$REPO_ROOT" \
     -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
     -DCMAKE_BUILD_TYPE=Release
-
 make -j"$(nproc)"
 make install DESTDIR="$APPDIR"
 
-# === DOWNLOAD linuxdeploy AND PLUGIN ===
-if [ ! -f linuxdeploy-x86_64.AppImage ]; then
-    wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+# === Install .desktop and icon ===
+cp "$REPO_ROOT/rtsm.desktop" "$DESKTOP_FILE"
+cp "$ICON_SOURCE" "$ICON_TARGET"
+
+# === Download linuxdeployqt if needed ===
+if [ ! -f linuxdeployqt-continuous-x86_64.AppImage ]; then
+    wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+    chmod +x linuxdeployqt-continuous-x86_64.AppImage
 fi
 
-if [ ! -f linuxdeploy-plugin-qt-x86_64.AppImage ]; then
-    wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-fi
-
-chmod +x linuxdeploy*.AppImage
-
-# === EXPORT QML PATH (adjust to match your project) ===
+# === Export QML path if needed ===
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml"
 
-# === CREATE APPIMAGE ===
-./linuxdeploy-x86_64.AppImage \
-    --appdir "$APPDIR" \
-    --plugin qt \
-    --output appimage
-
-# === MOVE AppImage TO PROJECT ROOT ===
-find . -name "*.AppImage" -exec mv {} "$REPO_ROOT" \;
+# === Create AppImage ===
+./linuxdeployqt-continuous-x86_64.AppImage \
+    "$DESKTOP_FILE" \
+    -qmldir="$QML_SOURCES_PATHS" \
+    -appimage
 
 popd
-echo "✅ AppImage built and moved to $REPO_ROOT"
+APPIMAGE_FILE=$(find build -maxdepth 1 -type f -name "RTSM-*-x86_64.AppImage" -exec realpath {} \; | head -n 1)
+echo "✅ AppImage created: $APPIMAGE_FILE"
 
