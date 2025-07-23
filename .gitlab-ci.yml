@@ -29,7 +29,8 @@ build_appimage:
     - cmake .. -DCMAKE_BUILD_TYPE=Release
     - make -j$(nproc)
     - cd ..
-    - bash appimage_build.sh
+    - chmod +x appimage_build.sh
+    - bash ./appimage_build.sh
   rules:
     - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
   needs: ["build_release"]
