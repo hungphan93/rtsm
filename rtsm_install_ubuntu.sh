@@ -25,7 +25,7 @@ sudo cp "$APPIMAGE_NAME" "$APP_PATH"
 sudo chmod +x "$APP_PATH"
 
 # 0. Prepare icon directory
-echo "📦 [0/7] Intalling  icon"
+echo "📦 [0/7] Intalling icon"
 sudo mkdir -p $APP_ICON
 sudo cp ./icons/$ICON_NAME $APP_ICON
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 echo "Stopping rtsm systemd user service..."
 systemctl --user stop rtsm.service || true
