@@ -9,23 +9,29 @@ variables:
   DEBIAN_FRONTEND: noninteractive
 
 before_script:
-  - apt update && apt install -y build-essential qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools git wget curl libfuse2
+  - apt update
+  - apt install -y git wget curl build-essential cmake qt6-base-dev qt6-declarative-dev qt6-tools-dev libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
 
-build_release:
+#build_release:
+#  stage: build
+#  script:
+#    - mkdir -p build && cd build
+#    - cmake .. -DCMAKE_BUILD_TYPE=Release
+#    - cmake --build . --parallel
+#  artifacts:
+#    paths:
+#      - build/
+
+build_appimage:
   stage: build
   script:
     - mkdir -p build && cd build
     - cmake .. -DCMAKE_BUILD_TYPE=Release
-    - cmake --build . --parallel
-  artifacts:
-    paths:
-      - build/
-
-build_appimage:
-  stage: package
-  script:
-    - chmod +x appimage_build.sh
-    - ./appimage_build.sh
+    - make -j$(nproc)
+    - cd ..
+    - bash appimage_build.sh
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
   needs: ["build_release"]
   artifacts:
     paths:
