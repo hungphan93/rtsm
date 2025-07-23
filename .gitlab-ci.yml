@@ -1,0 +1,52 @@
+image: ubuntu:22.04
+
+stages:
+  - build
+  - package
+  - release
+
+variables:
+  DEBIAN_FRONTEND: noninteractive
+
+before_script:
+  - apt update
+  - apt install -y git wget curl build-essential cmake qt6-base-dev qt6-declarative-dev qt6-tools-dev libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
+
+#build_release:
+#  stage: build
+#  script:
+#    - mkdir -p build && cd build
+#    - cmake .. -DCMAKE_BUILD_TYPE=Release
+#    - cmake --build . --parallel
+#  artifacts:
+#    paths:
+#      - build/
+
+build_appimage:
+  stage: build
+  script:
+    - mkdir -p build && cd build
+    - cmake .. -DCMAKE_BUILD_TYPE=Release
+    - make -j$(nproc)
+    - cd ..
+    - bash appimage_build.sh
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
+  needs: ["build_release"]
+  artifacts:
+    paths:
+      - rtsm*.AppImage
+
+release:
+  stage: release
+  script:
+    - echo "Creating release for tag $CI_COMMIT_TAG"
+  only:
+    - tags
+  artifacts:
+    paths:
+      - rtsm*.AppImage
+  release:
+    name: "RTSM $CI_COMMIT_TAG"
+    tag_name: "$CI_COMMIT_TAG"
+    description: "Release for RTSM $CI_COMMIT_TAG"
