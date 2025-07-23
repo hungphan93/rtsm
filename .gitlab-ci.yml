@@ -25,15 +25,16 @@ before_script:
 build_appimage:
   stage: build
   script:
+    - echo "📦 Starting AppImage build..."
     - mkdir -p build && cd build
     - cmake .. -DCMAKE_BUILD_TYPE=Release
     - make -j$(nproc)
     - cd ..
     - chmod +x appimage_build.sh
-    - bash ./appimage_build.sh
+    - bash appimage_build.sh
+    - echo "📦 The End AppImage build..."
   rules:
     - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
-  needs: ["build_release"]
   artifacts:
     paths:
       - rtsm*.AppImage
