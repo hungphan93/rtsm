@@ -27,7 +27,9 @@ endif()
 # install(FILES rtsm.desktop DESTINATION share/applications)
 
 # Qt Setup
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+# find_package(Qt6 REQUIRED COMPONENTS Quick)
+# qt_standard_project_setup()
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick)
 qt_standard_project_setup()
 qt_policy(SET QTP0004 NEW)
 
