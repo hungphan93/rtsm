@@ -1,5 +1,27 @@
 image: ubuntu:22.04
 
+install_qt:
+  stage: build
+  image: python:3.10
+
+  variables:
+    QT_VERSION: "6.9.1"
+    QT_ARCH: "gcc_64"
+    QT_DIR: "$CI_PROJECT_DIR/Qt"
+
+  before_script:
+    - apt update && apt install -y libgl1-mesa-dev libxcb-xinerama0
+    - pip install aqtinstall
+
+  script:
+    - aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -O ${QT_DIR}
+    - ls ${QT_DIR}/${QT_VERSION}/${QT_ARCH}
+    - export PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/bin:$PATH"
+    - mkdir build && cd build
+    - cmake .. -DCMAKE_PREFIX_PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/lib/cmake"
+    - cmake --build .
+
+
 stages:
   - build
 #  - package
