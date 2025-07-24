@@ -1,5 +1,8 @@
 image: ubuntu:22.04
 
+stages:
+ - build
+
 variables:
   QT_VERSION: "6.9.1"
   QT_DIR: "/opt/qt/$QT_VERSION"
@@ -7,7 +10,7 @@ variables:
   CMAKE_PREFIX_PATH: "$QT_DIR"
 
 before_script:
-  - apt-get update && apt-get install -y build-essential wget cmake ...
+  - apt-get update && apt-get install -y build-essential wget cmake tar ...
 
   # Download & build Qt
   - wget -O qt-everywhere-src-$QT_VERSION.tar.xz \
