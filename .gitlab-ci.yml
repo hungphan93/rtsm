@@ -10,7 +10,13 @@ variables:
 
 before_script:
   - apt-get update
-  - apt-get install -y git wget curl build-essential gcc g++ make cmake qt6-base-dev qt6-declarative-dev qt6-tools-dev libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
+  - apt-get install -y git wget curl build-essential gcc g++ make \
+      libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev \
+      libxkbcommon-dev qt6-base-dev qt6-declarative-dev qt6-tools-dev
+  - wget https://github.com/Kitware/CMake/releases/download/v3.27.7/cmake-3.27.7-linux-x86_64.sh
+  - chmod +x cmake-3.27.7-linux-x86_64.sh
+  - ./cmake-3.27.7-linux-x86_64.sh --skip-license --prefix=/usr/local
+  - cmake --version
 
 #build_release:
 #  stage: build
