@@ -1,21 +1,31 @@
-image: ubuntu:24.04
+image: ubuntu:22.04
 
-stages:
-  - build
-  
 variables:
   QT_VERSION: "6.9.1"
-  QT_DIR: "$CI_PROJECT_DIR/qt"
-  BUILD_DIR: "$CI_PROJECT_DIR/build"
-  QT_ARCHIVE_URL: "https://download.qt.io/official_releases/qt/6.9/6.9.1/qt-opensource-linux-x64-6.9.1.tar.xz"
+  QT_DIR: "/opt/qt/$QT_VERSION"
+  PATH: "$QT_DIR/bin:$PATH"
+  CMAKE_PREFIX_PATH: "$QT_DIR"
 
 before_script:
-  - apt update && apt install -y wget build-essential cmake ninja-build libgl1-mesa-dev libxkbcommon-dev libxcb1-dev libx11-xcb-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev
-  - mkdir -p $QT_DIR
-  - wget $QT_ARCHIVE_URL -O qt.tar.xz
-  - tar -xf qt.tar.xz -C $QT_DIR --strip-components=1
-  - export CMAKE_PREFIX_PATH="$QT_DIR/lib/cmake"
+  - apt-get update && apt-get install -y build-essential wget cmake ...
+
+  # Download & build Qt
+  - wget -O qt-everywhere-src-$QT_VERSION.tar.xz \
+      https://download.qt.io/archive/qt/6.9/$QT_VERSION/single/qt-everywhere-src-$QT_VERSION.tar.xz
+  - mkdir -p "$QT_DIR"
+  - tar -xf qt-everywhere-src-$QT_VERSION.tar.xz -C "$QT_DIR" --strip-components=1
+  - cd "$QT_DIR"
+  - ./configure -prefix "$QT_DIR" -opensource -confirm-license \
+      -nomake examples -nomake tests -skip qtwebengine
+  - make -j$(nproc) && make install
+  - cd -
+
+  # Verify
+  - qmake --version
   - cmake --version
+  - ls
+  - pwd
+  
 
 build_appimage:
   stage: build
