@@ -1,5 +1,4 @@
 image: ubuntu:22.04
-image: registry.gitlab.com/cppqt/qt6:6.6  # or another Qt6-capable image
 
 stages:
   - build

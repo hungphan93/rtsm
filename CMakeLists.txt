@@ -28,7 +28,7 @@ endif()
 
 # Qt Setup
 find_package(Qt6 REQUIRED COMPONENTS Quick)
-qt_standard_project_setup(REQUIRES 6.5)
+qt_standard_project_setup()
 qt_policy(SET QTP0004 NEW)
 
 # Source files (CPP only)
