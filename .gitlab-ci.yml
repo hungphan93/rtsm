@@ -1,49 +1,29 @@
-image: ubuntu:22.04
-image: python:3.10
- 
+image: ubuntu:24.04
+
 stages:
   - build
-#  - package
-#  - release
-
+  
 variables:
   QT_VERSION: "6.9.1"
-  QT_ARCH: "gcc_64"
-  QT_DIR: "$CI_PROJECT_DIR/Qt"
+  QT_DIR: "$CI_PROJECT_DIR/qt"
+  BUILD_DIR: "$CI_PROJECT_DIR/build"
+  QT_ARCHIVE_URL: "https://download.qt.io/official_releases/qt/6.9/6.9.1/qt-opensource-linux-x64-6.9.1.tar.xz"
 
 before_script:
-  - apt update && apt install -y libgl1-mesa-dev libxcb-xinerama0
-  - pip install aqtinstall
-  - apt install -y git wget curl build-essential gcc g++ make
-      libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
-      libxkbcommon-dev qt6-base-dev qt6-declarative-dev qt6-tools-dev
-  - wget https://github.com/Kitware/CMake/releases/download/v3.27.7/cmake-3.27.7-linux-x86_64.sh
-  - chmod +x cmake-3.27.7-linux-x86_64.sh
-  - ./cmake-3.27.7-linux-x86_64.sh --skip-license --prefix=/usr/local
+  - apt update && apt install -y wget build-essential cmake ninja-build libgl1-mesa-dev libxkbcommon-dev libxcb1-dev libx11-xcb-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev
+  - mkdir -p $QT_DIR
+  - wget $QT_ARCHIVE_URL -O qt.tar.xz
+  - tar -xf qt.tar.xz -C $QT_DIR --strip-components=1
+  - export CMAKE_PREFIX_PATH="$QT_DIR/lib/cmake"
   - cmake --version
-  
-  - aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -O ${QT_DIR}
-  - ls ${QT_DIR}/${QT_VERSION}/${QT_ARCH}
-  - export PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/bin:$PATH"
-  - mkdir build && cd build
-  - cmake .. -DCMAKE_PREFIX_PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/lib/cmake"
-  - cmake --build .
-
-#build_release:
-#  stage: build
-#  script:
-#    - mkdir -p build && cd build
-#    - cmake .. -DCMAKE_BUILD_TYPE=Release
-#    - cmake --build . --parallel
-#    - make -j$(nproc)
-#  artifacts:
-#    paths:
-#      - build/
 
 build_appimage:
   stage: build
   script:
     - echo "📦 Starting AppImage build..."
+    - mkdir -p $BUILD_DIR && cd $BUILD_DIR
+    - cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR/lib/cmake"
+    - ninja
 #    - mkdir -p build && cd build
 #    - cmake .. -DCMAKE_BUILD_TYPE=Release
 #    - make -j$(nproc)
