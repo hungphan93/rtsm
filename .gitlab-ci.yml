@@ -1,44 +1,33 @@
 image: ubuntu:22.04
-
-install_qt:
-  stage: build
-  image: python:3.10
-
-  variables:
-    QT_VERSION: "6.9.1"
-    QT_ARCH: "gcc_64"
-    QT_DIR: "$CI_PROJECT_DIR/Qt"
-
-  before_script:
-    - apt update && apt install -y libgl1-mesa-dev libxcb-xinerama0
-    - pip install aqtinstall
-
-  script:
-    - aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -O ${QT_DIR}
-    - ls ${QT_DIR}/${QT_VERSION}/${QT_ARCH}
-    - export PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/bin:$PATH"
-    - mkdir build && cd build
-    - cmake .. -DCMAKE_PREFIX_PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/lib/cmake"
-    - cmake --build .
-
-
+image: python:3.10
+ 
 stages:
   - build
 #  - package
 #  - release
 
 variables:
-  DEBIAN_FRONTEND: noninteractive
+  QT_VERSION: "6.9.1"
+  QT_ARCH: "gcc_64"
+  QT_DIR: "$CI_PROJECT_DIR/Qt"
 
 before_script:
-  - apt-get update
-  - apt-get install -y git wget curl build-essential gcc g++ make
+  - apt update && apt install -y libgl1-mesa-dev libxcb-xinerama0
+  - pip install aqtinstall
+  - apt install -y git wget curl build-essential gcc g++ make
       libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
       libxkbcommon-dev qt6-base-dev qt6-declarative-dev qt6-tools-dev
   - wget https://github.com/Kitware/CMake/releases/download/v3.27.7/cmake-3.27.7-linux-x86_64.sh
   - chmod +x cmake-3.27.7-linux-x86_64.sh
   - ./cmake-3.27.7-linux-x86_64.sh --skip-license --prefix=/usr/local
   - cmake --version
+  
+  - aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -O ${QT_DIR}
+  - ls ${QT_DIR}/${QT_VERSION}/${QT_ARCH}
+  - export PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/bin:$PATH"
+  - mkdir build && cd build
+  - cmake .. -DCMAKE_PREFIX_PATH="${QT_DIR}/${QT_VERSION}/${QT_ARCH}/lib/cmake"
+  - cmake --build .
 
 #build_release:
 #  stage: build
