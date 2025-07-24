@@ -2,16 +2,16 @@ image: ubuntu:22.04
 image: registry.gitlab.com/cppqt/qt6:6.6
 
 stages:
-  - build
+#  - build
   - package
-  - release
+#  - release
 
 variables:
   DEBIAN_FRONTEND: noninteractive
 
 before_script:
-  - apt update
-  - apt install -y git wget curl build-essential cmake qt6-base-dev qt6-declarative-dev qt6-tools-dev libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
+  - apt-get update
+  - apt-get install -y git wget curl build-essential make cmake qt6-base-dev qt6-declarative-dev qt6-tools-dev libfuse2 libglib2.0-bin desktop-file-utils libgl1-mesa-dev
 
 #build_release:
 #  stage: build
@@ -19,6 +19,7 @@ before_script:
 #    - mkdir -p build && cd build
 #    - cmake .. -DCMAKE_BUILD_TYPE=Release
 #    - cmake --build . --parallel
+#    - make -j$(nproc)
 #  artifacts:
 #    paths:
 #      - build/
@@ -27,29 +28,30 @@ build_appimage:
   stage: build
   script:
     - echo "📦 Starting AppImage build..."
-    - mkdir -p build && cd build
-    - cmake .. -DCMAKE_BUILD_TYPE=Release
-    - make -j$(nproc)
-    - cd ..
+#    - mkdir -p build && cd build
+#    - cmake .. -DCMAKE_BUILD_TYPE=Release
+#    - make -j$(nproc)
+#    - cd ..
     - chmod +x appimage_build.sh
-    - bash appimage_build.sh
+    - ./appimage_build.sh
     - echo "📦 The End AppImage build..."
   rules:
     - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
   artifacts:
     paths:
-      - rtsm*.AppImage
+    - build/
+     # - rtsm*.AppImage
 
-release:
-  stage: release
-  script:
-    - echo "Creating release for tag $CI_COMMIT_TAG"
-  only:
-    - tags
-  artifacts:
-    paths:
-      - rtsm*.AppImage
-  release:
-    name: "RTSM $CI_COMMIT_TAG"
-    tag_name: "$CI_COMMIT_TAG"
-    description: "Release for RTSM $CI_COMMIT_TAG"
+#release:
+#  stage: release
+#  script:
+#    - echo "Creating release for tag $CI_COMMIT_TAG"
+#  only:
+#    - tags
+#  artifacts:
+#    paths:
+#      - rtsm*.AppImage
+#  release:
+#    name: "RTSM $CI_COMMIT_TAG"
+#    tag_name: "$CI_COMMIT_TAG"
+#    description: "Release for RTSM $CI_COMMIT_TAG"
