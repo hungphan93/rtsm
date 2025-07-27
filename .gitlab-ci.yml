@@ -1,66 +1,50 @@
 image: ubuntu:22.04
 
 stages:
- - build
+  - build
+#  - package
+#  - release
 
 variables:
-  QT_VERSION: "6.9.1"
-  QT_DIR: "/opt/qt/$QT_VERSION"
-  PATH: "$QT_DIR/bin:$PATH"
-  CMAKE_PREFIX_PATH: "$QT_DIR"
+  DEBIAN_FRONTEND: noninteractive
 
 before_script:
-  - apt-get update && apt-get install -y build-essential wget cmake tar ...
+	- chmod x+ build_install_dependency.sh
+	- ./build_install_dependency.sh
+	- echo "Done build install dependency"
+#before_script:
+#  - apt update && apt install -y build-essential qt6-base-dev qt6-declarative-dev qt6-tools-#dev-tools git wget curl libfuse2
 
-  # Download & build Qt
-  - wget -O qt-everywhere-src-$QT_VERSION.tar.xz \
-      https://download.qt.io/archive/qt/6.9/$QT_VERSION/single/qt-everywhere-src-$QT_VERSION.tar.xz
-  - mkdir -p "$QT_DIR"
-  - tar -xf qt-everywhere-src-$QT_VERSION.tar.xz -C "$QT_DIR" --strip-components=1
-  - cd "$QT_DIR"
-  - ./configure -prefix "$QT_DIR" -opensource -confirm-license \
-      -nomake examples -nomake tests -skip qtwebengine
-  - make -j$(nproc) && make install
-  - cd -
-
-  # Verify
-  - qmake --version
-  - cmake --version
-  - ls
-  - pwd
-  
-
-build_appimage:
+build_release:
   stage: build
   script:
-    - echo "📦 Starting AppImage build..."
-    - mkdir -p $BUILD_DIR && cd $BUILD_DIR
-    - cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR/lib/cmake"
-    - ninja
-#    - mkdir -p build && cd build
-#    - cmake .. -DCMAKE_BUILD_TYPE=Release
-#    - make -j$(nproc)
-#    - cd ..
-    - chmod +x appimage_build.sh
-    - ./appimage_build.sh
-    - echo "📦 The End AppImage build..."
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "v1.0.0"'
+    - mkdir -p build && cd build
+    - cmake .. -DCMAKE_BUILD_TYPE=Release
+    - cmake --build . --parallel
   artifacts:
     paths:
-    - build/
-     # - rtsm*.AppImage
+      - build/
 
-#release:
-#  stage: release
-#  script:
-#    - echo "Creating release for tag $CI_COMMIT_TAG"
-#  only:
-#    - tags
-#  artifacts:
-#    paths:
-#      - rtsm*.AppImage
-#  release:
-#    name: "RTSM $CI_COMMIT_TAG"
-#    tag_name: "$CI_COMMIT_TAG"
-#    description: "Release for RTSM $CI_COMMIT_TAG"
+build_appimage:
+  stage: package
+  script:
+    - chmod +x appimage_build.sh
+    - ./appimage_build.sh
+  needs: ["build_release"]
+  artifacts:
+    paths:
+      - rtsm*.AppImage
+
+release:
+  stage: release
+  script:
+    - echo "Creating release for tag $CI_COMMIT_TAG"
+  only:
+    - tags
+  artifacts:
+    paths:
+      - rtsm*.AppImage
+  release:
+    name: "RTSM $CI_COMMIT_TAG"
+    tag_name: "$CI_COMMIT_TAG"
+    description: "Release for RTSM $CI_COMMIT_TAG"
