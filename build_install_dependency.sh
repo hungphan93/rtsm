@@ -1,9 +1,10 @@
 #!/bin/bash
 
-set -e  # Exit on error
+set -e
 set -o pipefail
 
-apt update && apt install -y \
+echo "===> Installing required packages (hidden output)..."
+if ! apt update -qq && apt install -y -qq \
     build-essential \
     make \
     cmake \
@@ -46,12 +47,18 @@ apt update && apt install -y \
     libglib2.0-dev \
     libdbus-1-dev \
     libpulse-dev \
-    libasound2-dev
+    libasound2-dev > /dev/null 2>&1; then
+    echo "❌ Failed to install packages."
+    echo "➡️  Try running: sudo apt update && sudo apt install -f"
+    echo "➡️  Or check your internet connection."
+    exit 1
+fi
+echo "✅ Dependencies installed."
 
 # === Configuration ===
-echo "user home is $USER"
+USER_HOME="/home/$USER"
 QT_VERSION=6.9.0
-QT_PREFIX=/home/$USER/Qt/$QT_VERSION/gcc_64
+QT_PREFIX="$USER_HOME/Qt/$QT_VERSION/gcc_64"
 BUILD_DIR=build
 
 # === Export Environment ===
@@ -60,26 +67,27 @@ export PATH=$QT_PREFIX/bin:$PATH
 export QT_PLUGIN_PATH=$QT_PREFIX/plugins
 export QML2_IMPORT_PATH=$QT_PREFIX/qml
 
-# === Print environment info ===
-echo "Using Qt from: $QT_PREFIX"
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-echo "QML2_IMPORT_PATH=$QML2_IMPORT_PATH"
+# === Environment Info ===
+echo "===> Using Qt from: $QT_PREFIX"
 
-# === Download qt and extract ===
-echo "Downloading Qt..."
-wget -q "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
+# === Download and Extract Qt ===
+echo "===> Downloading Qt.tar.xz..."
+wget -q --show-progress "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
 
-echo "Extracting Qt..."
-tar -xf Qt.tar.xz -C /home/$USER/ &> /dev/null
+echo "===> Extracting Qt.tar.xz..."
+mkdir -p "$USER_HOME/Qt"
+tar -xf Qt.tar.xz -C "$USER_HOME/Qt"
 
+# === Prepare and Build ===
+echo "===> Preparing build directory..."
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
 
-# === Run CMake ===
-echo "Configuring project..."
-cmake .. -DCMAKE_PREFIX_PATH=$QT_PREFIX/lib/cmake -DCMAKE_BUILD_TYPE=Release &> /dev/null
+echo "===> Running CMake..."
+cmake .. -DCMAKE_PREFIX_PATH="$QT_PREFIX/lib/cmake" -DCMAKE_BUILD_TYPE=Release > /dev/null
 
-# === Build Project ===
-echo "Building project..."
-cmake --build . --config Release -j$(nproc) &> /dev/null
+echo "===> Building project..."
+cmake --build . --config Release -j$(nproc) > /dev/null
 
-echo "✅ Build completed successfully."
+echo "✅ Build complete."
 
