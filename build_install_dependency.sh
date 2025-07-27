@@ -93,18 +93,17 @@ export QML2_IMPORT_PATH=$QT_PREFIX/qml
 
 # === Environment Info ===
 echo "===> Using Qt from: $QT_PREFIX"
-echo "===> Home: $PWD"
-echo "===> USER_HOME: $USER_HOME"
-ls
 
 # === Download and Extract Qt ===
+pwd
 cd ~
-cd /home/$USER/Downloads/
+cd /Downloads/
 echo "===> Downloading Qt.tar.xz..."
 wget -q "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
 
 echo "===> Extracting Qt.tar.xz..."
 mkdir -p "$USER_HOME/Qt"
+pwd
 ls
 tar -xf Qt.tar.xz -C "$USER_HOME/"
 
