@@ -3,15 +3,19 @@
 set -e
 set -o pipefail
 
-echo "===> Installing required packages (hidden output)..."
-if ! apt update -qq && apt install -y -qq \
+echo "===> Installing required packages..."
+
+apt update -qq && apt install -y -qq \
     build-essential \
     make \
     cmake \
     gcc \
     g++ \
     wget \
+    unzip \
     tar \
+    xz-utils \
+    git \
     ninja-build \
     perl \
     python3 \
@@ -47,12 +51,7 @@ if ! apt update -qq && apt install -y -qq \
     libglib2.0-dev \
     libdbus-1-dev \
     libpulse-dev \
-    libasound2-dev > /dev/null 2>&1; then
-    echo "❌ Failed to install packages."
-    echo "➡️  Try running: sudo apt update && sudo apt install -f"
-    echo "➡️  Or check your internet connection."
-    exit 1
-fi
+    libasound2-dev > /dev/null
 echo "✅ Dependencies installed."
 
 # === Configuration ===
