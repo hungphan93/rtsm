@@ -66,20 +66,20 @@ echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "QML2_IMPORT_PATH=$QML2_IMPORT_PATH"
 
 # === Download qt and extract ===
-echo "pwd is $PWD"
-wget "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
+echo "Downloading Qt..."
+wget -q "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
 
-tar -xvf Qt.tar.xz -C /home/$USER/
-echo "ls is $LS"
+echo "Extracting Qt..."
+tar -xf Qt.tar.xz -C /home/$USER/ &> /dev/null
 
-
-# === Prepare build directory ===
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 
 # === Run CMake ===
-cmake .. -DCMAKE_PREFIX_PATH=$QT_PREFIX/lib/cmake -DCMAKE_BUILD_TYPE=Release
+echo "Configuring project..."
+cmake .. -DCMAKE_PREFIX_PATH=$QT_PREFIX/lib/cmake -DCMAKE_BUILD_TYPE=Release &> /dev/null
 
 # === Build Project ===
-cmake --build . --config Release -j$(nproc)
+echo "Building project..."
+cmake --build . --config Release -j$(nproc) &> /dev/null
+
+echo "✅ Build completed successfully."
 
