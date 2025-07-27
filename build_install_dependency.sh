@@ -69,6 +69,8 @@ export QML2_IMPORT_PATH=$QT_PREFIX/qml
 # === Environment Info ===
 echo "===> Using Qt from: $QT_PREFIX"
 echo "===> Home: $PWD"
+echo "===> USER_HOME: $USER_HOME"
+ls
 
 # === Download and Extract Qt ===
 echo "===> Downloading Qt.tar.xz..."
@@ -76,6 +78,7 @@ wget -q "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOi
 
 echo "===> Extracting Qt.tar.xz..."
 mkdir -p "$USER_HOME/Qt"
+ls
 tar -xf Qt.tar.xz -C "$USER_HOME/Qt"
 
 # === Prepare and Build ===
