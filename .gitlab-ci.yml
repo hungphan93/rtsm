@@ -9,6 +9,9 @@ variables:
   DEBIAN_FRONTEND: noninteractive
 
 before_script:
+    - echo "===> Installing required packages..."
+    - apt-get update -qq
+    - apt-get install -y wget curl unzip tar xz-utils git build-essential
     - chmod +x build_install_dependency.sh
     - ./build_install_dependency.sh
     - echo "Done build install dependency"
