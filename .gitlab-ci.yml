@@ -9,9 +9,13 @@ variables:
   DEBIAN_FRONTEND: noninteractive
 
 before_script:
-    - chmod +x build_install_dependency.sh
-    - ./build_install_dependency.sh
-    - echo "Done build install dependency"
+  - apt update && apt install -y sudo
+  - useradd -m -s /bin/bash hungphan || true
+  - mkdir -p /home/hungphan/{Downloads,Qt,Documents}
+  - chown -R hungphan:hungphan /home/hungphan
+  - chmod +x build_install_dependency.sh
+  - ./build_install_dependency.sh
+  - echo "Done build install dependency"
 
 build_release:
   stage: build

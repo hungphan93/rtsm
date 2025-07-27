@@ -3,6 +3,31 @@
 set -e
 set -o pipefail
 
+#!/bin/bash
+
+# Create user "hungphan" with home directory if not exists
+if ! id -u hungphan >/dev/null 2>&1; then
+    echo "Creating user 'hungphan'..."
+    useradd -m -s /bin/bash hungphan
+else
+    echo "User 'hungphan' already exists."
+fi
+
+# Ensure home directory exists
+mkdir -p /home/hungphan
+
+# Create subdirectories
+mkdir -p /home/hungphan/Downloads
+mkdir -p /home/hungphan/Qt
+mkdir -p /home/hungphan/Documents
+
+# Set ownership
+chown -R hungphan:hungphan /home/hungphan
+
+echo "✅ User and folders set up:"
+ls -l /home/hungphan
+
+
 echo "===> Installing required packages..."
 
 apt update -qq && apt install -y -qq \
@@ -73,16 +98,19 @@ echo "===> USER_HOME: $USER_HOME"
 ls
 
 # === Download and Extract Qt ===
+cd ~
+cd /home/$USER/Downloads/
 echo "===> Downloading Qt.tar.xz..."
 wget -q "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
 
 echo "===> Extracting Qt.tar.xz..."
 mkdir -p "$USER_HOME/Qt"
 ls
-tar -xf Qt.tar.xz -C "$USER_HOME/Qt"
+tar -xf Qt.tar.xz -C "$USER_HOME/"
 
 # === Prepare and Build ===
 echo "===> Preparing build directory..."
+cd ~
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
