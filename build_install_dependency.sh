@@ -9,6 +9,8 @@ apt update && apt install -y \
     cmake \
     gcc \
     g++ \
+    wget \
+    tar \
     ninja-build \
     perl \
     python3 \
