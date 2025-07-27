@@ -9,14 +9,12 @@ variables:
   DEBIAN_FRONTEND: noninteractive
 
 before_script:
- - echo "Before build install dependency"
+    - chmod +x build_install_dependency.sh
+    - ./build_install_dependency.sh
+    - echo "Done build install dependency"
 
 build_release:
   stage: build
-  before_script:
-    - chmod x+ build_install_dependency.sh
-    - ./build_install_dependency.sh
-    - echo "Done build install dependency"
   script:
     - mkdir -p build && cd build
     - cmake .. -DCMAKE_BUILD_TYPE=Release
