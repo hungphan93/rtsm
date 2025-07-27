@@ -8,15 +8,10 @@ stages:
 variables:
   DEBIAN_FRONTEND: noninteractive
 
-#before_script:
-# - chmod x+ build_install_dependency.sh
-# - ./build_install_dependency.sh
-# - echo "Done build install dependency"
 before_script:
-  - echo "before install"
-  - apt update && apt install -y build-essential qt6-base-dev qt6-declarative-dev qt6-tools-#dev-tools git wget curl libfuse2
-#before_script:
-#  - apt update && apt install -y build-essential qt6-base-dev qt6-declarative-dev qt6-tools-#dev-tools git wget curl libfuse2
+ - chmod x+ build_install_dependency.sh
+ - ./build_install_dependency.sh
+ - echo "Done build install dependency"
 
 build_release:
   stage: build
