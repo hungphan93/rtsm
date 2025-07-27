@@ -3,7 +3,7 @@
 set -e  # Exit on error
 set -o pipefail
 
-sudo apt update && sudo apt install -y \
+apt update && apt install -y \
     build-essential \
     make \
     cmake \
