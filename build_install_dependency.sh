@@ -47,6 +47,7 @@ apt update && apt install -y \
     libasound2-dev
 
 # === Configuration ===
+echo "user home is $USER"
 QT_VERSION=6.9.0
 QT_PREFIX=/home/$USER/Qt/$QT_VERSION/gcc_64
 BUILD_DIR=build
@@ -61,6 +62,14 @@ export QML2_IMPORT_PATH=$QT_PREFIX/qml
 echo "Using Qt from: $QT_PREFIX"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "QML2_IMPORT_PATH=$QML2_IMPORT_PATH"
+
+# === Download qt and extract ===
+echo "pwd is $PWD"
+wget "https://drive.usercontent.google.com/download?id=1V7t8o21LFvt2BctjjoaOiqQZREqV5ExY&export=download&confirm=t&uuid=b4a6b4bb-ff0b-44f5-acce-4fcfd37c72ad" -O Qt.tar.xz
+
+tar -xvf Qt.tar.xz -C /home/$USER/
+echo "ls is $LS"
+
 
 # === Prepare build directory ===
 mkdir -p $BUILD_DIR
