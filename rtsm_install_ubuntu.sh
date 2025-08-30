@@ -22,7 +22,7 @@ ICON_NAME="app_icon.png"
 echo "📦 [0/7] Copying AppImage..."
 sudo mkdir -p "$APP_DEST"
 sudo cp "$APPIMAGE_NAME" "$APP_PATH"
-sudo chmod +x "$APP_PATH"
+sudo chmod +x "$APPIMAGE_NAME"
 
 # 0. Prepare icon directory
 echo "📦 [0/7] Intalling icon"

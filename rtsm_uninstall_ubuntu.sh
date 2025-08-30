@@ -4,7 +4,7 @@ set -e
 echo "Stopping rtsm systemd user service..."
 systemctl --user stop rtsm.service || true
 systemctl --user disable rtsm.service || true
-systemctl --user daemon-reload
+systemctl --user daemon-reload || true
 
 echo "Removing systemd user service..."
 rm -f ~/.config/systemd/user/rtsm.service
