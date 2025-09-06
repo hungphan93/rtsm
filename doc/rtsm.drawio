@@ -1,5 +1,5 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0" version="28.2.0">
-  <diagram name="Overview architecture" id="h_rXnXJuXjm2biBFOjZP">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0" version="28.2.0" pages="2">
+  <diagram name="Overview Architecture" id="h_rXnXJuXjm2biBFOjZP">
     <mxGraphModel dx="778" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -61,6 +61,41 @@
             <mxPoint x="340" y="740" as="sourcePoint" />
             <mxPoint x="390" y="690" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="azIwv3VI3-O1aiZ3joZl" name="Data Flow">
+    <mxGraphModel dx="778" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cpqNy1mtWpNgI2TH-p8w-1" value="cpu/ram/disk/net" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="210" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cpqNy1mtWpNgI2TH-p8w-2" value="Read file system&lt;div&gt;(/proc, /sys)&lt;/div&gt;" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-1" value="&lt;code&gt;entity&lt;/code&gt;" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="320" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-2" value="adapter" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="410" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-3" value="platform" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="500" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-4" value="presenter" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="590" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-5" value="scheduler" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="690" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-6" value="use_case" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="780" width="120" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="cNHHAHiztV6dC5KBXrCH-7" value="ui/qt" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=0;indent=5;labelPosition=center;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="880" width="120" height="59" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
