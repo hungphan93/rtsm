@@ -48,7 +48,7 @@ Description=RTSM System Monitor App
 After=graphical-session.target
 
 [Service]
-ExecStart=$APP_PATH
+ExecStart=$APP_PATH --appimage-extract-and-run
 Restart=always
 RestartSec=5
 
@@ -74,7 +74,7 @@ sudo -u "$USER_NAME" tee "$DESKTOP_FILE_PATH" > /dev/null <<EOF
 [Desktop Entry]
 Type=Application
 Name=RTSM Monitor
-Exec=$APP_PATH
+Exec=$APP_PATH --appimage-extract-and-run
 Icon=$APP_ICON/$ICON_NAME
 Terminal=false
 X-GNOME-Autostart-enabled=true
