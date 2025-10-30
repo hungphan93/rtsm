@@ -53,10 +53,10 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
-    if (window) {
-        platform::make_window_sticky(window);
-    }
+    // QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
+    // if (window) {
+    //     platform::make_window_sticky(window);
+    // }
 
     return app.exec();
 }

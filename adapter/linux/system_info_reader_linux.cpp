@@ -134,7 +134,7 @@ entity::memory system_info_reader_linux::read_memory() const {
     }
 
     std::string value = detail::exec_cmd(
-        "sudo -p '' dmidecode --type 17 2>/dev/null "
+        "sudo dmidecode --type 17 2>/dev/null "
         "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
         "| grep -v 'Unknown' "
         "| awk -F: '{print $2}' "
@@ -157,23 +157,27 @@ entity::memory system_info_reader_linux::read_memory() const {
         detail::parse_number(detail::trim(line), result.power_mw);
     }
 
+    else {
+        qWarning("Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode");
+    }
+
     return result;
 }
 
 entity::gpu system_info_reader_linux::read_gpu() const {
     entity::gpu result;
 
-    std::string value = detail::read_line("/sys/class/drm/card1/device/uevent");
+    std::string value = detail::read_line("/sys/class/drm/card0/device/uevent");
     if (!value.empty()) {
         result.name =  value.substr(value.find("=") + 1);
     }
 
-    value = detail::read_line("/sys/class/drm/card1/device/mem_info_vram_total");
+    value = detail::read_line("/sys/class/drm/card0/device/mem_info_vram_total");
     if (!value.empty()) {
         result.vram_total = (std::stoull(value) / 1024);
     }
 
-    value = detail::read_line("/sys/class/drm/card1/device/mem_info_vram_used");
+    value = detail::read_line("/sys/class/drm/card0/device/mem_info_vram_used");
     if (!value.empty()) {
         result.vram_used = (std::stoull(value) / 1024);
     }
@@ -236,7 +240,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
     }
 
     /// gpu get frequency mhz
-    value = detail::exec_cmd(R"delim(cat /sys/class/drm/card1/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
+    value = detail::exec_cmd(R"delim(cat /sys/class/drm/card0/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
     if (!value.empty()) {
         result.frequency_mhz = std::stoull(value);
     }
