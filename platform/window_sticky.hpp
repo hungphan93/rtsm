@@ -4,11 +4,16 @@
 #include <QWindow>
 #include <QPointer>
 #include <QDebug>
+#include <QString>
 
 #if defined(__linux__)
+// /Wayland LayerShell
+#include <LayerShellQt/Shell>
+#include <LayerShellQt/Window>
+/// X11
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <cstring>
+
 #elif defined(_WIN32)
 #include <windows.h>
 #elif defined(__APPLE__)
@@ -17,64 +22,94 @@
 
 namespace platform {
 
-inline void make_window_sticky(QPointer<QWindow> window = nullptr) {
+inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platform_name = QString()) {
     if (!window) {
         qWarning() << "[platform] No window provided for make_window_sticky.";
         return;
     }
 
 #if defined(__linux__)
-    Display* display = XOpenDisplay(nullptr);
-    if (!display) {
-        qWarning() << "[platform] Failed to open X11 display.";
+    if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {   
+        qInfo() << "[Wayland] Applying LayerShell";
+
+        LayerShellQt::Shell::useLayerShell();
+        auto *ls = LayerShellQt::Window::get(window);
+
+        ls->setLayer(LayerShellQt::Window::LayerBottom);
+        ls->setExclusiveZone(0);       // no reserved space
+        ls->setMargins(QMargins(0,0,0,0));    // no gaps
+        ls->setScope("rtsm-monitor-bar");
+        ls->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+
+        ls->setAnchors(
+            LayerShellQt::Window::Anchors(
+                LayerShellQt::Window::AnchorTop
+                | LayerShellQt::Window::AnchorLeft
+                | LayerShellQt::Window::AnchorRight
+                )
+            );
+        qInfo() << "[platform] Wayland sticky applied (background layer + click-through)";
         return;
     }
 
-    const Window win_id = window->winId();
-
-    /// Helper to intern atom
-    auto get_atom = [&](const char* name) -> Atom {
-        Atom atom = XInternAtom(display, name, False);
-        if (atom == None) {
-            qWarning() << "[platform] Failed to get X11 atom:" << name;
+    else if (platform_name.startsWith("xcb", Qt::CaseInsensitive) ||
+             platform_name.contains("x11", Qt::CaseInsensitive)) {
+        Display* display = XOpenDisplay(nullptr);
+        if (!display) {
+            qWarning() << "[platform] Failed to open X11 display.";
+            return;
         }
-        return atom;
-    };
 
-    /// _NET_WM_DESKTOP hint (appear on all desktops)
-    Atom desktop_atom = get_atom("_NET_WM_DESKTOP");
-    if (desktop_atom != None) {
-        constexpr unsigned long ALL_DESKTOPS = 0xFFFFFFFF;
-        XChangeProperty(display, win_id, desktop_atom, XA_CARDINAL, 32, PropModeReplace,
-                        reinterpret_cast<unsigned char*>(const_cast<unsigned long*>(&ALL_DESKTOPS)), 1);
-        qDebug() << "[platform] Set _NET_WM_DESKTOP to all desktops.";
+        const Window win_id = window->winId();
+
+        /// Helper to intern atom
+        auto get_atom = [&](const char* name) -> Atom {
+            Atom atom = XInternAtom(display, name, False);
+            if (atom == None) {
+                qWarning() << "[platform] Failed to get X11 atom:" << name;
+            }
+            return atom;
+        };
+
+        /// _NET_WM_DESKTOP hint (appear on all desktops)
+        Atom desktop_atom = get_atom("_NET_WM_DESKTOP");
+        if (desktop_atom != None) {
+            constexpr unsigned long ALL_DESKTOPS = 0xFFFFFFFF;
+            XChangeProperty(display, win_id, desktop_atom, XA_CARDINAL, 32, PropModeReplace,
+                            reinterpret_cast<unsigned char*>(const_cast<unsigned long*>(&ALL_DESKTOPS)), 1);
+            qDebug() << "[platform] Set _NET_WM_DESKTOP to all desktops.";
+        }
+
+        /// Proper client message for _NET_WM_STATE sticky + below
+        Atom wm_state = get_atom("_NET_WM_STATE");
+        Atom sticky   = get_atom("_NET_WM_STATE_STICKY");
+        Atom below    = get_atom("_NET_WM_STATE_BELOW");
+
+        if (wm_state && sticky && below) {
+            XEvent e;
+            std::memset(&e, 0, sizeof(e));
+            e.xclient.type = ClientMessage;
+            e.xclient.message_type = wm_state;
+            e.xclient.display = display;
+            e.xclient.window = win_id;
+            e.xclient.format = 32;
+            e.xclient.data.l[0] = 1; // _NET_WM_STATE_ADD
+            e.xclient.data.l[1] = sticky;
+            e.xclient.data.l[2] = below;
+
+            XSendEvent(display, DefaultRootWindow(display), False,
+                       SubstructureRedirectMask | SubstructureNotifyMask, &e);
+
+            qDebug() << "[platform] Sent _NET_WM_STATE client message for sticky & below.";
+        }
+
+        XFlush(display);
+        XCloseDisplay(display);
     }
 
-    /// Proper client message for _NET_WM_STATE sticky + below
-    Atom wm_state = get_atom("_NET_WM_STATE");
-    Atom sticky   = get_atom("_NET_WM_STATE_STICKY");
-    Atom below    = get_atom("_NET_WM_STATE_BELOW");
-
-    if (wm_state && sticky && below) {
-        XEvent e;
-        std::memset(&e, 0, sizeof(e));
-        e.xclient.type = ClientMessage;
-        e.xclient.message_type = wm_state;
-        e.xclient.display = display;
-        e.xclient.window = win_id;
-        e.xclient.format = 32;
-        e.xclient.data.l[0] = 1; // _NET_WM_STATE_ADD
-        e.xclient.data.l[1] = sticky;
-        e.xclient.data.l[2] = below;
-
-        XSendEvent(display, DefaultRootWindow(display), False,
-                   SubstructureRedirectMask | SubstructureNotifyMask, &e);
-
-        qDebug() << "[platform] Sent _NET_WM_STATE client message for sticky & below.";
+    else {
+        qWarning() << "[platform] Unsupported platform for sticky window.";
     }
-
-    XFlush(display);
-    XCloseDisplay(display);
 
 #elif defined(_WIN32)
     HWND hwnd = reinterpret_cast<HWND>(window->winId());

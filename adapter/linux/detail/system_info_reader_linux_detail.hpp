@@ -54,7 +54,7 @@ inline cpu_times read_cpu_times() {
     return times;
 }
 
-inline std::string read_line(const std::string path) {
+inline std::string read_line(const std::string& path) {
     std::ifstream file(path);
     std::string line;
     return (file.is_open() && std::getline(file, line)) ? line : "";
@@ -63,7 +63,8 @@ inline std::string read_line(const std::string path) {
 inline std::string exec_cmd(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    using pipe_close_t = int(*)(FILE*);
+    std::unique_ptr<FILE, pipe_close_t> pipe(popen(cmd, "r"), static_cast<pipe_close_t>(pclose));
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
@@ -73,7 +74,7 @@ inline std::string exec_cmd(const char* cmd) {
     return result;
 }
 
-inline std::string_view trim(std::string_view s) {
+inline std::string_view trim(std::string_view s) noexcept {
     const auto start = s.find_first_not_of(" \t\n\r");
     if (start == std::string_view::npos) return {};
     const auto end = s.find_last_not_of(" \t\n\r");

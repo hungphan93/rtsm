@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find X11 package for Linux
 if(UNIX AND NOT APPLE)
   find_package(X11 REQUIRED)
+  find_package(LayerShellQt REQUIRED)
 endif()
 
 # #google test library
@@ -27,7 +28,7 @@ endif()
 # install(FILES rtsm.desktop DESTINATION share/applications)
 
 # Qt Setup
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS WaylandClient Quick)
 qt_standard_project_setup(REQUIRES 6.5)
 qt_policy(SET QTP0004 NEW)
 
@@ -95,7 +96,10 @@ set_target_properties(apprtsm PROPERTIES
 
 # Link Qt libraries
 target_link_libraries(apprtsm
-  PRIVATE Qt6::Quick
+  PRIVATE
+  Qt6::Quick
+  Qt6::WaylandClient
+  LayerShellQt::Interface
   ${X11_LIBRARIES}
 )
 

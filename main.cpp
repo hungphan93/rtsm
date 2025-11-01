@@ -6,6 +6,7 @@
 #include <QLockFile>
 #include <QDir>
 #include <QWindow>
+
 #include "ui/qt/system_monitor_qt.hpp"
 #include "platform/window_sticky.hpp"
 
@@ -20,19 +21,21 @@
 #endif
 
 int main(int argc, char *argv[]) {
+    /// Only one the application is open at the time
     QLockFile lock_file(QDir::tempPath() + "/rtsm.lock");
-    lock_file.setStaleLockTime(1000); // 1 second
+    lock_file.setStaleLockTime(1000);
 
     if (!lock_file.tryLock(100)) {
-        qDebug() << "Another instance is already running. Exiting bye bye.";
+        qDebug() << "Another instance is already running.";
         return 0;
     }
 
     QGuiApplication app(argc, argv);
-    QQmlApplicationEngine engine;
     app.setWindowIcon(QIcon(":/icons/app_icon.png"));
 
-/// Construct platform-appropriate system info reader
+    QQmlApplicationEngine engine;
+
+    /// Construct system info reader
 #if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
 #elif defined(_WIN32)
@@ -43,20 +46,34 @@ int main(int argc, char *argv[]) {
 
     presenter::system_monitor monitor(reader);
     ui::qt::system_monitor_qt monitor_qt(&monitor);
-
     engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
+
+    /// Defer window initialization until created
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated,
+        &app, [&](QObject *obj, const QUrl &) {
+            if (!obj) {
+                qCritical() << "Failed to load QML";
+                app.exit(-1);
+                return;
+            }
+
+            QWindow *window = qobject_cast<QWindow*>(obj);
+            if (!window) return;
+
+            const QString platform = QGuiApplication::platformName();
+
+            /// Apply sticky behavior (cross-platform)
+            platform::make_window_sticky(window, platform);
+
+            /// show only after layer shell configured
+            window->show();
+        });
+
+    /// Load QML (DO NOT auto-show)
     engine.loadFromModule("rtsm", "Main");
-
-    const auto& roots = engine.rootObjects();
-    if (roots.isEmpty()) {
-        qCritical() << "Failed to load QML module!";
+    if (engine.rootObjects().isEmpty())
         return -1;
-    }
-
-    // QPointer<QWindow> window = qobject_cast<QWindow*>(roots.first());
-    // if (window) {
-    //     platform::make_window_sticky(window);
-    // }
 
     return app.exec();
 }
