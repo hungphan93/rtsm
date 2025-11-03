@@ -7,7 +7,7 @@
 #include <QString>
 
 #if defined(__linux__)
-// /Wayland LayerShell
+/// Wayland LayerShell
 #include <LayerShellQt/Shell>
 #include <LayerShellQt/Window>
 /// X11
@@ -29,7 +29,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
     }
 
 #if defined(__linux__)
-    if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {   
+    if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {
         qInfo() << "[Wayland] Applying LayerShell";
 
         LayerShellQt::Shell::useLayerShell();
