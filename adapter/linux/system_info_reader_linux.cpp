@@ -224,7 +224,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
             bool igpu = is_igpu_card(vendor, device);
 
             std::string value;
-
+            qWarning() << "noutput :" << QString::fromStdString(name) << " vendor = "<< vendor << "igpu = " << igpu;
             /// Nvidia
             if (!igpu && vendor == 0x10de) {
                 const char *cmd =
@@ -258,14 +258,14 @@ entity::gpu system_info_reader_linux::read_gpu() const {
                 gpu.temperature_c = std::stoull(tokens[3]);
                 gpu.frequency_mhz = std::stoull(tokens[4]);
                 gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
-                result.push_back(gpu);
-
             }
             // dGPU had pp_dpm_sclk
             else if (!igpu && fs::exists(e.path() / "device/pp_dpm_sclk")) {
 
-
-            } else {
+                qWarning() << "noutput2 :";
+            }
+            else {
+                qWarning() << "Card onboard is running";
                 std::string value = detail::read_line(e.path() / "device/uevent");
                 if (!value.empty()) {
                     gpu.name =  value.substr(value.find("=") + 1);
@@ -273,12 +273,12 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
                 value = detail::read_line(e.path() / "device/mem_info_vram_total");
                 if (!value.empty()) {
-                    gpu.vram_total = (std::stoull(value) / 1024);
+                    gpu.vram_total = (std::stoull(value)/1024/1024);
                 }
 
                 value = detail::read_line(e.path() / "device/mem_info_vram_used");
                 if (!value.empty()) {
-                    gpu.vram_used = (std::stoull(value) / 1024);
+                    gpu.vram_used = (std::stoull(value)/1024/1024);
                 }
 
                 if (gpu.vram_used > 0) {
@@ -307,6 +307,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
                     gpu.frequency_mhz = std::stoull(value);
                 }
             }
+            result.push_back(gpu);
         }
 
     } catch (const std::exception& ex) {
