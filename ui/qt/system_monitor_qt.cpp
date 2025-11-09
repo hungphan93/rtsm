@@ -106,14 +106,14 @@ QString system_monitor_qt::gpu_vram_total() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_total / 1024);
+    return QString::number(gpu.vram_total);
 }
 
 QString system_monitor_qt::gpu_vram_used() const {
     if (!presenter_) return {};
 
     const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_used / 1024);
+    return QString::number(gpu.vram_used);
 }
 
 QString system_monitor_qt::gpu_usage_percent() const {

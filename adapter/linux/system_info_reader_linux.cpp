@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <qdebug.h>
 #include "./detail/system_info_reader_linux_detail.hpp"
+#include <filesystem>
+#include <iostream>
 
 namespace adapter {
 namespace linux2 {
@@ -163,89 +165,156 @@ entity::memory system_info_reader_linux::read_memory() const {
 
     return result;
 }
+namespace fs = std::filesystem;
+
+struct GPUCard {
+    fs::path path;
+    bool is_igpu;
+};
+
+bool amd_iGPU_devices(uint32_t device) {
+    /// Vega iGPU (Ryzen 2000 đến 5000)
+    if ((device >= 0x15E0 && device <= 0x15EF) ||
+        (device >= 0x1630 && device <= 0x163F))
+        return true;
+
+    /// RDNA2 iGPU (Ryzen 6000)
+    if (device >= 0x1640 && device <= 0x168F)
+        return true;
+
+    /// RDNA3 iGPU (Ryzen 7000 đến 8000)
+    if ((device >= 0x1640 && device <= 0x165F) ||
+        (device >= 0x16A0 && device <= 0x16AF))
+        return true;
+
+    /// RDNA3+ Strix Point iGPU
+    if (device >= 0x1900 && device <= 0x19FF)
+        return true;
+
+    return false;
+}
+
+bool is_igpu_card(uint32_t vendor, uint32_t device) {
+    if (vendor == 0x8086) return true;           /// Intel iGPU
+    if (vendor == 0x1002) return amd_iGPU_devices(device); /// AMD iGPU
+    return false;                                /// NVIDIA và vendor khác là dGPU
+}
 
 entity::gpu system_info_reader_linux::read_gpu() const {
-    entity::gpu result;
+    std::vector<entity::gpu> result;
+    entity::gpu gpu;
 
-    std::string value = detail::read_line("/sys/class/drm/card0/device/uevent");
-    if (!value.empty()) {
-        result.name =  value.substr(value.find("=") + 1);
-    }
+    try {
+        for (auto const& e : fs::directory_iterator("/sys/class/drm")) {
 
-    value = detail::read_line("/sys/class/drm/card0/device/mem_info_vram_total");
-    if (!value.empty()) {
-        result.vram_total = (std::stoull(value) / 1024);
-    }
+            if (!e.is_directory()) continue;
 
-    value = detail::read_line("/sys/class/drm/card0/device/mem_info_vram_used");
-    if (!value.empty()) {
-        result.vram_used = (std::stoull(value) / 1024);
-    }
+            const std::string name = e.path().filename().string();
+            if (!std::regex_match(name, std::regex("^card[0-9]{1,2}$")))
+                continue;
 
-    if (result.vram_used > 0) {
-        result.usage_percent = detail::percent(result.vram_used, result.vram_total);
-    }
+            const std::string vendor_str = detail::read_line(e.path() / "device/vendor");
+            const std::string device_str = detail::read_line(e.path() / "device/device");
 
-    /// reading for nvidia card
-    value = detail::exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
-    /// value = exec_cmd("nvidia-smi --query-gpu=name,memory.total,memory.used,temperature.gpu --format=csv,noheader,nounits");
-    if (!value.empty()) {
-        // Example line: GeForce RTX 3060, 12288, 2205, 37
-        std::istringstream iss(value);
-        std::string text;
-        std::getline(iss, text,',');
+            if (vendor_str.empty() || device_str.empty()) continue;
 
-        auto trim = [](std::string& s) {
-            s.erase(0, s.find_first_not_of(" \t\n\r"));
-            s.erase(s.find_last_not_of(" \t\n\r") + 1);
-        };
+            uint32_t vendor = std::stoul(vendor_str, nullptr, 16);
+            uint32_t device = std::stoul(device_str, nullptr, 16);
 
-        trim(text);
-        result.name = text;
+            bool igpu = is_igpu_card(vendor, device);
 
-        iss.ignore(1); // skip comma
+            std::string value;
 
-        iss >> text;
-        trim(text);
-        result.vram_total = std::stoull(text);
+            /// Nvidia
+            if (!igpu && vendor == 0x10de) {
+                const char *cmd =
+                    "/usr/bin/nvidia-smi --query-gpu=name,memory.total,memory.used,"
+                    "temperature.gpu,clocks.gr,clocks.sm,clocks.mem "
+                    "--format=csv,noheader,nounits 2>/dev/null";
 
-        iss.ignore(1); // skip comma
+                const std::string value = detail::exec_cmd(cmd);
+                if (value.empty()) {
+                    qWarning() << "nvidia-smi returned empty, check PATH and permissions!";
+                    return {};
+                }
 
-        iss >> text;
-        trim(text);
-        result.vram_used = std::stoull(text);
+                qWarning() << "nvidia-smi output:" << QString::fromStdString(value);
 
-        iss >> text;
-        trim(text);
-        result.temperature_c = std::stoull(text);
-    }
+                std::vector<std::string> tokens;
+                std::string token;
+                std::stringstream ss(value);
 
-    /// for gpu amd onboard
-    std::string line;
-    /// first try integrated AMD GPU info via amdgpu
-    if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
-        std::ifstream temp_file(*hwmon_gpu + "/temp1_input");
-        if (temp_file && std::getline(temp_file, line)) {
-            result.temperature_c = std::stoull(line) / 1000.0;
+                while (std::getline(ss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \t\n\r"));
+                    token.erase(token.find_last_not_of(" \t\n\r") + 1);
+                    tokens.push_back(token);
+                }
+
+                if (tokens.size() < 7) return {};
+
+                gpu.name          = tokens[0];
+                gpu.vram_total    = std::stoull(tokens[1]);
+                gpu.vram_used     = std::stoull(tokens[2]) - 1.0;
+                gpu.temperature_c = std::stoull(tokens[3]);
+                gpu.frequency_mhz = std::stoull(tokens[4]);
+                gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
+                result.push_back(gpu);
+
+            }
+            // dGPU had pp_dpm_sclk
+            else if (!igpu && fs::exists(e.path() / "device/pp_dpm_sclk")) {
+
+
+            } else {
+                std::string value = detail::read_line(e.path() / "device/uevent");
+                if (!value.empty()) {
+                    gpu.name =  value.substr(value.find("=") + 1);
+                }
+
+                value = detail::read_line(e.path() / "device/mem_info_vram_total");
+                if (!value.empty()) {
+                    gpu.vram_total = (std::stoull(value) / 1024);
+                }
+
+                value = detail::read_line(e.path() / "device/mem_info_vram_used");
+                if (!value.empty()) {
+                    gpu.vram_used = (std::stoull(value) / 1024);
+                }
+
+                if (gpu.vram_used > 0) {
+                    gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
+                }
+
+                /// for gpu amd onboard
+                std::string line;
+                /// first try integrated AMD GPU info via amdgpu
+                if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
+                    std::ifstream temp_file(*hwmon_gpu + "/temp1_input");
+                    if (temp_file && std::getline(temp_file, line)) {
+                        gpu.temperature_c = std::stoull(line) / 1000.0;
+                    }
+
+                    std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
+                    if (pwr_file && std::getline(pwr_file, line)) {
+                        gpu.power = std::stoull(line) / 1000.0;
+                    }
+                }
+                /// gpu get frequency mhz
+                std::string cmd = "cat " + (e.path() / "device/pp_dpm_sclk").string() +
+                                  " | grep '\\*' | awk '{print $2}' | sed 's/Mhz//'";
+                value = detail::exec_cmd(cmd.c_str());
+                if (!value.empty()) {
+                    gpu.frequency_mhz = std::stoull(value);
+                }
+            }
         }
 
-        std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
-        if (pwr_file && std::getline(pwr_file, line)) {
-            result.power = std::stoull(line) / 1000.0;
-        }
+    } catch (const std::exception& ex) {
+        std::cerr << "Error scanning GPUs: " << ex.what() << "\n";
     }
 
-    if (result.vram_used > 0) {
-        result.usage_percent = detail::percent(result.vram_used, result.vram_total);
-    }
-
-    /// gpu get frequency mhz
-    value = detail::exec_cmd(R"delim(cat /sys/class/drm/card0/device/pp_dpm_sclk | grep '\*' | awk '{print $2}' | sed 's/Mhz//')delim");
-    if (!value.empty()) {
-        result.frequency_mhz = std::stoull(value);
-    }
-
-    return result;
+    if (result.empty()) return {};
+    return result.size() == 1 ? result[0] : result[std::min<size_t>(2, result.size() - 1)];
 }
 
 entity::disk system_info_reader_linux::read_disk() const {
