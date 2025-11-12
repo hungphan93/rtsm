@@ -6,9 +6,9 @@ Window {
     id: root
     width: 1200
     height: 250
-    visible: false
-    ///  flags: Qt.SplashScreen | Qt.FramelessWindowHint
-    flags: Qt.FramelessWindowHint | Qt.WindowTransparentForInput /// to click folder below the app
+    visible: true
+    // flags: Qt.SplashScreen | Qt.FramelessWindowHint
+    flags: Qt.SplashScreen | Qt.FramelessWindowHint | Qt.WindowTransparentForInput /// to click folder below the app
     color: "transparent"
     title: "Real-time system monitoring"
     x: 40

@@ -103,6 +103,17 @@ inline std::optional<std::string> find_hwmon_by_name(const std::string& target) 
     return std::nullopt;
 }
 
+/// Converting a uint string to uint64_t
+std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexcept {
+    uint64_t value{};
+    try {
+        value = std::stoull(std::string(s), nullptr, base);
+    } catch (...) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 } /// adapter::linux2::detail
 
 #endif /// ADAPTER_SYSTEM_INFO_READER_LINUX_DETAIL_HPP

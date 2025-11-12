@@ -19,6 +19,6 @@ struct memory {
     auto operator <=> (const memory&) const = default;
 };
 
-} // namespace entity
+} /// namespace entity
 
-#endif // ENTITY_MEMORY_HPP
+#endif /// ENTITY_MEMORY_HPP

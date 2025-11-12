@@ -15,13 +15,10 @@ struct gpu {
     uint64_t frequency_mhz = 0;
     uint64_t temperature_c = 0;
     uint64_t power = 0;
-    std::string vendor = "";
-    std::string device = "";
-    bool is_igpu = true;
 
     auto operator <=> (const gpu&) const = default;
 };
 
-} // namespace entity
+} /// namespace entity
 
-#endif // ENTITY_GPU_HPP
+#endif /// ENTITY_GPU_HPP

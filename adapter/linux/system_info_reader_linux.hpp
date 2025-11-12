@@ -21,7 +21,7 @@ struct system_info_reader_linux : public usecase::system_info_reader {
     entity::net read_net() const override;
 };
 
-} // namespace linux2
-} // namespace adapter
+} /// namespace linux2
+} /// namespace adapter
 
-#endif // ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP
+#endif /// ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP

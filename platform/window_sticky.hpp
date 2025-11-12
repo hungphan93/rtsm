@@ -3,8 +3,8 @@
 
 #include <QWindow>
 #include <QPointer>
-#include <QDebug>
 #include <QString>
+#include <iostream>
 
 #if defined(__linux__)
 /// Wayland LayerShell
@@ -24,13 +24,13 @@ namespace platform {
 
 inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platform_name = QString()) {
     if (!window) {
-        qWarning() << "[platform] No window provided for make_window_sticky.";
+        std::cerr << "[platform] No window provided for make_window_sticky.\n";
         return;
     }
 
 #if defined(__linux__)
     if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {
-        qInfo() << "[Wayland] Applying LayerShell";
+        std::clog << "[Wayland] Applying LayerShell\n";
 
         LayerShellQt::Shell::useLayerShell();
         auto *ls = LayerShellQt::Window::get(window);
@@ -48,7 +48,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
                 | LayerShellQt::Window::AnchorRight
                 )
             );
-        qInfo() << "[platform] Wayland sticky applied (background layer + click-through)";
+        std::clog << "[platform] Wayland sticky applied (background layer + click-through)\n";
         return;
     }
 
@@ -56,7 +56,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
              platform_name.contains("x11", Qt::CaseInsensitive)) {
         Display* display = XOpenDisplay(nullptr);
         if (!display) {
-            qWarning() << "[platform] Failed to open X11 display.";
+            std::cerr << "[platform] Failed to open X11 display.\n";
             return;
         }
 
@@ -66,7 +66,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
         auto get_atom = [&](const char* name) -> Atom {
             Atom atom = XInternAtom(display, name, False);
             if (atom == None) {
-                qWarning() << "[platform] Failed to get X11 atom:" << name;
+                std::clog << "[platform] Failed to get X11 atom:" << name << "\n";
             }
             return atom;
         };
@@ -77,7 +77,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
             constexpr unsigned long ALL_DESKTOPS = 0xFFFFFFFF;
             XChangeProperty(display, win_id, desktop_atom, XA_CARDINAL, 32, PropModeReplace,
                             reinterpret_cast<unsigned char*>(const_cast<unsigned long*>(&ALL_DESKTOPS)), 1);
-            qDebug() << "[platform] Set _NET_WM_DESKTOP to all desktops.";
+            std::clog << "[platform] Set _NET_WM_DESKTOP to all desktops.\n";
         }
 
         /// Proper client message for _NET_WM_STATE sticky + below
@@ -100,7 +100,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
             XSendEvent(display, DefaultRootWindow(display), False,
                        SubstructureRedirectMask | SubstructureNotifyMask, &e);
 
-            qDebug() << "[platform] Sent _NET_WM_STATE client message for sticky & below.";
+            std::clog << "[platform] Sent _NET_WM_STATE client message for sticky & below.\n";
         }
 
         XFlush(display);
@@ -108,7 +108,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
     }
 
     else {
-        qWarning() << "[platform] Unsupported platform for sticky window.";
+        std::cerr << "[platform] Unsupported platform for sticky window.\n";
     }
 
 #elif defined(_WIN32)

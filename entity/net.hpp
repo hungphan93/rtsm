@@ -13,6 +13,6 @@ struct net {
     auto operator <=> (const net&) const = default;
 };
 
-} // namespace entity
+} /// namespace entity
 
-#endif // ENTITY_NET_HPP
+#endif /// ENTITY_NET_HPP

@@ -45,6 +45,6 @@ struct cpu {
     auto operator <=> (const cpu&) const = default;
 };
 
-} // namespace entity
+} /// namespace entity
 
-#endif // ENTITY_CPU_HPP
+#endif /// ENTITY_CPU_HPP

@@ -33,6 +33,6 @@ struct disk {
     auto operator <=> (const disk&) const = default;
 };
 
-} // namespace entity
+} /// namespace entity
 
-#endif // ENTITY_DISK_HPP
+#endif /// ENTITY_DISK_HPP
