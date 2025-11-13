@@ -1,6 +1,13 @@
 [Desktop Entry]
+Version=1.0
 Name=RTSM
+GenericName=System Monitor
+Comment=Real-time system monitor application
 Exec=apprtsm
 Icon=app_icon
+Terminal=false
 Type=Application
-Categories=Utility;
+StartupNotify=true
+Categories=Utility;System;Monitor;
+Keywords=System;Monitor;Performance;CPU;GPU;Memory;
+

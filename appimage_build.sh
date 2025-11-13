@@ -29,11 +29,7 @@ make install DESTDIR="$APPDIR"
 cp "$REPO_ROOT/rtsm.desktop" "$DESKTOP_FILE"
 cp "$ICON_SOURCE" "$ICON_TARGET"
 
-# === Download linuxdeployqt if needed ===
-# if [ ! -f linuxdeployqt-continuous-x86_64.AppImage ]; then
-#     wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
-#     chmod +x linuxdeployqt-continuous-x86_64.AppImage
-# fi
+# Download appimage and plugin
 wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
 chmod +x linuxdeploy-x86_64.AppImage
 
@@ -45,31 +41,15 @@ chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml"
 
 # === Create AppImage ===
-# ./linuxdeployqt-continuous-x86_64.AppImage \
-#     "$DESKTOP_FILE" \
-#     -qmldir="$QML_SOURCES_PATHS" \
-#     -appimage
-
-//export QML_SOURCES_PATHS=ui/qt/qml
-
-# ./linuxdeploy-x86_64.AppImage \
-#   --appdir AppDir \
-#   --desktop-file AppDir/usr/share/applications/rtsm.desktop \
-#   --executable AppDir/usr/bin/apprtsm \
-#   --icon-file icons/app_icon.png \
-#   --plugin qt \
-#   --output appimage
-
 ./linuxdeploy-x86_64.AppImage \
-  --appdir AppDir \
-  --desktop-file "$DESKTOP_FILE" \
-  --executable AppDir/usr/bin/apprtsm \
-  --icon-file icons/app_icon.png \
-  -qmldir="$QML_SOURCES_PATHS" \
-  --plugin qt \
-  --output appimage
+   --appdir AppDir \
+   --desktop-file AppDir/usr/share/applications/rtsm.desktop \
+   --executable AppDir/usr/bin/apprtsm \
+   --icon-file "$ICON_SOURCE" \
+   --plugin qt \
+   --output appimage
 
 popd
-APPIMAGE_FILE=$(find build -maxdepth 1 -type f -name "RTSM-*-x86_64.AppImage" -exec realpath {} \; | head -n 1)
+APPIMAGE_FILE=$(find build -maxdepth 1 -type f -name "RTSM-*x86_64.AppImage" -exec realpath {} \; | head -n 1)
 echo "✅ AppImage created: $APPIMAGE_FILE"
 

@@ -5,6 +5,7 @@ echo "Stopping rtsm systemd user service..."
 systemctl --user stop rtsm.service || true
 systemctl --user disable rtsm.service || true
 systemctl --user daemon-reload || true
+systemctl --user daemon-reexec
 
 echo "Removing systemd user service..."
 rm -f ~/.config/systemd/user/rtsm.service
@@ -18,6 +19,7 @@ sudo rm -rf "/etc/sudoers.d/90-dmidecode-$USER_NAME"
 
 echo "Reloading systemd user manager..."
 systemctl --user daemon-reload
+systemctl --user daemon-reexec
 
 echo "Done. RTSM has been uninstalled."
 

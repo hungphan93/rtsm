@@ -8,8 +8,8 @@
 
 #if defined(__linux__)
 /// Wayland LayerShell
-#include <LayerShellQt/Shell>
-#include <LayerShellQt/Window>
+// #include <LayerShellQt/Shell>
+// #include <LayerShellQt/Window>
 /// X11
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -30,25 +30,26 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
 
 #if defined(__linux__)
     if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {
-        std::clog << "[Wayland] Applying LayerShell\n";
+        std::clog << "[Wayland] Currently LayerShell don'nt supported on wayland\n";
+        // std::clog << "[Wayland] Applying LayerShell\n";
 
-        LayerShellQt::Shell::useLayerShell();
-        auto *ls = LayerShellQt::Window::get(window);
+        // LayerShellQt::Shell::useLayerShell();
+        // auto *ls = LayerShellQt::Window::get(window);
 
-        ls->setLayer(LayerShellQt::Window::LayerBottom);
-        ls->setExclusiveZone(0);       // no reserved space
-        ls->setMargins(QMargins(0,0,0,0));    // no gaps
-        ls->setScope("rtsm-monitor-bar");
-        ls->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+        // ls->setLayer(LayerShellQt::Window::LayerBottom);
+        // ls->setExclusiveZone(0);       // no reserved space
+        // ls->setMargins(QMargins(0,0,0,0));    // no gaps
+        // ls->setScope("rtsm-monitor-bar");
+        // ls->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
 
-        ls->setAnchors(
-            LayerShellQt::Window::Anchors(
-                LayerShellQt::Window::AnchorTop
-                | LayerShellQt::Window::AnchorLeft
-                | LayerShellQt::Window::AnchorRight
-                )
-            );
-        std::clog << "[platform] Wayland sticky applied (background layer + click-through)\n";
+        // ls->setAnchors(
+        //     LayerShellQt::Window::Anchors(
+        //         LayerShellQt::Window::AnchorTop
+        //         | LayerShellQt::Window::AnchorLeft
+        //         | LayerShellQt::Window::AnchorRight
+        //         )
+        //     );
+        // std::clog << "[platform] Wayland sticky applied (background layer + click-through)\n";
         return;
     }
 
@@ -93,7 +94,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
             e.xclient.display = display;
             e.xclient.window = win_id;
             e.xclient.format = 32;
-            e.xclient.data.l[0] = 1; // _NET_WM_STATE_ADD
+            e.xclient.data.l[0] = 1; /// _NET_WM_STATE_ADD
             e.xclient.data.l[1] = sticky;
             e.xclient.data.l[2] = below;
 

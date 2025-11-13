@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find X11 package for Linux
 if(UNIX AND NOT APPLE)
   find_package(X11 REQUIRED)
-  find_package(LayerShellQt REQUIRED)
+  #  find_package(LayerShellQt REQUIRED)
 endif()
 
 # #google test library
@@ -21,14 +21,9 @@ endif()
 # set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # FetchContent_MakeAvailable(googletest)
 
-# # Install your icon
-# install(FILES icons/app_icon.png DESTINATION share/icons/hicolor/48x48/apps)
-
-# # Install your .desktop file
-# install(FILES rtsm.desktop DESTINATION share/applications)
-
 # Qt Setup
-find_package(Qt6 REQUIRED COMPONENTS WaylandClient Quick)
+#find_package(Qt6 REQUIRED COMPONENTS WaylandClient Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick)
 qt_standard_project_setup(REQUIRES 6.5)
 qt_policy(SET QTP0004 NEW)
 
@@ -98,8 +93,8 @@ set_target_properties(apprtsm PROPERTIES
 target_link_libraries(apprtsm
   PRIVATE
   Qt6::Quick
-  Qt6::WaylandClient
-  LayerShellQt::Interface
+  #  Qt6::WaylandClient
+  #  LayerShellQt::Interface
   ${X11_LIBRARIES}
 )
 
