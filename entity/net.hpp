@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef ENTITY_NET_HPP
 #define ENTITY_NET_HPP
 

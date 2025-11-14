@@ -1,3 +1,4 @@
+/// MIT License
 #include "system_info_reader_window.hpp"
 
 namespace adapter {

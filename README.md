@@ -6,7 +6,7 @@
 
 ## 🌟 Features
 
-- cross-plass from (currently linux)
+- ross-plass from (currently linux)
 - 🔥 Real-time CPU usage (%), frequency, core info, and temperature  
 - 🧠 RAM usage, frequency, and temperature  
 - 🎮 GPU usage, frequency, and temperature  
@@ -21,8 +21,8 @@
 
 ## ⚙️ Requirements
 
-- 🐧 Ubuntu 22.04.5 LTS  
-- 📦 Qt 6.9.1  
+- 🐧 Debian 13 (Gnome x11, wayland)
+- 📦 Qt 6.10.0  
 - 🛠️ GCC 11.4.0 or compatible with C++23  
 - 🧱 CMake ≥ 3.16  
 - 🔍 `dmidecode` (`sudo apt install dmidecode`)  
@@ -49,7 +49,7 @@
     ```
 
 The output will be an AppImage file in the build directory, typically named:  
-`RTSM-<build-commit-hash>-x86_64.AppImage`
+`RTSM-<build-commit-hash>x86_64.AppImage`
 
 ---
 
@@ -57,12 +57,12 @@ The output will be an AppImage file in the build directory, typically named:
 
 1. **Make AppImage Executable**
     ```bash
-    chmod +x RTSM-*-x86_64.AppImage
+    chmod +x RTSM-*x86_64.AppImage
     ```
 
 2. **Run the Application**
     ```bash
-    ./RTSM-*-x86_64.AppImage
+    ./RTSM-*x86_64.AppImage
     ```
 
 ---
@@ -87,11 +87,11 @@ rtsm/
 ├── adapter/ # OS-specific system info fetchers  
 ├── presenter/ # Scheduler & data access for UI  
 ├── ui_qt/ # Qt6 QML frontend + bindings  
-├── appimage_build.sh # create .AppImage file  
-├── install_rtsm.sh  # install app  
+├── appimage_build.sh # Create .AppImage file   
+├── rtsm_install_ubuntu.sh  # Install app   
+├── rtsm_uninstall_ubuntu.sh  # Uninstall app   
 ├── rtsm.desktop # Autostart launcher entry  
-├── rtsm-icon.png # Desktop icon  
-└── README.md # This file  
+├── icons # Folder icon  
 
 ---
 

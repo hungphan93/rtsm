@@ -1,3 +1,4 @@
+/// MIT License
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>

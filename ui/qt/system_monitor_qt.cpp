@@ -1,3 +1,4 @@
+/// MIT License
 #include "system_monitor_qt.hpp"
 #include <QTimer>
 

@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef ENTITY_GPU_HPP
 #define ENTITY_GPU_HPP
 

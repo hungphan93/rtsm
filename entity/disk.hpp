@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef ENTITY_DISK_HPP
 #define ENTITY_DISK_HPP
 

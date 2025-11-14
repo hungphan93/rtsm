@@ -1,3 +1,4 @@
+/// MIT License
 #include "system_info_reader_mac.hpp"
 
 namespace adapter {

@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef UI_QT_SYSTEM_MONITOR_QT_HPP
 #define UI_QT_SYSTEM_MONITOR_QT_HPP
 #include "presenter/system_monitor.hpp"

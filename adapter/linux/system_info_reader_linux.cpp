@@ -1,3 +1,4 @@
+/// MIT License
 #include "system_info_reader_linux.hpp"
 #include <fstream>
 #include <regex>

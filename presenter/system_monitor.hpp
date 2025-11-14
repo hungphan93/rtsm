@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef PRESENTER_SYSTEM_MONITOR_HPP
 #define PRESENTER_SYSTEM_MONITOR_HPP
 #include "scheduler/system_fetch_manager.hpp"

@@ -1,3 +1,4 @@
+/// MIT License
 #include "system_monitor.hpp"
 
 namespace presenter {

@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef ENTITY_CPU_HPP
 #define ENTITY_CPU_HPP
 

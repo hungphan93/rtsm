@@ -1,3 +1,4 @@
+/// MIT License
 #ifndef ENTITY_MEMORY_HPP
 #define ENTITY_MEMORY_HPP
 
