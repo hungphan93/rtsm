@@ -17,8 +17,6 @@ SUDOERS_FILE="/etc/sudoers.d/90-dmidecode-$USER_NAME"
 SYSTEMD_USER_DIR="$USER_HOME/.config/systemd/user"
 AUTOSTART_DIR="$USER_HOME/.config/autostart"
 APPLICATIONS_DIR="$USER_HOME/.local/share/applications"
-DESKTOP_FILE_NAME="rtsm.desktop"
-DESKTOP_FILE_PATH="$AUTOSTART_DIR/$DESKTOP_FILE_NAME"
 
 APP_ICON="/opt/rtsm/icons"
 ICON_NAME="app_icon.png"
@@ -26,65 +24,81 @@ ICON_NAME="app_icon.png"
 WRAPPER_SCRIPT="$APP_DEST/AppRun"
 
 # =====================
-# 0. Prepare directories + copy files
+# Stop old service if exists
 # =====================
-echo "📦 [0/7] Installing AppImage and icon..."
+systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
+
+# =====================
+# Prepare directories + copy files
+# =====================
+echo "📦 Installing AppImage and icon..."
 sudo mkdir -p "$APP_DEST" "$APP_ICON"
 sudo cp "$APPIMAGE_NAME" "$APP_PATH"
 sudo chmod +x "$APP_PATH"
 sudo cp "./icons/$ICON_NAME" "$APP_ICON/"
 
 # =====================
-# 0.1 Create AppRun wrapper
+# Create AppRun wrapper (wait XWayland ready)
 # =====================
-echo "🛠️ [0.1/7] Creating AppRun wrapper..."
+echo "🛠️ Creating AppRun wrapper..."
 sudo tee "$WRAPPER_SCRIPT" > /dev/null <<'EOF'
 #!/usr/bin/env bash
+# Wait until XWayland socket exists
+XWAYLAND_SOCKET="/run/user/$UID/.X11-unix/X0"
+i=0
+while [ ! -S "$XWAYLAND_SOCKET" ] && [ $i -lt 5 ]; do
+    sleep 0.5
+    i=$((i+1))
+done
+
+# Environment variables
 export QT_QPA_PLATFORM=xcb
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
-export QT_SCREEN_SCALE_FACTORS=1
-sleep 5
+export GDK_BACKEND=x11
 
-exec /opt/rtsm/bin/RTSM-*x86_64.AppImage --appimage-extract-and-run "$@"
+exec /opt/rtsm/bin/RTSM-*x86_64.AppImage "$@"
 EOF
 sudo chmod +x "$WRAPPER_SCRIPT"
 
 # =====================
-# 1. Grant sudo for dmidecode
+# Grant sudo for dmidecode
 # =====================
-echo "🔐 [1/7] Granting NOPASSWD for dmidecode..."
+echo "🔐 Granting NOPASSWD for dmidecode..."
 echo "$USER_NAME ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode" | sudo tee "$SUDOERS_FILE" > /dev/null
 sudo chmod 440 "$SUDOERS_FILE"
 
 # =====================
-# 2. Enable lingering
+# Enable lingering (service runs after logout)
 # =====================
-echo "🔄 [2/7] Enabling systemd linger..."
 sudo loginctl enable-linger "$USER_NAME"
 
 # =====================
-# 3. Create systemd user service
+# Create systemd user service
 # =====================
-echo "🛠️ [3/7] Creating systemd user service..."
+echo "🛠️ Creating systemd user service..."
 mkdir -p "$SYSTEMD_USER_DIR"
 tee "$SYSTEMD_USER_DIR/$SERVICE_NAME" > /dev/null <<EOF
 [Unit]
 Description=RTSM Realtime System Monitor
-After=graphical-session.target
+After=graphical-session.target dbus.service xdg-desktop-portal.service
 
 [Service]
-ExecStart=/bin/bash -c $WRAPPER_SCRIPT
+Type=simple
+ExecStart=/bin/bash -c "sleep 5; $WRAPPER_SCRIPT"
 Restart=always
 RestartSec=5
+Environment=QT_QPA_PLATFORM=xcb
+Environment=QT_AUTO_SCREEN_SCALE_FACTOR=1
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical.target
 EOF
 
 # =====================
-# 4. Reload systemd user daemon (no sudo)
+# Reload systemd user daemon and start service
 # =====================
-echo "🚀 [4/7] Reloading systemd user daemon..."
+echo "🚀 Reloading systemd user daemon..."
 export XDG_RUNTIME_DIR="/run/user/$(id -u $USER_NAME)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 
@@ -93,32 +107,26 @@ systemctl --user daemon-reload
 systemctl --user enable --now "$SERVICE_NAME"
 
 # =====================
-# 5. Create .desktop file for autostart + menu
+# Create .desktop launcher
 # =====================
-echo "🖥️ [5/7] Creating .desktop launcher..."
+echo "🖥️ Creating .desktop launcher..."
 mkdir -p "$AUTOSTART_DIR" "$APPLICATIONS_DIR"
-tee "$DESKTOP_FILE_PATH" > /dev/null <<EOF
+tee "$AUTOSTART_DIR/rtsm.desktop" > /dev/null <<EOF
 [Desktop Entry]
 Type=Application
 Name=RTSM
 Exec=$WRAPPER_SCRIPT
 Icon=$APP_ICON/$ICON_NAME
 Terminal=false
-X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=10
 Comment=Realtime System Monitor
 Categories=System;Utility;
 StartupNotify=true
 EOF
-cp "$DESKTOP_FILE_PATH" "$APPLICATIONS_DIR/$DESKTOP_FILE_NAME"
+cp "$AUTOSTART_DIR/rtsm.desktop" "$APPLICATIONS_DIR/rtsm.desktop"
 
 # =====================
-# 6. Check service status
+# Done
 # =====================
-echo "✅ [6/7] Checking systemd service status..."
-systemctl --user status "$SERVICE_NAME" --no-pager
-
-# =====================
-# 7. Done
-# =====================
-echo "🎉 [7/7] RTSM installation complete. App will auto-start after login."
+echo "🎉 RTSM installation complete. App will auto-start after login."
 

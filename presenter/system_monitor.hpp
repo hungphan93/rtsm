@@ -31,6 +31,6 @@ private:
     entity::net last_net_;
 };
 
-} // namespace presenter
+} /// namespace presenter
 
-#endif // PRESENTER_SYSTEM_MONITOR_HPP
+#endif /// PRESENTER_SYSTEM_MONITOR_HPP

@@ -1,25 +1,47 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-echo "Stopping rtsm systemd user service..."
-systemctl --user stop rtsm.service || true
-systemctl --user disable rtsm.service || true
-systemctl --user daemon-reload || true
-systemctl --user daemon-reexec
+# Define variables
+USER_NAME="$USER"
+HOME_DIR="/home/$USER_NAME"
+SERVICE_NAME="rtsm.service"
 
-echo "Removing systemd user service..."
-rm -f ~/.config/systemd/user/rtsm.service
+# Stop the systemd user service if running
+systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
 
-echo "Removing .desktop shortcut..."
-rm -f ~/.local/share/applications/rtsm.desktop
+# Disable the service to prevent start at login
+systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
 
-echo "Removing installed files..."
-sudo rm -rf /opt/rtsm
-sudo rm -rf "/etc/sudoers.d/90-dmidecode-$USER_NAME"
+# Remove the service unit file from systemd user configuration
+rm -f "$HOME_DIR/.config/systemd/user/$SERVICE_NAME"
 
-echo "Reloading systemd user manager..."
+# Reload systemd daemon to apply changes
 systemctl --user daemon-reload
 systemctl --user daemon-reexec
 
-echo "Done. RTSM has been uninstalled."
+# Remove associated autostart launcher if exists
+AUTOSTART_DIR="$HOME_DIR/.config/autostart"
+DESKTOP_FILE="$AUTOSTART_DIR/rtsm.desktop"
+rm -f "$DESKTOP_FILE"
+
+# Remove any custom app files, icons, or scripts
+APP_DEST="/opt/rtsm/bin"
+SUDOERS_FILE="/etc/sudoers.d/90-dmidecode-$USER_NAME"
+sudo rm -rf "$APP_DEST"
+sudo rm -f "$SUDOERS_FILE"
+rm -rf "$HOME_DIR/.local/share/applications/rtsm.desktop"
+
+# Optionally, remove other related files/folders
+# sudo rm -rf /path/to/other/files
+
+# Optional: disable lingering if enabled
+sudo loginctl disable-linger "$USER_NAME"
+
+echo "RTSM systemd user service and related files have been removed."
+
+# Kill remaining processes
+pkill -f RTSM || true
+pkill -f AppRun || true
+
+echo "✅ RTSM uninstalled successfully."
 

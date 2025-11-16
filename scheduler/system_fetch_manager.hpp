@@ -25,6 +25,6 @@ private:
     std::map<std::string, std::jthread> fetchers_;
 };
 
-} // namespace scheduler
+} /// namespace scheduler
 
-#endif // SCHEDULER_SYSTEM_FETCH_MANAGER_HPP
+#endif /// SCHEDULER_SYSTEM_FETCH_MANAGER_HPP

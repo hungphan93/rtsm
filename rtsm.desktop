@@ -1,13 +1,10 @@
 [Desktop Entry]
-Version=1.0
+Type=Application
 Name=RTSM
-GenericName=System Monitor
-Comment=Real-time system monitor application
 Exec=apprtsm
 Icon=app_icon
 Terminal=false
-Type=Application
+X-GNOME-Autostart-Delay=10
+Comment=Realtime System Monitor
+Categories=System;Utility;
 StartupNotify=true
-Categories=Utility;System;Monitor;
-Keywords=System;Monitor;Performance;CPU;GPU;Memory;
-

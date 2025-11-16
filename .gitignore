@@ -84,4 +84,6 @@ CMakeCache.txt
 CMakeLists.txt.user
 .qt/
 .vscode/
+/output_appimage/
+/builder_appimage/
 valgrind.log

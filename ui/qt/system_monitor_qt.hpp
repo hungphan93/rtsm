@@ -111,7 +111,7 @@ private:
     entity::gpu last_gpu_;
 };
 
-} // namespace qt
-} // namespace ui
+} /// namespace qt
+} /// namespace ui
 
-#endif // UI_QT_SYSTEM_MONITOR_QT_HPP
+#endif /// UI_QT_SYSTEM_MONITOR_QT_HPP

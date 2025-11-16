@@ -8,7 +8,7 @@ Window {
     width: 1200
     height: 250
     visible: true
-    // flags: Qt.SplashScreen | Qt.FramelessWindowHint
+    /// flags: Qt.SplashScreen | Qt.FramelessWindowHint
     flags: Qt.SplashScreen | Qt.FramelessWindowHint | Qt.WindowTransparentForInput /// to click folder below the app
     color: "transparent"
     title: "Real-time system monitoring"
