@@ -69,6 +69,8 @@ else
         echo "Downloaded $LINUXDEPLOY and $PLUGIN_QT."
 fi
 
+export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml"
+
 cd "./build"
 echo "Creating the AppImage file"
 ../"$APPIMAGE_TOOL_DIR"/"$LINUXDEPLOY" \

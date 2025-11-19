@@ -25,14 +25,12 @@ DESKTOP_FILE="$AUTOSTART_DIR/rtsm.desktop"
 rm -f "$DESKTOP_FILE"
 
 # Remove any custom app files, icons, or scripts
-APP_DEST="/opt/rtsm/bin"
+APP_DEST="/opt/rtsm"
 SUDOERS_FILE="/etc/sudoers.d/90-dmidecode-$USER_NAME"
 sudo rm -rf "$APP_DEST"
 sudo rm -f "$SUDOERS_FILE"
 rm -rf "$HOME_DIR/.local/share/applications/rtsm.desktop"
 
-# Optionally, remove other related files/folders
-# sudo rm -rf /path/to/other/files
 
 # Optional: disable lingering if enabled
 sudo loginctl disable-linger "$USER_NAME"
