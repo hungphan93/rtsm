@@ -38,7 +38,7 @@ entity::net system_monitor::net() const noexcept {
 
 void system_monitor::start_periodic_tasks() noexcept {
     using namespace std::chrono;
-    scheduler_.add_fetcher("cpu", 300ms, [this] {
+    scheduler_.add_fetcher("cpu", 10ms, [this] {
         auto data = reader_.read_cpu();
         std::scoped_lock lock(mutex_);
         last_cpu_ = std::move(data);
@@ -69,4 +69,4 @@ void system_monitor::start_periodic_tasks() noexcept {
     });
 }
 
-} // namespace presenter
+} /// namespace presenter

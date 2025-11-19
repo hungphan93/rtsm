@@ -8,7 +8,7 @@ namespace qt {
 system_monitor_qt::system_monitor_qt(presenter::system_monitor* presenter,QObject* parent) :
     QObject(parent), presenter_(presenter) {
     connect(&timer_, &QTimer::timeout, this, &system_monitor_qt::refresh_ui);
-    timer_.start(100);
+    timer_.start(20);
 }
 
 QString system_monitor_qt::cpu_model_name() const {
@@ -36,7 +36,7 @@ QString system_monitor_qt::cpu_temperature_c() const {
     if (!presenter_) return {};
 
     const auto cpu = presenter_->cpu();
-    return QString::number(cpu.temperature_c / 1000) + "°C";
+    return QString::number(cpu.temperature_c / 1000, 2, 0) + "°C";
 }
 
 QString system_monitor_qt::cpu_power_mw() const {
@@ -209,7 +209,6 @@ QString system_monitor_qt::net_tx_bytes() const {
     return QString::number(net.tx_bytes);
 }
 
-
 void system_monitor_qt::refresh_ui() {
     if (!presenter_) return;
 
@@ -244,5 +243,5 @@ void system_monitor_qt::refresh_ui() {
     }
 }
 
-} // namespace qt
-} // namespace ui
+} /// namespace qt
+} /// namespace ui

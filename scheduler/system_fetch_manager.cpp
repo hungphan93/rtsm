@@ -26,4 +26,4 @@ void system_fetch_manager::add_fetcher(const std::string &name,
      }));
 }
 
-} // namespace scheduler
+} /// namespace scheduler
