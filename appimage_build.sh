@@ -1,88 +1,101 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -ex
-
-REPO_ROOT=$(pwd)
+# ===== 1. Configuration & Context =====
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$REPO_ROOT/build"
+TOOLS_DIR="$REPO_ROOT/builder_appimage"
 APPDIR="$BUILD_DIR/AppDir"
-INSTALL_PREFIX=/usr
-EXECUTABLE_PATH="$APPDIR/usr/bin/apprtsm"
-DESKTOP_FILE="$APPDIR/usr/share/applications/rtsm.desktop"
-ICON_TARGET="$APPDIR/usr/share/icons/hicolor/256x256/apps/app_icon.png"
-ICON_SOURCE="$REPO_ROOT/icons/app_icon.png"
+OUTPUT_DIR="$REPO_ROOT/output_appimage"
 
-echo "Removing /build folder"
-rm -rf "$BUILD_DIR"
-mkdir -p "$APPDIR/usr/share/applications"
-mkdir -p "$(dirname "$ICON_TARGET")"
+# Export version for AppImage metadata (standard best practice)
+export VERSION=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "1.0.0")
 
-pushd "$BUILD_DIR"
+# Fixed Tags for all tools for maximum stability
+LINUXDEPLOY_TAG="1-alpha-20251107-1"
+QT_PLUGIN_TAG="1-alpha-20250213-1"
+RUNTIME_TAG="20251108"
+APPIMAGETOOL_TAG="1.9.1"
 
-# === Build app ===
-cmake "$REPO_ROOT" \
-    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
-    -DCMAKE_BUILD_TYPE=Release
+# Download URLs based on specific release tags
+LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_TAG}/linuxdeploy-x86_64.AppImage"
+QT_PLUGIN_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/${QT_PLUGIN_TAG}/linuxdeploy-plugin-qt-x86_64.AppImage"
+RUNTIME_URL="https://github.com/AppImage/type2-runtime/releases/download/${RUNTIME_TAG}/runtime-x86_64"
+APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_TAG}/appimagetool-x86_64.AppImage"
+
+# Updated SHA256 Hash List
+declare -A TOOL_HASHES
+TOOL_HASHES=(
+    ["linuxdeploy-x86_64.AppImage"]="c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d"
+    ["runtime-x86_64"]="2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
+    ["appimagetool-x86_64.AppImage"]="ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+)
+
+# ===== 2. Download & Hash Verification =====
+mkdir -p "$TOOLS_DIR"
+pushd "$TOOLS_DIR" > /dev/null
+
+download_tool() {
+    local file=$1
+    local url=$2
+    if [ ! -f "$file" ]; then
+        echo "📥 Downloading $file..."
+        wget -q --show-progress "$url" -O "$file"
+        chmod +x "$file"
+    fi
+    
+    # Hash verification logic
+    if [[ ${TOOL_HASHES[$file]:-""} != "" ]]; then
+        # Format: [HASH]  [FILE] (Exactly 2 spaces required)
+        echo "${TOOL_HASHES[$file]}  $file" | sha256sum --check --status || {
+            echo "❌ Error: Hash mismatch for $file!"
+            echo "Expected: ${TOOL_HASHES[$file]}"
+            echo "Actual:   $(sha256sum "$file" | awk '{print $1}')"
+            exit 1
+        }
+        echo "✅ $file: Verified."
+    fi
+}
+
+download_tool "linuxdeploy-x86_64.AppImage" "$LINUXDEPLOY_URL"
+download_tool "linuxdeploy-plugin-qt-x86_64.AppImage" "$QT_PLUGIN_URL"
+download_tool "runtime-x86_64" "$RUNTIME_URL"
+download_tool "appimagetool-x86_64.AppImage" "$APPIMAGETOOL_URL"
+popd > /dev/null
+
+# ===== 3. Project Compilation (RTSM) =====
+# Clean environment for fresh build
+rm -rf "$BUILD_DIR" && mkdir -p "$BUILD_DIR"
+pushd "$BUILD_DIR" > /dev/null
+cmake "$REPO_ROOT" -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
 make -j"$(nproc)"
 make install DESTDIR="$APPDIR"
 
-# === Install .desktop and icon ===
-cp "$REPO_ROOT/rtsm.desktop" "$DESKTOP_FILE"
-cp "$ICON_SOURCE" "$ICON_TARGET"
+# Organize Assets into standard AppDir layout
+mkdir -p "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+cp "$REPO_ROOT/rtsm.desktop" "$APPDIR/usr/share/applications/rtsm.desktop"
+cp "$REPO_ROOT/icons/app_icon.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/app_icon.png"
+popd > /dev/null
 
+# ===== 4. Final Packaging =====
+echo "📦 Step 1: Bundling dependencies..."
+export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
+export PATH="$TOOLS_DIR:$PATH"
 
-APPIMAGE_TOOL_DIR="builder_appimage"
-LINUXDEPLOY="linuxdeploy-x86_64.AppImage"
-PLUGIN_QT="linuxdeploy-plugin-qt-x86_64.AppImage"
-OUTPUT_DIR="output_appimage"
+# Prepare AppDir folder using linuxdeploy
+"$TOOLS_DIR/linuxdeploy-x86_64.AppImage" \
+    --appdir "$APPDIR" \
+    --desktop-file "$APPDIR/usr/share/applications/rtsm.desktop" \
+    --executable "$APPDIR/usr/bin/apprtsm" \
+    --icon-file "$REPO_ROOT/icons/app_icon.png" \
+    --plugin qt
 
-echo "Check if appimage_tool folder exists; if not, create it"
-if [ ! -d "$APPIMAGE_TOOL_DIR" ]; then
-	echo "Folder $APPIMAGE_TOOL_DIR does not exist. Creating..."
-	cd ..
-	mkdir -p "$OUTPUT_DIR"
-	mkdir -p "$APPIMAGE_TOOL_DIR"
-	cd "$APPIMAGE_TOOL_DIR"
+echo "📦 Step 2: Generating final AppImage with verified runtime..."
+rm -rf "$OUTPUT_DIR" && mkdir -p "$OUTPUT_DIR"
+FINAL_FILE="$OUTPUT_DIR/RTSM-x86_64.AppImage"
+export ARCH=x86_64
 
-        echo "Check if both files exist; if both exist, skip downloading"
-	if [ -f "$LINUXDEPLOY" ] && [ -f "$PLUGIN_QT" ]; then
-	        echo "Both $LINUXDEPLOY and $PLUGIN_QT already exist. No download needed."
-	else
-	        # Download linuxdeploy AppImage if missing
-		if [ ! -f "$LINUXDEPLOY" ] || [ ! -f "$PLUGIN_QT" ]; then
-		        echo "Downloading $LINUXDEPLOY..."
-			wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$LINUXDEPLOY -O "$LINUXDEPLOY"
-			chmod +x "$LINUXDEPLOY"
+# Manual packaging with specifically verified stable runtime
+"$TOOLS_DIR/appimagetool-x86_64.AppImage" "$APPDIR" "$FINAL_FILE" --runtime-file "$TOOLS_DIR/runtime-x86_64"
 
-                        echo "Downloading $PLUGIN_QT..."
-			wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/$PLUGIN_QT -O "$PLUGIN_QT"
-			chmod +x "$PLUGIN_QT"
-		fi
-		if [ ! -f "$LINUXDEPLOY" ] || [ ! -f "$PLUGIN_QT" ]; then
-		        echo "Error: Failed to download $LINUXDEPLOY and $PLUGIN_QT. Stopping."
-			exit 1
-		else
-		        echo "Downloaded $LINUXDEPLOY and $PLUGIN_QT."
-		fi
-	fi
-	cd ..
-else
-        echo "Downloaded $LINUXDEPLOY and $PLUGIN_QT."
-fi
-
-export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml"
-
-cd "./build"
-echo "Creating the AppImage file"
-../"$APPIMAGE_TOOL_DIR"/"$LINUXDEPLOY" \
-   --appdir AppDir \
-   --desktop-file AppDir/usr/share/applications/rtsm.desktop \
-   --executable AppDir/usr/bin/apprtsm \
-   --icon-file "$ICON_SOURCE" \
-   --plugin qt \
-   --output appimage
-
-popd
-
-mv "./build/"RTSM-*.AppImage "./$OUTPUT_DIR"
-find "$OUTPUT_DIR" -name "RTSM-*x86_64.AppImage" -exec mv {} "$OUTPUT_DIR/RTSM-x86_64.AppImage" \;
-echo "✅ AppImage created. Check the $OUTPUT_DIR folder."
+echo "✅ Success! Final AppImage ready at: $FINAL_FILE"
