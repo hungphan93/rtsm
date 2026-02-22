@@ -1,7 +1,7 @@
 /// MIT License
 #ifndef UI_QT_SYSTEM_MONITOR_QT_HPP
 #define UI_QT_SYSTEM_MONITOR_QT_HPP
-#include "presenter/system_monitor.hpp"
+#include "presenter/system_monitor_view_model.hpp"
 
 #include <QObject>
 #include <QTimer>
@@ -9,6 +9,7 @@
 namespace ui {
 namespace qt {
 
+/// This class is controller in MVC pattern
 class system_monitor_qt : public QObject {
 
     Q_OBJECT
@@ -51,46 +52,46 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString net_tx_bytes READ net_tx_bytes NOTIFY net_changed)
 
 public:
-    explicit system_monitor_qt(presenter::system_monitor* presenter = nullptr, QObject* parent = nullptr);
+    explicit system_monitor_qt(presenter::system_monitor_view_model* view_model, QObject* parent = nullptr);
 
     /// cpu
-    QString cpu_model_name() const;
-    QString cpu_usage_percent() const;
-    QString cpu_frequency_mhz() const;
-    QString cpu_temperature_c() const;
-    QString cpu_power_mw() const;
+    [[nodiscard]] QString cpu_model_name() const;
+    [[nodiscard]] QString cpu_usage_percent() const;
+    [[nodiscard]] QString cpu_frequency_mhz() const;
+    [[nodiscard]] QString cpu_temperature_c() const;
+    [[nodiscard]] QString cpu_power_mw() const;
 
     /// memory
-    QString memory_vram_used() const;
-    QString memory_total_bytes() const;
-    QString memory_used_bytes() const;
-    QString memory_usage_percent() const;
-    QString memory_name() const;
-    QString memory_power_mw() const;
-    QString memory_frequency_mhz() const;
+    [[nodiscard]] QString memory_vram_used() const;
+    [[nodiscard]] QString memory_total_bytes() const;
+    [[nodiscard]] QString memory_used_bytes() const;
+    [[nodiscard]] QString memory_usage_percent() const;
+    [[nodiscard]] QString memory_name() const;
+    [[nodiscard]] QString memory_power_mw() const;
+    [[nodiscard]] QString memory_frequency_mhz() const;
 
     /// gpu
-    QString gpu_name() const;
-    QString gpu_vram_total() const;
-    QString gpu_vram_used() const;
-    QString gpu_usage_percent() const;
-    QString gpu_cores() const;
-    QString gpu_frequency_mhz() const;
-    QString gpu_temperature_c() const;
+    [[nodiscard]] QString gpu_name() const;
+    [[nodiscard]] QString gpu_vram_total() const;
+    [[nodiscard]] QString gpu_vram_used() const;
+    [[nodiscard]] QString gpu_usage_percent() const;
+    [[nodiscard]] QString gpu_cores() const;
+    [[nodiscard]] QString gpu_frequency_mhz() const;
+    [[nodiscard]] QString gpu_temperature_c() const;
 
     /// disk
-    QString disk_read_speed() const;
-    QString disk_write_speed() const;
-    QString disk_sector_size() const;
-    QString disk_model() const;
-    QString disk_serial_number() const;
-    QString disk_size() const;
-    QString disk_usage_percent() const;
+    [[nodiscard]] QString disk_read_speed() const;
+    [[nodiscard]] QString disk_write_speed() const;
+    [[nodiscard]] QString disk_sector_size() const;
+    [[nodiscard]] QString disk_model() const;
+    [[nodiscard]] QString disk_serial_number() const;
+    [[nodiscard]] QString disk_size() const;
+    [[nodiscard]] QString disk_usage_percent() const;
 
 
     /// net
-    QString net_rx_bytes() const;
-    QString net_tx_bytes() const;
+    [[nodiscard]] QString net_rx_bytes() const;
+    [[nodiscard]] QString net_tx_bytes() const;
 
 
 signals:
@@ -101,14 +102,7 @@ signals:
     void net_changed();
 
 private:
-    void refresh_ui();
-    presenter::system_monitor* presenter_ = nullptr;
-    QTimer timer_;
-    entity::cpu last_cpu_;
-    entity::memory last_memory_;
-    entity::disk last_disk_;
-    entity::net last_net_;
-    entity::gpu last_gpu_;
+    presenter::system_monitor_view_model* view_model_ = nullptr;
 };
 
 } /// namespace qt

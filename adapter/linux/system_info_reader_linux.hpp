@@ -2,7 +2,7 @@
 #ifndef ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP
 #define ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP
 
-#include "use_case/system_info_reader.hpp"
+#include "use_case/ports/system_info_reader.hpp"
 
 namespace adapter {
 namespace linux2 {

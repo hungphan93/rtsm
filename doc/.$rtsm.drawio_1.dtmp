@@ -77,7 +77,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="azIwv3VI3-O1aiZ3joZl" name="Data Flow">
-    <mxGraphModel dx="3133" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2683" dy="1747" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -208,16 +208,28 @@
           <mxGeometry y="78" width="250" height="26" as="geometry" />
         </mxCell>
         <mxCell id="KxyHDiNMfH8MxG2QmicQ-52" value="system_data_fetcher" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="-510" y="-30" width="270" height="150" as="geometry" />
+          <mxGeometry x="-510" y="-30" width="390" height="160" as="geometry" />
         </mxCell>
         <mxCell id="KxyHDiNMfH8MxG2QmicQ-53" value="-&amp;nbsp;const usecase::system_info_reader&amp;amp;: reader_" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-52">
-          <mxGeometry y="26" width="270" height="26" as="geometry" />
+          <mxGeometry y="26" width="390" height="26" as="geometry" />
         </mxCell>
         <mxCell id="KxyHDiNMfH8MxG2QmicQ-54" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-52">
-          <mxGeometry y="52" width="270" height="8" as="geometry" />
+          <mxGeometry y="52" width="390" height="8" as="geometry" />
         </mxCell>
-        <mxCell id="KxyHDiNMfH8MxG2QmicQ-55" value="+&amp;nbsp;&lt;span style=&quot;background-color: transparent;&quot;&gt;fetch_cpu() const:&amp;nbsp;&lt;/span&gt;entity::cpu&lt;div&gt;+ fetch_memory() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::memory&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_gpu() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::gpu&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_disk() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::disk&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_net() const: e&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;ntity::net&lt;/span&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-52">
-          <mxGeometry y="60" width="270" height="90" as="geometry" />
+        <mxCell id="KxyHDiNMfH8MxG2QmicQ-55" value="&lt;div&gt;+&amp;nbsp;system_data_fetcher(const usecase::system_info_reader&amp;amp; reader)&lt;/div&gt;+&amp;nbsp;&lt;span style=&quot;background-color: transparent;&quot;&gt;fetch_cpu() const:&amp;nbsp;&lt;/span&gt;entity::cpu&lt;div&gt;+ fetch_memory() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::memory&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_gpu() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::gpu&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_disk() const:&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;entity::disk&lt;/span&gt;&lt;/div&gt;&lt;div&gt;+ fetch_net() const: e&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;ntity::net&lt;/span&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-52">
+          <mxGeometry y="60" width="390" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="KxyHDiNMfH8MxG2QmicQ-56" value="system_data_scheduler" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-920" y="-40" width="400" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="KxyHDiNMfH8MxG2QmicQ-57" value="+ field: type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-56">
+          <mxGeometry y="26" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="KxyHDiNMfH8MxG2QmicQ-58" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-56">
+          <mxGeometry y="52" width="400" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="KxyHDiNMfH8MxG2QmicQ-59" value="+&amp;nbsp;&amp;nbsp;system_data_scheduler(const usecase::system_info_reader&amp;amp; reader)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="KxyHDiNMfH8MxG2QmicQ-56">
+          <mxGeometry y="60" width="400" height="90" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

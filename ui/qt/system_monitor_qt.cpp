@@ -1,246 +1,139 @@
 /// MIT License
 #include "system_monitor_qt.hpp"
-#include <QTimer>
 
 namespace ui {
 namespace qt {
 
-system_monitor_qt::system_monitor_qt(presenter::system_monitor* presenter,QObject* parent) :
-    QObject(parent), presenter_(presenter) {
-    connect(&timer_, &QTimer::timeout, this, &system_monitor_qt::refresh_ui);
-    timer_.start(20);
+system_monitor_qt::system_monitor_qt(presenter::system_monitor_view_model* view_mode,QObject* parent) :
+    QObject(parent), view_model_{view_mode} {
+    if (!view_model_) return;
+
+    auto bind = [this](auto register_fn, auto signal) {
+        (view_model_->*register_fn)([this, signal] {
+            QMetaObject::invokeMethod(this, signal, Qt::QueuedConnection);
+        });
+    };
+
+    bind(&presenter::system_monitor_view_model::on_cpu_changed,    &system_monitor_qt::cpu_changed);
+    bind(&presenter::system_monitor_view_model::on_memory_changed, &system_monitor_qt::memory_changed);
+    bind(&presenter::system_monitor_view_model::on_gpu_changed,    &system_monitor_qt::gpu_changed);
+    bind(&presenter::system_monitor_view_model::on_disk_changed,   &system_monitor_qt::disk_changed);
+    bind(&presenter::system_monitor_view_model::on_net_changed,    &system_monitor_qt::net_changed);
 }
 
 QString system_monitor_qt::cpu_model_name() const {
-    if (!presenter_) return {};
-
-    const auto cpu = presenter_->cpu();
-    return QString::fromStdString(cpu.model_name);
+    return QString::fromStdString(view_model_->cpu().model_name);
 }
 
 QString system_monitor_qt::cpu_usage_percent() const {
-    if (!presenter_) return {};
-
-    const auto cpu = presenter_->cpu();
-    return QString::number(cpu.usage_percent, 2, 2) + "%";
+    return QString::number(view_model_->cpu().usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::cpu_frequency_mhz() const {
-    if (!presenter_) return {};
-
-    const auto cpu = presenter_->cpu();
-    return QString::number(cpu.frequency_mhz, 2, 0) + "Mhz";
+    return QString::number(view_model_->cpu().frequency_mhz, 2, 0) + "Mhz";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
-    if (!presenter_) return {};
-
-    const auto cpu = presenter_->cpu();
-    return QString::number(cpu.temperature_c / 1000, 2, 0) + "°C";
+    return QString::number(view_model_->cpu().temperature_c / 1000, 2, 0) + "°C";
 }
 
 QString system_monitor_qt::cpu_power_mw() const {
-    if (!presenter_) return {};
-
-    const auto cpu = presenter_->cpu();
-    return QString::number(cpu.power_mw / 1000000) + "Mw";
+    return QString::number(view_model_->cpu().power_mw / 1000000) + "Mw";
 }
 
 QString system_monitor_qt::memory_vram_used() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.vram_used);
+    return QString::number(view_model_->memory().vram_used);
 }
 
 QString system_monitor_qt::memory_total_bytes() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.vram_total, 2, 1);
+    return QString::number(view_model_->memory().vram_total, 2, 1);
 }
 
 QString system_monitor_qt::memory_used_bytes() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.vram_used, 2, 1);
+    return QString::number(view_model_->memory().vram_used, 2, 1);
 }
 
 QString system_monitor_qt::memory_usage_percent() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.usage_percent, 2, 2) + "%";
+    return QString::number(view_model_->memory().usage_percent, 2, 2) + "%";
 }
 
 QString system_monitor_qt::memory_name() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::fromStdString(memory.name);
+    return QString::fromStdString(view_model_->memory().name);
 }
 
 QString system_monitor_qt::memory_power_mw() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.power_mw, 2, 1) + "V";
+    return QString::number(view_model_->memory().power_mw, 2, 1) + "V";
 }
 
 QString system_monitor_qt::memory_frequency_mhz() const {
-    if (!presenter_) return {};
-
-    const auto memory = presenter_->memory();
-    return QString::number(memory.frequency_mhz / 2, 2, 0) + "Mhz";
+    return QString::number(view_model_->memory().frequency_mhz / 2, 2, 0) + "Mhz";
 }
 
 /// gpu
 QString system_monitor_qt::gpu_name() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::fromStdString(gpu.name);
+    return QString::fromStdString(view_model_->gpu().name);
 }
 
 QString system_monitor_qt::gpu_vram_total() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_total);
+    return QString::number(view_model_->gpu().vram_total);
 }
 
 QString system_monitor_qt::gpu_vram_used() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.vram_used);
+    return QString::number(view_model_->gpu().vram_used);
 }
 
 QString system_monitor_qt::gpu_usage_percent() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.usage_percent) + "%";
+    return QString::number(view_model_->gpu().usage_percent) + "%";
 }
 
 QString system_monitor_qt::gpu_cores() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.cores);
+    return QString::number(view_model_->gpu().cores);
 }
 
 QString system_monitor_qt::gpu_frequency_mhz() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.frequency_mhz) + "Mhz";
+    return QString::number(view_model_->gpu().frequency_mhz) + "Mhz";
 }
 
 QString system_monitor_qt::gpu_temperature_c() const {
-    if (!presenter_) return {};
-
-    const auto gpu = presenter_->gpu();
-    return QString::number(gpu.temperature_c) + "°C";
+    return QString::number(view_model_->gpu().temperature_c) + "°C";
 }
 
 /// disk
 QString system_monitor_qt::disk_read_speed() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::number(disk.read_speed);
+    return QString::number(view_model_->disk().read_speed);
 }
 
 QString system_monitor_qt::disk_write_speed() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::number(disk.write_speed);
+    return QString::number(view_model_->disk().write_speed);
 }
 
 QString system_monitor_qt::disk_sector_size() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::number(disk.sector_size);
+    return QString::number(view_model_->disk().sector_size);
 }
 
 QString system_monitor_qt::disk_model() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::fromStdString(disk.model);
+    return QString::fromStdString(view_model_->disk().model);
 }
 
 QString system_monitor_qt::disk_serial_number() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::fromStdString(disk.serial_number);
+    return QString::fromStdString(view_model_->disk().serial_number);
 }
 
 QString system_monitor_qt::disk_size() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::number(disk.size);
+    return QString::number(view_model_->disk().size);
 }
 
 QString system_monitor_qt::disk_usage_percent() const {
-    if (!presenter_) return {};
-
-    const auto disk = presenter_->disk();
-    return QString::number(100 * (disk.used / disk.total), 2, 2) + "%";
+    return QString::number(100 * (view_model_->disk().used / view_model_->disk().total), 2, 2) + "%";
 }
 
 /// net
 QString system_monitor_qt::net_rx_bytes() const {
-    if (!presenter_) return {};
-
-    const auto net = presenter_->net();
-    return QString::number(net.rx_bytes);
+    return QString::number(view_model_->net().rx_bytes);
 }
 
 QString system_monitor_qt::net_tx_bytes() const {
-    if (!presenter_) return {};
-    const auto net = presenter_->net();
-    return QString::number(net.tx_bytes);
-}
-
-void system_monitor_qt::refresh_ui() {
-    if (!presenter_) return;
-
-    auto current_cpu = presenter_->cpu();
-    if (current_cpu != last_cpu_) {
-        last_cpu_ = current_cpu;
-        emit cpu_changed();
-    }
-
-    auto current_memory = presenter_->memory();
-    if (current_memory != last_memory_) {
-        last_memory_ = current_memory;
-        emit memory_changed();
-    }
-
-    auto current_gpu = presenter_->gpu();
-    if (current_gpu != last_gpu_) {
-        last_gpu_ = current_gpu;
-        emit gpu_changed();
-    }
-
-    auto current_disk = presenter_->disk();
-    if (current_disk != last_disk_) {
-        last_disk_ = current_disk;
-        emit disk_changed();
-    }
-
-    auto current_net = presenter_->net();
-    if (current_net != last_net_) {
-        last_net_ = current_net;
-        emit net_changed();
-    }
+    return QString::number(view_model_->net().tx_bytes);
 }
 
 } /// namespace qt

@@ -105,7 +105,7 @@ inline std::optional<std::string> find_hwmon_by_name(const std::string& target) 
 }
 
 /// Converting a uint string to uint64_t
-std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexcept {
+inline std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexcept {
     uint64_t value{};
     try {
         value = std::stoull(std::string(s), nullptr, base);

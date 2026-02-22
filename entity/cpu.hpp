@@ -33,9 +33,9 @@ struct cpu {
     uint16_t physical_id = 0;
 
     /// Cache sizes (in KiB)
-    std::uint16_t l1_cache_kib = 0;
-    std::uint32_t l2_cache_kib = 0;
-    std::uint32_t l3_cache_kib = 0;
+    uint16_t l1_cache_kib = 0;
+    uint32_t l2_cache_kib = 0;
+    uint32_t l3_cache_kib = 0;
 
     /// Estimated power consumption (mW), if available
     float power_mw = 0.0f;

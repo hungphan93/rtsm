@@ -114,29 +114,29 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr, QString platf
     }
 
 #elif defined(_WIN32)
-    HWND hwnd = reinterpret_cast<HWND>(window->winId());
-    if (!SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)) {
-        qWarning() << "[platform] Failed to set HWND_NOTOPMOST.";
-    } else {
-        qDebug() << "[platform] Set HWND_NOTOPMOST (keeps behind).";
-    }
+    // HWND hwnd = reinterpret_cast<HWND>(window->winId());
+    // if (!SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+    //                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)) {
+    //     qWarning() << "[platform] Failed to set HWND_NOTOPMOST.";
+    // } else {
+    //     qDebug() << "[platform] Set HWND_NOTOPMOST (keeps behind).";
+    // }
 
 #elif defined(__APPLE__)
-    id nswindow = reinterpret_cast<id>(window->winId());
-    if (nswindow) {
-        constexpr int JoinAllSpaces    = 2;
-        constexpr int FullScreenAux    = 128;
+    // id nswindow = reinterpret_cast<id>(window->winId());
+    // if (nswindow) {
+    //     constexpr int JoinAllSpaces    = 2;
+    //     constexpr int FullScreenAux    = 128;
 
-        objc_msgSend(nswindow, sel_registerName("setCollectionBehavior:"),
-                     JoinAllSpaces | FullScreenAux);
+    //     objc_msgSend(nswindow, sel_registerName("setCollectionBehavior:"),
+    //                  JoinAllSpaces | FullScreenAux);
 
-        objc_msgSend(nswindow, sel_registerName("setLevel:"), 0); // NSNormalWindowLevel = 0
+    //     objc_msgSend(nswindow, sel_registerName("setLevel:"), 0); // NSNormalWindowLevel = 0
 
-        qDebug() << "[platform] Set macOS join all spaces & normal level.";
-    } else {
-        qWarning() << "[platform] Failed to get macOS NSWindow.";
-    }
+    //     qDebug() << "[platform] Set macOS join all spaces & normal level.";
+    // } else {
+    //     qWarning() << "[platform] Failed to get macOS NSWindow.";
+    // }
 
 #else
     qWarning() << "[platform] make_window_sticky unsupported platform.";

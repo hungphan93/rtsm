@@ -1,7 +1,7 @@
 /// MIT License
 #ifndef ADAPTER_WINDOW_SYSTEM_INFO_READER_WINDOW_HPP
 #define ADAPTER_WINDOW_SYSTEM_INFO_READER_WINDOW_HPP
-#include "use_case/system_info_reader.hpp"
+#include "use_case/ports/system_info_reader.hpp"
 
 namespace adapter {
 namespace window {

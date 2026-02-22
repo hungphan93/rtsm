@@ -33,11 +33,12 @@ set(APP_SOURCES
   adapter/window/system_info_reader_window.cpp
   adapter/mac/system_info_reader_mac.cpp
 
-  presenter/system_monitor.cpp
-
   ui/qt/system_monitor_qt.cpp
 
-  scheduler/system_fetch_manager.cpp
+  use_case/system_monitor_interactor.cpp
+  scheduler/system_data_fetcher.cpp
+  scheduler/system_data_scheduler.cpp
+
 )
 
 # Header files (for IDE and includes)
@@ -50,20 +51,25 @@ set(APP_HEADERS
   entity/memory.hpp
   entity/net.hpp
 
-  use_case/system_info_reader.hpp
+  use_case/ports/system_info_reader.hpp
 
   adapter/linux/system_info_reader_linux.hpp
   adapter/window/system_info_reader_window.hpp
   adapter/mac/system_info_reader_mac.hpp
 
-  presenter/system_monitor.hpp
-
   ui/qt/system_monitor_qt.hpp
-
-  scheduler/system_fetch_manager.hpp
 
   platform/window_sticky.hpp
   adapter/linux/detail/system_info_reader_linux_detail.hpp
+
+  use_case/ports/system_monitor_input_boundary.hpp
+  use_case/ports/system_monitor_output_boundary.hpp
+  use_case/system_monitor_interactor.hpp
+
+  scheduler/system_data_fetcher.hpp
+  scheduler/system_data_scheduler.hpp
+
+  presenter/system_monitor_view_model.hpp
 )
 
 # Add executable target
