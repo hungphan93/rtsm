@@ -2,7 +2,7 @@
 #ifndef SYSTEM_DATA_SCHEDULER_HPP
 #define SYSTEM_DATA_SCHEDULER_HPP
 
-#include "../use_case/ports/system_info_reader.hpp"
+#include "use_case/ports/system_info_reader.hpp"
 #include <chrono>
 #include <thread>
 #include <map>

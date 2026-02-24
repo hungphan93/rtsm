@@ -37,8 +37,8 @@ struct cpu {
     uint32_t l2_cache_kib = 0;
     uint32_t l3_cache_kib = 0;
 
-    /// Estimated power consumption (mW), if available
-    float power_mw = 0.0f;
+    /// Estimated power consumption (microwatt), if available
+    float power_uw = 0.0f;
 
     /// Logical processor/thread ID
     uint8_t processor_id = 0;

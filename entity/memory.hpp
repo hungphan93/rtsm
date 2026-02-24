@@ -14,7 +14,7 @@ struct memory {
     float usage_percent =0.0f;
     uint64_t cached = 0;
     std::string name;
-    float power_mw = 0.0f;
+    float voltage = 0.0f;
     float buss = 0.0f;
     float frequency_mhz = 0.0f;
 

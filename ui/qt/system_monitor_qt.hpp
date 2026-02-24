@@ -18,7 +18,7 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString cpu_usage_percent READ cpu_usage_percent NOTIFY cpu_changed)
     Q_PROPERTY(QString cpu_frequency_mhz READ cpu_frequency_mhz NOTIFY cpu_changed)
     Q_PROPERTY(QString cpu_temperature_c READ cpu_temperature_c NOTIFY cpu_changed)
-    Q_PROPERTY(QString cpu_power_mw READ cpu_power_mw NOTIFY cpu_changed)
+    Q_PROPERTY(QString cpu_power READ cpu_power NOTIFY cpu_changed)
 
     /// memory
     Q_PROPERTY(QString memory_vram_used READ memory_vram_used NOTIFY memory_changed)
@@ -26,7 +26,7 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString memory_used_bytes READ memory_used_bytes NOTIFY memory_changed)
     Q_PROPERTY(QString memory_usage_percent READ memory_usage_percent NOTIFY memory_changed)
     Q_PROPERTY(QString memory_name READ memory_name NOTIFY memory_changed)
-    Q_PROPERTY(QString memory_power_mw READ memory_power_mw NOTIFY memory_changed)
+    Q_PROPERTY(QString memory_voltage READ memory_voltage NOTIFY memory_changed)
     Q_PROPERTY(QString memory_frequency_mhz READ memory_frequency_mhz NOTIFY memory_changed)
 
     /// gpu
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] QString cpu_usage_percent() const;
     [[nodiscard]] QString cpu_frequency_mhz() const;
     [[nodiscard]] QString cpu_temperature_c() const;
-    [[nodiscard]] QString cpu_power_mw() const;
+    [[nodiscard]] QString cpu_power() const;
 
     /// memory
     [[nodiscard]] QString memory_vram_used() const;
@@ -67,7 +67,7 @@ public:
     [[nodiscard]] QString memory_used_bytes() const;
     [[nodiscard]] QString memory_usage_percent() const;
     [[nodiscard]] QString memory_name() const;
-    [[nodiscard]] QString memory_power_mw() const;
+    [[nodiscard]] QString memory_voltage() const;
     [[nodiscard]] QString memory_frequency_mhz() const;
 
     /// gpu

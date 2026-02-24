@@ -30,7 +30,7 @@ Window {
                 [
                 system_monitor ? system_monitor.cpu_usage_percent : "",
                 system_monitor ? system_monitor.cpu_temperature_c : "",
-                system_monitor ? system_monitor.cpu_power_mw : "",
+                system_monitor ? system_monitor.cpu_power : "",
                 system_monitor ? system_monitor.cpu_frequency_mhz : ""
             ]
         },
@@ -40,7 +40,7 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.memory_usage_percent : "",
-                system_monitor ? system_monitor.memory_power_mw : "",
+                system_monitor ? system_monitor.memory_voltage : "",
                 system_monitor ? system_monitor.memory_used_bytes + "Gb of " +
                                  system_monitor.memory_total_bytes + "Gb" : "",
                 system_monitor ? system_monitor.memory_frequency_mhz : "",

@@ -24,5 +24,5 @@ entity::disk system_info_reader_mac::read_disk() const {
     return {};
 }
 
-} // namespace mac
-} // namespace adapter
+} /// namespace mac
+} /// namespace adapter

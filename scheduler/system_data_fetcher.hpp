@@ -1,7 +1,7 @@
 /// MIT License
 #ifndef SYSTEM_DATA_FETCHER_HPP
 #define SYSTEM_DATA_FETCHER_HPP
-#include "../use_case/ports/system_info_reader.hpp"
+#include "use_case/ports/system_info_reader.hpp"
 
 namespace scheduler {
 

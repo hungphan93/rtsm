@@ -6,7 +6,7 @@
 #include <sys/statvfs.h>
 #include <mntent.h>
 #include <unordered_set>
-#include "./detail/system_info_reader_linux_detail.hpp"
+#include "detail/system_info_reader_linux_detail.hpp"
 #include <filesystem>
 #include <iostream>
 
@@ -87,7 +87,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     if (auto hwmon_cpu = detail::find_hwmon_by_name("k10temp")) {
         std::ifstream temp_file(*hwmon_cpu + "/temp1_input");
         if (temp_file && std::getline(temp_file, line)) {
-            result.temperature_c = std::stoull(line);
+            result.temperature_c = std::stoull(line) / 1000.f;
         }
     }
 
@@ -95,7 +95,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
         std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
         if (pwr_file && std::getline(pwr_file, line)) {
-            result.power_mw = std::stoull(line);
+            result.power_uw = std::stoull(line);
         }
     }
 
@@ -157,7 +157,7 @@ entity::memory system_info_reader_linux::read_memory() const {
         detail::parse_number(detail::trim(line), result.frequency_mhz);
 
         iss >> line;
-        detail::parse_number(detail::trim(line), result.power_mw);
+        detail::parse_number(detail::trim(line), result.voltage);
     }
 
     else {

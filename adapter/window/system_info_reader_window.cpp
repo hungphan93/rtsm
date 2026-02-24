@@ -29,5 +29,5 @@ entity::net system_info_reader_window::read_net() const {
     return result;
 }
 
-} // namespace window
-} // namespace adapter
+} /// namespace window
+} /// namespace adapter

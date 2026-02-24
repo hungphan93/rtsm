@@ -3,11 +3,6 @@
 #define ADAPTER_MAC_SYSTEM_INFO_READER_MAC_HPP
 
 #include "use_case/ports/system_info_reader.hpp"
-#include "entity/cpu.hpp"
-#include "entity/disk.hpp"
-#include "entity/gpu.hpp"
-#include "entity/memory.hpp"
-#include "entity/net.hpp"
 
 namespace adapter {
 namespace mac {

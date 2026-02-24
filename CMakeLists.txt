@@ -104,6 +104,11 @@ target_link_libraries(apprtsm
   ${X11_LIBRARIES}
 )
 
+# Project root as include base
+target_include_directories(apprtsm PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
 # Include directories for X11
 if(UNIX AND NOT APPLE)
   target_include_directories(apprtsm PRIVATE

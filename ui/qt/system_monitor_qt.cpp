@@ -34,11 +34,11 @@ QString system_monitor_qt::cpu_frequency_mhz() const {
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
-    return QString::number(view_model_->cpu().temperature_c / 1000, 2, 0) + "°C";
+    return QString::number(view_model_->cpu().temperature_c, 'f', 0) + "°C";
 }
 
-QString system_monitor_qt::cpu_power_mw() const {
-    return QString::number(view_model_->cpu().power_mw / 1000000) + "Mw";
+QString system_monitor_qt::cpu_power() const {
+    return QString::number(view_model_->cpu().power_uw / 1000000, 'f', 1) + "W";
 }
 
 QString system_monitor_qt::memory_vram_used() const {
@@ -61,8 +61,8 @@ QString system_monitor_qt::memory_name() const {
     return QString::fromStdString(view_model_->memory().name);
 }
 
-QString system_monitor_qt::memory_power_mw() const {
-    return QString::number(view_model_->memory().power_mw, 2, 1) + "V";
+QString system_monitor_qt::memory_voltage() const {
+    return QString::number(view_model_->memory().voltage, 2, 1) + "V";
 }
 
 QString system_monitor_qt::memory_frequency_mhz() const {

@@ -2,7 +2,7 @@
 #ifndef SYSTEM_MONITOR_VIEW_MODEL_HPP
 #define SYSTEM_MONITOR_VIEW_MODEL_HPP
 
-#include "../use_case/ports/system_monitor_output_boundary.hpp"
+#include "use_case/ports/system_monitor_output_boundary.hpp"
 #include <functional>
 #include <mutex>
 
