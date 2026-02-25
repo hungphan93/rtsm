@@ -82,7 +82,7 @@ inline std::string_view trim(std::string_view s) noexcept {
     return s.substr(start, end - start + 1);
 };
 
-inline float to_gb(uint64_t bytes) {
+inline float to_gb(float bytes) {
     return bytes / (1024.0 * 1024.0 * 1024.0);
 }
 

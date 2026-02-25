@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     scheduler::system_data_scheduler data_scheduler(reader);
 
     /// 5. Subscribe components
-    auto cpu_id =  data_scheduler.subscribe(200ms,
+    auto cpu_id =  data_scheduler.subscribe(0ms,
                                            &usecase::system_info_reader::read_cpu,
                                            [&interactor](const entity::cpu& cpu) {
                                                interactor.on_cpu_updated(cpu);
@@ -79,20 +79,20 @@ int main(int argc, char *argv[]) {
                                                interactor.on_gpu_updated(gpu);
                                            });
 
-    auto disk_id = data_scheduler.subscribe(1000ms,
+    auto disk_id = data_scheduler.subscribe(0ms,
                                             &usecase::system_info_reader::read_disk,
                                             [&interactor](const entity::disk& disk) {
                                                 interactor.on_disk_updated(disk);
                                             });
 
-    auto net_id = data_scheduler.subscribe(1000ms,
+    auto net_id = data_scheduler.subscribe(0ms,
                                            &usecase::system_info_reader::read_net,
                                            [&interactor](const entity::net& net) {
                                                interactor.on_net_updated(net);
                                            });
 
     /// 6. Qt View Adapter
-    ui::qt::system_monitor_qt monitor_qt(&view_model);
+    ui::qt::system_monitor_qt monitor_qt(view_model);
     engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
 
     /// Defer window initialization until created

@@ -52,8 +52,7 @@ class system_monitor_qt : public QObject {
     Q_PROPERTY(QString net_tx_bytes READ net_tx_bytes NOTIFY net_changed)
 
 public:
-    explicit system_monitor_qt(presenter::system_monitor_view_model* view_model, QObject* parent = nullptr);
-
+    explicit system_monitor_qt(presenter::system_monitor_view_model& view_model, QObject* parent = nullptr);
     /// cpu
     [[nodiscard]] QString cpu_model_name() const;
     [[nodiscard]] QString cpu_usage_percent() const;
@@ -102,7 +101,7 @@ signals:
     void net_changed();
 
 private:
-    presenter::system_monitor_view_model* view_model_ = nullptr;
+    presenter::system_monitor_view_model& view_model_;
 };
 
 } /// namespace qt

@@ -9,10 +9,10 @@ namespace entity {
 
 struct disk {
     /// read speed of disk
-    uint64_t read_speed = 0;
+    float read_speed = 0.0f;
 
     /// write speed of disk
-    uint64_t write_speed = 0;
+    float write_speed = 0.0f;
 
     /// sictor size of disk
     uint64_t sector_size = 0;

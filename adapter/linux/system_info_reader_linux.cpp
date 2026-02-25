@@ -26,7 +26,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     }
 
     detail::cpu_times t1 = detail::read_cpu_times();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     detail::cpu_times t2 = detail::read_cpu_times();
 
     const auto idle_diff = t2.idle_time() - t1.idle_time();
@@ -38,8 +38,10 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 
     std::string line;
     /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-    const std::regex amd_pattern(R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b)", std::regex::icase);
-    const std::regex intel_pattern(R"(Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)", std::regex::icase);
+    static const std::regex cpu_name_pattern(
+        R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
+        std::regex::icase | std::regex::optimize
+        );
 
     while(std::getline(proc, line)) {
         if (line.empty()) continue;
@@ -49,7 +51,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         if (line.starts_with("model name")) {
             std::smatch match;
             std::string sv_str(value);
-            if (std::regex_search(sv_str, match, std::regex(R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)", std::regex::icase))) {
+            if (std::regex_search(sv_str, match, cpu_name_pattern)) {
                 result.model_name = match.str();
             }
         }
@@ -136,7 +138,7 @@ entity::memory system_info_reader_linux::read_memory() const {
         result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
-    std::string value = detail::exec_cmd(
+    static std::string value = detail::exec_cmd(
         "sudo dmidecode --type 17 2>/dev/null "
         "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
         "| grep -v 'Unknown' "
@@ -211,7 +213,12 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
         const std::string name = e.path().filename().string();
         /// Checking the name file start with "cardXY"
-        if (!std::regex_match(name, std::regex("^card[0-9]{1,2}$"))) continue;
+        //   if (!std::regex_match(name, std::regex("card[0-9]{1,2}"))) continue;
+        if (!name.starts_with("card")
+            || name.size() < 5
+            || name.size() > 6
+            || !std::isdigit(name[4]))
+            continue;  /// skip
 
         const std::string vendor_str = detail::read_line(e.path() / "device/vendor");
         const std::string device_str = detail::read_line(e.path() / "device/device");
@@ -258,7 +265,9 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
             gpu.name          = tokens[0];
             gpu.vram_total    = detail::to_uint(tokens[1]).value_or(0);
-            gpu.vram_used     = detail::to_uint(tokens[2]).value_or(0) - 1.0;
+            auto used = detail::to_uint(tokens[2]).value_or(0);
+            //  gpu.vram_used     = detail::to_uint(tokens[2]).value_or(0);
+            gpu.vram_used = (used > 0) ? used - 1.0 : 0;  //  ~1MB overhead nvidia-smi
             gpu.temperature_c = detail::to_uint(tokens[3]).value_or(0);
             gpu.frequency_mhz = detail::to_uint(tokens[4]).value_or(0);
             gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
