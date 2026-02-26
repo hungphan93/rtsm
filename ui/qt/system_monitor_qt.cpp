@@ -25,11 +25,11 @@ QString system_monitor_qt::cpu_model_name() const {
 }
 
 QString system_monitor_qt::cpu_usage_percent() const {
-    return QString::number(view_model_.cpu().usage_percent, 2, 2) + "%";
+    return QString::number(view_model_.cpu().usage_percent, 'f', 2) + "%";
 }
 
 QString system_monitor_qt::cpu_frequency_mhz() const {
-    return QString::number(view_model_.cpu().frequency_mhz, 2, 0) + "Mhz";
+    return QString::number(view_model_.cpu().frequency_mhz, 'f', 0) + "Mhz";
 }
 
 QString system_monitor_qt::cpu_temperature_c() const {
@@ -45,15 +45,15 @@ QString system_monitor_qt::memory_vram_used() const {
 }
 
 QString system_monitor_qt::memory_total_bytes() const {
-    return QString::number(view_model_.memory().vram_total, 2, 1);
+    return QString::number(view_model_.memory().vram_total, 'f', 1);
 }
 
 QString system_monitor_qt::memory_used_bytes() const {
-    return QString::number(view_model_.memory().vram_used, 2, 1);
+    return QString::number(view_model_.memory().vram_used, 'f', 1);
 }
 
 QString system_monitor_qt::memory_usage_percent() const {
-    return QString::number(view_model_.memory().usage_percent, 2, 2) + "%";
+    return QString::number(view_model_.memory().usage_percent, 'f', 2) + "%";
 }
 
 QString system_monitor_qt::memory_name() const {
@@ -61,11 +61,11 @@ QString system_monitor_qt::memory_name() const {
 }
 
 QString system_monitor_qt::memory_voltage() const {
-    return QString::number(view_model_.memory().voltage, 2, 1) + "V";
+    return QString::number(view_model_.memory().voltage, 'f', 1) + "V";
 }
 
 QString system_monitor_qt::memory_frequency_mhz() const {
-    return QString::number(view_model_.memory().frequency_mhz / 2, 2, 0) + "Mhz";
+    return QString::number(view_model_.memory().frequency_mhz, 'f', 0) + "Mhz";
 }
 
 /// gpu
@@ -123,7 +123,8 @@ QString system_monitor_qt::disk_size() const {
 }
 
 QString system_monitor_qt::disk_usage_percent() const {
-    return QString::number(100 * (view_model_.disk().used / view_model_.disk().total), 2, 2) + "%";
+    auto total = view_model_.disk().total;
+    return QString::number(total > 0 ? 100.0 * view_model_.disk().used / total : 0.0, 'f', 2) + "%";
 }
 
 /// net

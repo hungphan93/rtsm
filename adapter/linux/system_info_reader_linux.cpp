@@ -89,7 +89,9 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     if (auto hwmon_cpu = detail::find_hwmon_by_name("k10temp")) {
         std::ifstream temp_file(*hwmon_cpu + "/temp1_input");
         if (temp_file && std::getline(temp_file, line)) {
-            result.temperature_c = std::stoull(line) / 1000.f;
+            float temp = 0;
+            detail::parse_number(line, temp);
+            result.temperature_c = temp / 1000.0f;
         }
     }
 
@@ -97,7 +99,9 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
         std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
         if (pwr_file && std::getline(pwr_file, line)) {
-            result.power_uw = std::stoull(line);
+            float power = 0;
+            detail::parse_number(line, power);
+            result.power_uw = power;
         }
     }
 
@@ -114,23 +118,29 @@ entity::memory system_info_reader_linux::read_memory() const {
 
     while (std::getline(proc, line)) {
         if (line.starts_with("MemTotal:")) {
-            total_bytes = std::stoull(line.substr(9));
+            float total = 0;
+            detail::parse_number(detail::trim(line.substr(9)), total);
+            total_bytes = total;
         }
 
         else if (line.starts_with("MemAvailable:")) {
-            available_kb = std::stoull(line.substr(13));
+            float available = 0;
+            detail::parse_number(detail::trim(line.substr(13)), available);
+            available_kb = available;
         }
 
         else if (line.starts_with("MemFree:")) {
-            result.vram_free = std::stoull(line.substr(8));
+            float available = 0;
+            detail::parse_number(detail::trim(line.substr(8)), available);
+            result.vram_free = available;
         }
 
         if (total_bytes > 0 && available_kb > 0) break;
     }
 
-    result.vram_total = total_bytes / 1024 / 1024;
+    result.vram_total = total_bytes / 1024.0 / 1024.0;
 
-    float available_mb = available_kb / 1024 / 1024;
+    float available_mb = available_kb / 1024.0 / 1024.0;
 
     result.vram_used = result.vram_total - available_mb;
 
@@ -156,7 +166,9 @@ entity::memory system_info_reader_linux::read_memory() const {
         result.name = detail::trim(line);
 
         iss >> line;
-        detail::parse_number(detail::trim(line), result.frequency_mhz);
+        float raw_speed = 0.0f;
+        detail::parse_number(detail::trim(line), raw_speed);
+        result.frequency_mhz = raw_speed / 2.0f;
 
         iss >> line;
         detail::parse_number(detail::trim(line), result.voltage);
@@ -338,10 +350,14 @@ entity::disk system_info_reader_linux::read_disk() const {
 
     for (std::ifstream meminfo("/proc/meminfo"); std::getline(meminfo, line); ) {
         if (line.starts_with("SwapTotal:")) {
-            swap_total_kb = std::stoull(line.substr(10));
+            float available = 0;
+            detail::parse_number(line.substr(10), available);
+            swap_total_kb = available;
         }
         else if (line.starts_with("SwapFree:")) {
-            swap_free_kb = std::stoull(line.substr(9));
+            float available = 0;
+            detail::parse_number(line.substr(9), available);
+            swap_free_kb = available;
         }
     }
 
@@ -380,7 +396,9 @@ entity::disk system_info_reader_linux::read_disk() const {
     std::string value = detail::read_line(str.c_str());
 
     if (value.empty()) return result;
-    result.sector_size = std::stoull(value);
+    float sector = 0;
+    detail::parse_number(value, sector);
+    result.sector_size = sector;
 
     std::string str2 = "/sys/block/" + device + "/device/model";
     std::string value2 = detail::read_line(str2.c_str());
@@ -403,9 +421,14 @@ entity::disk system_info_reader_linux::read_disk() const {
                 while (iss >> token)
                     tokens.push_back(token);
 
-                if (tokens.size() > 9)
-                    return {std::stoull(tokens[5]), std::stoull(tokens[9])};
+                if (tokens.size() > 9) {
+                    uint64_t available1 = 0;
+                    detail::parse_number(tokens[5], available1);
 
+                    uint64_t available2 = 0;
+                    detail::parse_number(tokens[9], available2);
+                    return {available1, available2};
+                }
                 break;
             }
         }
@@ -467,5 +490,5 @@ entity::net system_info_reader_linux::read_net() const {
     return result;
 }
 
-} /// namespace adapter
+} /// namespace linux2
 } /// namespace adapter

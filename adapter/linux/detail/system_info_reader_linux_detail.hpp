@@ -5,6 +5,7 @@
 #include <charconv>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <optional>
 
 namespace adapter::linux2::detail {
@@ -67,7 +68,8 @@ inline std::string exec_cmd(const char* cmd) {
     using pipe_close_t = int(*)(FILE*);
     std::unique_ptr<FILE, pipe_close_t> pipe(popen(cmd, "r"), static_cast<pipe_close_t>(pclose));
     if (!pipe) {
-        throw std::runtime_error("popen() failed!");
+        std::clog << "popen() failed: " << cmd << "\n";
+        return "";
     }
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
