@@ -36,7 +36,7 @@ set(APP_SOURCES
   ui/qt/system_monitor_qt.cpp
 
   use_case/system_monitor_interactor.cpp
-  scheduler/system_data_fetcher.cpp
+
   scheduler/system_data_scheduler.cpp
 
 )
@@ -66,7 +66,7 @@ set(APP_HEADERS
   use_case/ports/system_monitor_output_boundary.hpp
   use_case/system_monitor_interactor.hpp
 
-  scheduler/system_data_fetcher.hpp
+
   scheduler/system_data_scheduler.hpp
 
   presenter/system_monitor_view_model.hpp
