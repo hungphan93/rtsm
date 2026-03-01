@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     scheduler::system_data_scheduler data_scheduler(reader);
 
     /// 5. Subscribe components
-    auto cpu_id =  data_scheduler.subscribe(0ms,
+    auto cpu_id =  data_scheduler.subscribe(200ms,
                                            &usecase::system_info_reader::read_cpu,
                                            [&interactor](const entity::cpu& cpu) {
                                                interactor.on_cpu_updated(cpu);

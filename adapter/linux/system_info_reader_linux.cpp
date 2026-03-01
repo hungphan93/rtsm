@@ -6,7 +6,6 @@
 #include <sys/statvfs.h>
 #include <mntent.h>
 #include <unordered_set>
-#include "detail/system_info_reader_linux_detail.hpp"
 #include <filesystem>
 #include <iostream>
 
@@ -20,84 +19,105 @@ system_info_reader_linux::system_info_reader_linux() noexcept {}
 entity::cpu system_info_reader_linux::read_cpu() const {
     entity::cpu result;
 
-    std::ifstream proc("/proc/cpuinfo");
-    if (!proc.is_open()) {
-        return result;
-    }
+    if (!cache_cpu_.initialized) {
+        std::ifstream proc("/proc/cpuinfo");
+        std::string line;
+        /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
+        const std::regex cpu_name_pattern(
+            R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
+            std::regex::icase | std::regex::optimize
+            );
 
-    detail::cpu_times t1 = detail::read_cpu_times();
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    detail::cpu_times t2 = detail::read_cpu_times();
+        while(proc.is_open() && std::getline(proc, line)) {
+            if (line.empty()) continue;
 
-    const auto idle_diff = t2.idle_time() - t1.idle_time();
-    const auto total_diff = t2.total() - t1.total();
+            auto value = detail::trim(detail::extract_value(line));
 
-    if (total_diff > 0) {
-        result.usage_percent = detail::percent((total_diff - idle_diff), total_diff);
-    }
-
-    std::string line;
-    /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-    static const std::regex cpu_name_pattern(
-        R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
-        std::regex::icase | std::regex::optimize
-        );
-
-    while(std::getline(proc, line)) {
-        if (line.empty()) continue;
-
-        auto value = detail::trim(detail::extract_value(line));
-
-        if (line.starts_with("model name")) {
-            std::smatch match;
-            std::string sv_str(value);
-            if (std::regex_search(sv_str, match, cpu_name_pattern)) {
-                result.model_name = match.str();
+            if (line.starts_with("model name")) {
+                std::smatch match;
+                std::string sv_str(value);
+                if (std::regex_search(sv_str, match, cpu_name_pattern)) {
+                    cache_cpu_.model_name = match.str();
+                }
             }
-        }
 
-        else if (line.starts_with("cpu cores")) {
-            detail::parse_number(value, result.cpu_cores);
-        }
+            else if (line.starts_with("cpu cores")) {
+                detail::parse_number(value, cache_cpu_.cpu_cores);
+            }
 
-        else if (line.starts_with("processor")) {
-            detail::parse_number(value, result.processor_id);
-        }
+            else if (line.starts_with("processor")) {
+                detail::parse_number(value, cache_cpu_.processor_id);
+            }
 
-        else if (line.starts_with("cache size")) {
-            detail::parse_number(value, result.l2_cache_kib);
-        }
+            else if (line.starts_with("cache size")) {
+                detail::parse_number(value, cache_cpu_.l2_cache_kib);
+            }
 
-        else if (line.starts_with("cpu MHz")) {
-            detail::parse_number(value,  result.frequency_mhz);
-        }
+            else if (line.starts_with("physical id")) {
+                detail::parse_number(value, cache_cpu_.physical_id);
+            }
 
-        else if (line.starts_with("physical id")) {
-            detail::parse_number(value, result.physical_id);
-        }
+            else if (line.starts_with("siblings")) {
+                detail::parse_number(value,  cache_cpu_.siblings);
+            }
 
-        else if (line.starts_with("siblings")) {
-            detail::parse_number(value,  result.siblings);
-        }
+            else if (line.starts_with("core id")) {
+                detail::parse_number(value, cache_cpu_.core_id);
+            }
 
-        else if (line.starts_with("core id")) {
-            detail::parse_number(value, result.core_id);
+            cache_cpu_.hwmon_cpu_path = detail::find_hwmon_by_name("k10temp");
+            cache_cpu_.hwmon_gpu_path = detail::find_hwmon_by_name("amdgpu");
+
+            cache_cpu_.initialized = true;
         }
     }
 
-    /// dynamically find CPU temp from k10temp
-    if (auto hwmon_cpu = detail::find_hwmon_by_name("k10temp")) {
-        std::ifstream temp_file(*hwmon_cpu + "/temp1_input");
+    result.model_name   = cache_cpu_.model_name;
+    result.cpu_cores    = cache_cpu_.cpu_cores;
+    result.processor_id = cache_cpu_.processor_id;
+    result.l2_cache_kib = cache_cpu_.l2_cache_kib;
+    result.physical_id  = cache_cpu_.physical_id;
+    result.siblings     = cache_cpu_.siblings;
+    result.core_id      = cache_cpu_.core_id;
+
+    detail::cpu_times current_times = detail::read_cpu_times();
+
+    if (is_first_cpu_read_) {
+        result.usage_percent = 0.0f;
+        is_first_cpu_read_ = false;
+    } else {
+        const auto idle_diff = current_times.idle_time() - last_cpu_times_.idle_time();
+        const auto total_diff = current_times.total() - last_cpu_times_.total();
+
+        if (total_diff > 0) {
+            result.usage_percent = detail::percent((total_diff - idle_diff), total_diff);
+        }
+    }
+
+    last_cpu_times_ = current_times;
+    std::string line;
+
+    /// Read frequency mHz from the sysfs record using the read /proc/cpuinfo
+    std::ifstream freq_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
+    if (freq_file && std::getline(freq_file, line)) {
+        float frequency = 0;
+        detail::parse_number(line, frequency);
+        result.frequency_mhz = frequency / 1000.0f;
+    }
+
+    /// Using Cache Path dynamically to read CPU temp from k10temp (not loop all folder)
+    if (cache_cpu_.hwmon_cpu_path) {
+        std::ifstream temp_file(*cache_cpu_.hwmon_cpu_path + "/temp1_input");
         if (temp_file && std::getline(temp_file, line)) {
-            float temp = 0;
-            detail::parse_number(line, temp);
-            result.temperature_c = temp / 1000.0f;
+            float temperature = 0;
+            detail::parse_number(line, temperature);
+            result.temperature_c = temperature / 1000.f;
         }
     }
 
-    /// dynamically find power from amdgpu if integrated APU
-    if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
-        std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
+    /// Using Cache Path dynamically to read power from amdgpu if integrated APU
+    if (cache_cpu_.hwmon_gpu_path) {
+        std::ifstream pwr_file(*cache_cpu_.hwmon_gpu_path + "/power1_input");
         if (pwr_file && std::getline(pwr_file, line)) {
             float power = 0;
             detail::parse_number(line, power);
@@ -109,74 +129,118 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 }
 
 entity::memory system_info_reader_linux::read_memory() const {
-    entity::memory result;
+    entity::memory result{};
 
-    std::ifstream proc("/proc/meminfo");
-    std::string line;
-    float total_bytes = 0;
-    float available_kb = 0;
+    std::ifstream meminfo("/proc/meminfo");
+    if (!meminfo.is_open()) return result;
 
-    while (std::getline(proc, line)) {
-        if (line.starts_with("MemTotal:")) {
-            float total = 0;
-            detail::parse_number(detail::trim(line.substr(9)), total);
-            total_bytes = total;
+    std::string key;
+    uint64_t val_kb = 0;
+    std::string unit;
+
+    uint64_t total_kb = 0;
+    uint64_t free_kb = 0;
+    uint64_t available_kb = 0;
+
+    while (meminfo >> key >> val_kb >> unit) {
+        if (key == "MemTotal:") {
+            total_kb = val_kb;
         }
 
-        else if (line.starts_with("MemAvailable:")) {
-            float available = 0;
-            detail::parse_number(detail::trim(line.substr(13)), available);
-            available_kb = available;
+        else if (key == "MemFree:") {
+            free_kb = val_kb;
         }
 
-        else if (line.starts_with("MemFree:")) {
-            float available = 0;
-            detail::parse_number(detail::trim(line.substr(8)), available);
-            result.vram_free = available;
+        else if (key == "MemAvailable:") {
+            available_kb = val_kb;
         }
 
-        if (total_bytes > 0 && available_kb > 0) break;
+        if (total_kb > 0 && free_kb > 0 && available_kb > 0) {
+            break;
+        }
     }
 
-    result.vram_total = total_bytes / 1024.0 / 1024.0;
+    /// KB -> MB -> GB
+    result.vram_total = total_kb / (1024.0f * 1024.0f);
+    result.vram_free  = free_kb / (1024.0f * 1024.0f);
 
-    float available_mb = available_kb / 1024.0 / 1024.0;
+    float available_gb = available_kb / (1024.0f * 1024.0f);
+    result.vram_used   = result.vram_total - available_gb;
 
-    result.vram_used = result.vram_total - available_mb;
-
-    if (result.vram_used > 0) {
+    /// Using percent of RAM
+    if (result.vram_used > 0 && result.vram_total > 0) {
         result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
-    static std::string value = detail::exec_cmd(
-        "sudo dmidecode --type 17 2>/dev/null "
-        "| grep -E 'Manufacturer:|Configured Memory Speed:|Voltage' "
-        "| grep -v 'Unknown' "
-        "| awk -F: '{print $2}' "
-        "| sed 's/ MT\\/s//' "
-        "| sed 's/ V//' "
-        "| head -n 3"
-        );
+    if (!memory_cache_.initialized) {
+        std::string dmi_out = detail::exec_cmd("sudo dmidecode --type 17 2>/dev/null");
 
-    if (!value.empty()) {
-        std::istringstream iss(value);
+        if (!dmi_out.empty()) {
+            std::istringstream stream(dmi_out);
+            std::string line;
+            bool in_valid_slot = false;
 
-        std::getline(iss, line);
+            while (std::getline(stream, line)) {
+                line = std::string(detail::trim(line));
 
-        result.name = detail::trim(line);
+                /// Start of a new memory device block
+                if (line.starts_with("Memory Device")) {
+                    in_valid_slot = true;
+                }
 
-        iss >> line;
-        float raw_speed = 0.0f;
-        detail::parse_number(detail::trim(line), raw_speed);
-        result.frequency_mhz = raw_speed / 2.0f;
+                /// IF IT IS AN EMPTY SLOT -> Set flag to false to ignore all junk parameters below
+                else if (line.starts_with("Size: No Module Installed")) {
+                    in_valid_slot = false;
+                }
 
-        iss >> line;
-        detail::parse_number(detail::trim(line), result.voltage);
+                /// IF RAM IS INSTALLED IN THE SLOT -> Proceed to extract data and SAVE TO CACHE
+                else if (in_valid_slot) {
+                    std::string val;
+                    /// 1. Manufacturer name
+                    if (line.starts_with("Manufacturer:")) {
+                        val = detail::trim(line.substr(13));
+                        std::clog  <<"hung test 4= "<< val;
+                        if (val != "Unknown" && val != "None") {
+                            memory_cache_.name = val;
+                        }
+                    }
+
+                    /// 2. Frequency (Configured Memory Speed or Speed)
+                    else if (line.starts_with("Configured Memory Speed:") ||
+                             (line.starts_with("Speed:"))) {
+                        val = detail::trim(line.substr(line.find(':') + 1));
+                        if (val != "Unknown" && val != "None") {
+                            float raw_speed = 0.0f;
+                            detail::parse_number(val, raw_speed);
+                            /// dmidecode returns MT/s, divide by 2 to get actual MHz
+                            memory_cache_.frequency_mhz = raw_speed / 2.0f;
+                        }
+                    }
+
+                    /// 3. Voltage (Configured Voltage or Voltage)
+                    else if (line.starts_with("Configured Voltage:")
+                             || line.starts_with("Maximum Voltage:")
+                             || line.starts_with("Voltage:")) {
+                        val = std::string(detail::trim(line.substr(line.find(':') + 1)));
+                        if (val != "Unknown" && val != "None") {
+                            detail::parse_number(val, memory_cache_.voltage);
+                        }
+                    }
+                }
+            }
+        }
+
+        else {
+            /// Print warning to configure sudo privileges
+            std::clog << "Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode\n";
+        }
+
+        memory_cache_.initialized = true;
     }
 
-    else {
-        std::clog << "Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode\n";
-    }
+    result.name = memory_cache_.name;
+    result.frequency_mhz = memory_cache_.frequency_mhz;
+    result.voltage = memory_cache_.voltage;
 
     return result;
 }
@@ -255,7 +319,7 @@ entity::gpu system_info_reader_linux::read_gpu() const {
                 "temperature.gpu,clocks.gr,clocks.sm,clocks.mem "
                 "--format=csv,noheader,nounits 2>/dev/null";
 
-            const auto value = detail::exec_cmd(cmd);
+            static const auto value = detail::exec_cmd(cmd);
             if (value.empty()) {
                 std::clog << "nvidia-smi returned empty, check PATH and permissions!\n";
                 continue;

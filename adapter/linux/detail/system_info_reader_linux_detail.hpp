@@ -43,15 +43,12 @@ struct cpu_times {
 };
 
 inline cpu_times read_cpu_times() {
-    cpu_times times;
+    cpu_times times{};
     std::ifstream proc("/proc/stat");
     if (!proc.is_open()) return times;
 
-    std::string line;
-    std::getline(proc, line);
-    std::istringstream iss(line);
     std::string cpu_label;
-    iss >> cpu_label >> times.user >> times.nice >> times.system
+    proc >> cpu_label >> times.user >> times.nice >> times.system
         >> times.idle >> times.iowait >> times.irq >> times.softirq >> times.steal;
     return times;
 }
