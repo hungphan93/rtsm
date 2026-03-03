@@ -32,6 +32,19 @@ struct memory_static_info {
     float voltage = 0.0f;
 };
 
+struct gpu_static_info {
+    bool initialized = false;
+    bool is_nvidia = false;
+    bool is_amd = false;
+    bool is_intel = false;
+
+    std::string name = "Unknown GPU";
+    std::string drm_path; /// Cache path example: "/sys/class/drm/card0"
+    std::optional<std::string> hwmon_path;
+
+    uint64_t vram_total = 0;
+};
+
 struct system_info_reader_linux : public usecase::system_info_reader {
 
     explicit system_info_reader_linux() noexcept;
@@ -52,6 +65,7 @@ private:
     mutable bool is_first_cpu_read_{true};
 
     mutable memory_static_info memory_cache_{};
+    mutable gpu_static_info gpu_cache_{};
 };
 
 } /// namespace linux2

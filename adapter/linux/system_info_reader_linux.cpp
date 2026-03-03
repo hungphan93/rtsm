@@ -274,135 +274,135 @@ bool is_igpu_card(uint64_t vendor, uint64_t device) {
 }
 
 entity::gpu system_info_reader_linux::read_gpu() const {
-    std::vector<entity::gpu> result;
-    entity::gpu gpu;
+    entity::gpu result;
 
-    std::error_code ec;
-    fs::directory_iterator dir{"/sys/class/drm", ec};
-    if (ec) {
-        std::clog << "Cannot open /sys/class/drm: " << ec.message() << '\n';
-        return {};
-    }
+    if (!gpu_cache_.initialized) {
+        std::error_code ec;
+        fs::directory_iterator dir{"/sys/class/drm", ec};
 
-    for (auto const& e : dir) {
-        if (!e.is_directory(ec) || ec) continue;
+        bool found_dgpu = false;
 
-        const std::string name = e.path().filename().string();
-        /// Checking the name file start with "cardXY"
-        //   if (!std::regex_match(name, std::regex("card[0-9]{1,2}"))) continue;
-        if (!name.starts_with("card")
-            || name.size() < 5
-            || name.size() > 6
-            || !std::isdigit(name[4]))
-            continue;  /// skip
+        if (!ec) {
+            for (auto const& e : dir) {
+                if (!e.is_directory(ec) || ec) continue;
 
-        const std::string vendor_str = detail::read_line(e.path() / "device/vendor");
-        const std::string device_str = detail::read_line(e.path() / "device/device");
-
-        if (vendor_str.empty() || device_str.empty()) continue;
-
-        const auto vendor_hex = detail::to_uint(vendor_str, 16);
-        const auto device_hex = detail::to_uint(device_str, 16);
-        if (!vendor_hex || !device_hex) continue;
-
-        const bool igpu = is_igpu_card(*vendor_hex, *device_hex);
-
-        std::string value;
-        std::clog << "Output : " << name
-                  << " vendor = "<< *vendor_hex
-                  << "igpu = " << igpu << "\n";
-
-        /// Nvidia GPU
-        if (!igpu && *vendor_hex == 0x10de) {
-            constexpr const char *cmd =
-                "/usr/bin/nvidia-smi --query-gpu=name,memory.total,memory.used,"
-                "temperature.gpu,clocks.gr,clocks.sm,clocks.mem "
-                "--format=csv,noheader,nounits 2>/dev/null";
-
-            static const auto value = detail::exec_cmd(cmd);
-            if (value.empty()) {
-                std::clog << "nvidia-smi returned empty, check PATH and permissions!\n";
-                continue;
-            }
-
-            std::clog << "nvidia-smi output: " << value << "\n";
-
-            std::vector<std::string> tokens;
-            std::stringstream ss(value);
-            std::string token;
-
-            while (std::getline(ss, token, ',')) {
-                token.erase(0, token.find_first_not_of(" \t\n\r"));
-                token.erase(token.find_last_not_of(" \t\n\r") + 1);
-                tokens.push_back(token);
-            }
-
-            if (tokens.size() < 7) return {};
-
-            gpu.name          = tokens[0];
-            gpu.vram_total    = detail::to_uint(tokens[1]).value_or(0);
-            auto used = detail::to_uint(tokens[2]).value_or(0);
-            //  gpu.vram_used     = detail::to_uint(tokens[2]).value_or(0);
-            gpu.vram_used = (used > 0) ? used - 1.0 : 0;  //  ~1MB overhead nvidia-smi
-            gpu.temperature_c = detail::to_uint(tokens[3]).value_or(0);
-            gpu.frequency_mhz = detail::to_uint(tokens[4]).value_or(0);
-            gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
-        }
-
-        /// dGPU had pp_dpm_sclk
-        else if (!igpu && fs::exists(e.path() / "device/pp_dpm_sclk") && !ec) {
-            std::clog << "output2\n";
-        }
-        else {
-            std::clog << "GPU onboard is running\n";
-            auto value = detail::read_line(e.path() / "device/uevent");
-            if (!value.empty()) {
-                gpu.name =  value.substr(value.find("=") + 1);
-            }
-
-            value = detail::read_line(e.path() / "device/mem_info_vram_total");
-            if (auto v = detail::to_uint(value); v) {
-                gpu.vram_total = *v / 1024 / 1024;
-            }
-
-            value = detail::read_line(e.path() / "device/mem_info_vram_used");
-            if (auto v = detail::to_uint(value); v) {
-                gpu.vram_used = *v / 1024 / 1024;
-            }
-
-            if (gpu.vram_used > 0) {
-                gpu.usage_percent = detail::percent(gpu.vram_used, gpu.vram_total);
-            }
-
-            /// for gpu amd onboard
-            std::string line;
-            /// first try integrated AMD GPU info via amdgpu
-            if (auto hwmon_gpu = detail::find_hwmon_by_name("amdgpu")) {
-                std::ifstream temp_file(*hwmon_gpu + "/temp1_input");
-                if (temp_file && std::getline(temp_file, line)) {
-                    gpu.temperature_c = detail::to_uint(line).value_or(0) / 1000;
+                const std::string name = e.path().filename().string();
+                if (!name.starts_with("card") || name.size() < 5 || name.size() > 6 || !std::isdigit(name[4])) {
+                    continue;
                 }
 
-                std::ifstream pwr_file(*hwmon_gpu + "/power1_input");
-                if (pwr_file && std::getline(pwr_file, line)) {
-                    gpu.power = detail::to_uint(line).value_or(0) / 1000;
+                const std::string vendor_str = detail::read_line(e.path() / "device/vendor");
+                const std::string device_str = detail::read_line(e.path() / "device/device");
+
+                if (vendor_str.empty() || device_str.empty()) continue;
+
+                const auto vendor_hex = detail::to_uint(vendor_str, 16);
+                const auto device_hex = detail::to_uint(device_str, 16);
+                if (!vendor_hex || !device_hex) continue;
+
+                bool igpu = is_igpu_card(*vendor_hex, *device_hex);
+
+                if (gpu_cache_.drm_path.empty() || (!igpu && !found_dgpu)) {
+                    gpu_cache_.drm_path = e.path().string();
+                    gpu_cache_.is_nvidia = (*vendor_hex == 0x10de);
+                    gpu_cache_.is_amd = (*vendor_hex == 0x1002);
+                    gpu_cache_.is_intel = (*vendor_hex == 0x8086);
+
+                    if (gpu_cache_.is_amd) gpu_cache_.name = "AMD Radeon Graphics";
+                    else if (gpu_cache_.is_intel) gpu_cache_.name = "Intel Core Graphics";
+                    else if (gpu_cache_.is_nvidia) gpu_cache_.name = "NVIDIA GeForce / RTX";
+
+                    if (gpu_cache_.is_amd) {
+                        auto mem_total = detail::read_line(e.path() / "device/mem_info_vram_total");
+                        if (auto v = detail::to_uint(mem_total); v) gpu_cache_.vram_total = *v / (1024 * 1024);
+                        gpu_cache_.hwmon_path = detail::find_hwmon_by_name("amdgpu");
+                    }
+
+                    if (!igpu) found_dgpu = true;
                 }
             }
+        }
 
-            /// gpu get frequency mhz
-            auto cmd = "cat " + (e.path() / "device/pp_dpm_sclk").string() +
-                       " | grep '\\*' | awk '{print $2}' | sed 's/Mhz//'";
-            value = detail::exec_cmd(cmd.c_str());
-            if (auto v = detail::to_uint(value); v) {
-                gpu.frequency_mhz = *v;
+        if (!found_dgpu) {
+            const std::string nv_check = detail::exec_cmd("nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null");
+            if (!nv_check.empty() && nv_check.find("not found") == std::string::npos) {
+                gpu_cache_.is_nvidia = true;
+                gpu_cache_.name = std::string(detail::trim(nv_check.substr(0, nv_check.find('\n'))));
             }
         }
-        result.push_back(gpu);
+
+        gpu_cache_.initialized = true;
     }
 
-    if (result.empty()) return {};
-    return result.size() == 1 ? result[0]
-                              : result[std::min<size_t>(2, result.size() - 1)];
+    if (gpu_cache_.drm_path.empty() && !gpu_cache_.is_nvidia) return result;
+
+    if (gpu_cache_.is_nvidia) {
+        constexpr const char *cmd =
+            "/usr/bin/nvidia-smi --query-gpu=memory.total,memory.used,temperature.gpu,clocks.gr "
+            "--format=csv,noheader,nounits 2>/dev/null";
+
+        const auto value = detail::exec_cmd(cmd);
+        result.name = gpu_cache_.name;
+
+        unsigned int total = 0, used = 0, temp = 0, freq = 0;
+
+        if (std::sscanf(value.c_str(), "%u, %u, %u, %u", &total, &used, &temp, &freq) >= 2) {
+            result.vram_total    = total;
+            result.vram_used     = used;
+            result.temperature_c = temp;
+            result.frequency_mhz = freq;
+            if (result.vram_total > 0) {
+                result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+            }
+        }
+        return result;
+    }
+
+    result.name = gpu_cache_.name;
+    result.vram_total = gpu_cache_.vram_total;
+
+    if (!gpu_cache_.drm_path.empty()) {
+        std::string value = detail::read_line(gpu_cache_.drm_path + "/device/mem_info_vram_used");
+        if (auto v = detail::to_uint(value); v) {
+            result.vram_used = *v / (1024 * 1024);
+            if (result.vram_total > 0) {
+                result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+            }
+        }
+    }
+
+    if (gpu_cache_.is_amd && !gpu_cache_.drm_path.empty()) {
+        std::ifstream sclk_file(gpu_cache_.drm_path + "/device/pp_dpm_sclk");
+        std::string line;
+
+        while (std::getline(sclk_file, line)) {
+            if (line.find('*') != std::string::npos) {
+                size_t colon_pos = line.find(':');
+                if (colon_pos != std::string::npos) {
+                    float freq = 0.0f;
+                    std::sscanf(line.c_str() + colon_pos + 1, "%f", &freq);
+                    result.frequency_mhz = freq;
+                }
+                break;
+            }
+        }
+
+        if (gpu_cache_.hwmon_path) {
+            std::ifstream temp_file(*gpu_cache_.hwmon_path + "/temp1_input");
+            if (temp_file && std::getline(temp_file, line)) {
+                auto temp_val = detail::to_uint(line).value_or(0);
+                if (temp_val > 0) result.temperature_c = temp_val / 1000.f;
+            }
+
+            std::ifstream pwr_file(*gpu_cache_.hwmon_path + "/power1_input");
+            if (pwr_file && std::getline(pwr_file, line)) {
+                auto pwr_val = detail::to_uint(line).value_or(0);
+                if (pwr_val > 0) result.power = pwr_val / 1000000.f;
+            }
+        }
+    }
+
+    return result;
 }
 
 entity::disk system_info_reader_linux::read_disk() const {
@@ -431,12 +431,12 @@ entity::disk system_info_reader_linux::read_disk() const {
     FILE* mnt_file = setmntent("/proc/mounts", "r");
     if (!mnt_file) return result;
 
-    std::unordered_set<std::string> seen;
-    struct mntent* mnt = nullptr;
-    while ((mnt = getmntent(mnt_file)) != nullptr) {
-        std::string fsname = mnt->mnt_fsname;
-        if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
-        if (!seen.insert(fsname).second) continue;
+        std::unordered_set<std::string> seen;
+        struct mntent* mnt = nullptr;
+        while ((mnt = getmntent(mnt_file)) != nullptr) {
+            std::string fsname = mnt->mnt_fsname;
+            if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
+            if (!seen.insert(fsname).second) continue;
 
         struct statvfs stat;
         if (statvfs(mnt->mnt_dir, &stat) != 0) continue;
@@ -447,11 +447,11 @@ entity::disk system_info_reader_linux::read_disk() const {
         /// /dev/nvme0n1p5
         double total_gb = detail::to_gb(stat.f_blocks * stat.f_frsize);
         double free_gb  = detail::to_gb(stat.f_bfree  * stat.f_frsize);
-        result.total += total_gb;
-        result.free  += free_gb;
-        result.used  += total_gb - free_gb;
-    }
-    endmntent(mnt_file);
+            result.total += total_gb;
+            result.free  += free_gb;
+            result.used  += total_gb - free_gb;
+        }
+        endmntent(mnt_file);
 
     result.used += swap_used_gb;
 
@@ -479,11 +479,11 @@ entity::disk system_info_reader_linux::read_disk() const {
         while (std::getline(proc, line)) {
             /// find first line nvme0n1 string then push word into tokens vector
             if (line.find(device) != std::string::npos) {
-                std::istringstream iss(line);
+            std::istringstream iss(line);
 
-                std::string token;
+            std::string token;
                 while (iss >> token)
-                    tokens.push_back(token);
+                tokens.push_back(token);
 
                 if (tokens.size() > 9) {
                     uint64_t available1 = 0;

@@ -79,13 +79,13 @@ int main(int argc, char *argv[]) {
                                                interactor.on_gpu_updated(gpu);
                                            });
 
-    auto disk_id = data_scheduler.subscribe(0ms,
+    auto disk_id = data_scheduler.subscribe(1000ms,
                                             &usecase::system_info_reader::read_disk,
                                             [&interactor](const entity::disk& disk) {
                                                 interactor.on_disk_updated(disk);
                                             });
 
-    auto net_id = data_scheduler.subscribe(0ms,
+    auto net_id = data_scheduler.subscribe(1000ms,
                                            &usecase::system_info_reader::read_net,
                                            [&interactor](const entity::net& net) {
                                                interactor.on_net_updated(net);

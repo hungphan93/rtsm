@@ -53,8 +53,8 @@ Window {
                 [
                 system_monitor ? system_monitor.gpu_usage_percent : "",
                 system_monitor ? system_monitor.gpu_temperature_c : "",
-                system_monitor ? system_monitor.gpu_vram_used + "Mb of " +
-                                 system_monitor.gpu_vram_total + "Mb" : "",
+                system_monitor ? system_monitor.gpu_vram_used + "MB of " +
+                                 system_monitor.gpu_vram_total + "MB" : "",
                 system_monitor ? system_monitor.gpu_frequency_mhz : "",
             ]
         },
@@ -64,8 +64,8 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.disk_usage_percent : "",
-                system_monitor ? "Read: " + system_monitor.disk_read_speed + "Mb/s | Write: " +
-                                 system_monitor.disk_write_speed + "Mb/s" : ""
+                system_monitor ? "Read: " + system_monitor.disk_read_speed + "MB/s | Write: " +
+                                 system_monitor.disk_write_speed + "MB/s" : ""
             ]
         },
 
