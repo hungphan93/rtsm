@@ -97,13 +97,34 @@ QString system_monitor_qt::gpu_temperature_c() const {
     return QString::number(view_model_.gpu().temperature_c) + "°C";
 }
 
+QString format_speed_fast(double data) {
+    /// compile time
+    constexpr double kb = 1024.0;
+    constexpr double mb = kb * 1024.0;
+    constexpr double gb = mb * 1024.0;
+
+    if (data < kb) {
+        return QString::number(data, 'f', 1) + " Bytes/s";
+    }
+    else if (data < mb) {
+        return QString::number(data / kb, 'f', 1) + " KiB/s";
+    }
+    else if (data < gb) {
+        return QString::number(data / mb, 'f', 1) + " MiB/s";
+    }
+    else {
+        return QString::number(data / gb, 'f', 2) + " GiB/s";
+    }
+}
+
 /// disk
 QString system_monitor_qt::disk_read_speed() const {
-    return QString::number(view_model_.disk().read_speed,'f', 1);
+    return format_speed_fast(view_model_.disk().read_speed);
+
 }
 
 QString system_monitor_qt::disk_write_speed() const {
-    return QString::number(view_model_.disk().write_speed, 'f', 1);
+    return format_speed_fast(view_model_.disk().write_speed);
 }
 
 QString system_monitor_qt::disk_sector_size() const {
@@ -129,11 +150,11 @@ QString system_monitor_qt::disk_usage_percent() const {
 
 /// net
 QString system_monitor_qt::net_rx_bytes() const {
-    return QString::number(view_model_.net().rx_bytes);
+    return format_speed_fast(view_model_.net().rx_bytes);
 }
 
 QString system_monitor_qt::net_tx_bytes() const {
-    return QString::number(view_model_.net().tx_bytes);
+    return format_speed_fast(view_model_.net().tx_bytes);
 }
 
 } /// namespace qt

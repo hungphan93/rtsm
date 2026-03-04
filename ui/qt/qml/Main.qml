@@ -64,8 +64,8 @@ Window {
             contents:
                 [
                 system_monitor ? system_monitor.disk_usage_percent : "",
-                system_monitor ? "Read: " + system_monitor.disk_read_speed + "MB/s | Write: " +
-                                 system_monitor.disk_write_speed + "MB/s" : ""
+                system_monitor ? "Read: " + system_monitor.disk_read_speed + " | Write: " +
+                                 system_monitor.disk_write_speed : ""
             ]
         },
 
@@ -73,8 +73,8 @@ Window {
             title: "Network",
             contents:
                 [
-                system_monitor ? "Down: " + system_monitor.net_rx_bytes + "Kb/s | Up: " +
-                                 system_monitor.net_tx_bytes + "Kb/s" : ""
+                system_monitor ? "Down: " + system_monitor.net_rx_bytes + " | Up: " +
+                                 system_monitor.net_tx_bytes : ""
             ]
         },
 

@@ -5,6 +5,7 @@
 #include "use_case/ports/system_info_reader.hpp"
 #include "detail/system_info_reader_linux_detail.hpp"
 #include <optional>
+#include <unordered_map>
 
 namespace adapter {
 namespace linux2 {
@@ -45,6 +46,20 @@ struct gpu_static_info {
     uint64_t vram_total = 0;
 };
 
+struct disk_static_info {
+    uint64_t r = 0;
+    uint64_t w = 0;
+    std::chrono::steady_clock::time_point t;
+    bool initialized = false;
+};
+
+struct net_static_info {
+    uint64_t rx = 0;
+    uint64_t tx = 0;
+    std::chrono::steady_clock::time_point t;
+    bool initialized = false;
+};
+
 struct system_info_reader_linux : public usecase::system_info_reader {
 
     explicit system_info_reader_linux() noexcept;
@@ -66,6 +81,8 @@ private:
 
     mutable memory_static_info memory_cache_{};
     mutable gpu_static_info gpu_cache_{};
+    mutable net_static_info net_cache_{};
+    mutable std::unordered_map<std::string, disk_static_info> disk_cache_{};
 };
 
 } /// namespace linux2

@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <filesystem>
 #include <iostream>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 namespace fs = std::filesystem;
 
@@ -408,148 +410,226 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 entity::disk system_info_reader_linux::read_disk() const {
     entity::disk result;
 
-    /// read swap space used
     float swap_total_kb = 0, swap_free_kb = 0;
     std::string line;
 
     for (std::ifstream meminfo("/proc/meminfo"); std::getline(meminfo, line); ) {
         if (line.starts_with("SwapTotal:")) {
-            float available = 0;
-            detail::parse_number(line.substr(10), available);
-            swap_total_kb = available;
-        }
-        else if (line.starts_with("SwapFree:")) {
-            float available = 0;
-            detail::parse_number(line.substr(9), available);
-            swap_free_kb = available;
+            swap_total_kb = std::stoull(line.substr(10));
+        } else if (line.starts_with("SwapFree:")) {
+            swap_free_kb = std::stoull(line.substr(9));
         }
     }
-
     float swap_used_gb = (swap_total_kb - swap_free_kb) / (1024.0 * 1024.0);
     result.swap = swap_used_gb;
 
-    FILE* mnt_file = setmntent("/proc/mounts", "r");
-    if (!mnt_file) return result;
-
+    std::unique_ptr<FILE, decltype(&endmntent)> mnt_file(setmntent("/proc/mounts", "r"), endmntent);
+    if (mnt_file) {
         std::unordered_set<std::string> seen;
         struct mntent* mnt = nullptr;
-        while ((mnt = getmntent(mnt_file)) != nullptr) {
+
+        while ((mnt = getmntent(mnt_file.get())) != nullptr) {
             std::string fsname = mnt->mnt_fsname;
             if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
             if (!seen.insert(fsname).second) continue;
 
-        struct statvfs stat;
-        if (statvfs(mnt->mnt_dir, &stat) != 0) continue;
+            struct statvfs stat_vfs;
+            if (statvfs(mnt->mnt_dir, &stat_vfs) != 0) continue;
 
-        /// /dev/nvme0n1p1
-        /// /dev/nvme0n1p2
-        /// /dev/nvme0n1p3
-        /// /dev/nvme0n1p5
-        double total_gb = detail::to_gb(stat.f_blocks * stat.f_frsize);
-        double free_gb  = detail::to_gb(stat.f_bfree  * stat.f_frsize);
+            double total_gb = detail::to_gb(stat_vfs.f_blocks * stat_vfs.f_frsize);
+            double free_gb  = detail::to_gb(stat_vfs.f_bavail * stat_vfs.f_frsize);
+
             result.total += total_gb;
             result.free  += free_gb;
             result.used  += total_gb - free_gb;
         }
-        endmntent(mnt_file);
-
+    }
     result.used += swap_used_gb;
 
-    std::string device = "nvme0n1";
-    std::string str = "/sys/block/" + device + "/queue/hw_sector_size";
-    std::string value = detail::read_line(str.c_str());
+    std::string device = "";
+    struct ::stat root_stat;
 
-    if (value.empty()) return result;
-    float sector = 0;
-    detail::parse_number(value, sector);
-    result.sector_size = sector;
+    if (::stat("/", &root_stat) == 0) {
+        unsigned int maj = major(root_stat.st_dev);
+        unsigned int min = minor(root_stat.st_dev);
+        std::string sys_path = "/sys/dev/block/" + std::to_string(maj) + ":" + std::to_string(min);
 
-    std::string str2 = "/sys/block/" + device + "/device/model";
-    std::string value2 = detail::read_line(str2.c_str());
+        std::error_code ec;
+        auto target = fs::read_symlink(sys_path, ec);
+        if (!ec) {
+            std::string target_str = target.string();
+            size_t block_pos = target_str.find("/block/");
+            if (block_pos != std::string::npos) {
+                size_t dev_start = block_pos + 7;
+                size_t dev_end = target_str.find('/', dev_start);
+                if (dev_end != std::string::npos) {
+                    device = target_str.substr(dev_start, dev_end - dev_start);
+                } else {
+                    device = target_str.substr(dev_start);
+                }
+            }
+        }
+    }
 
-    if (value2.empty()) return result;
-    result.model = value2;
+    if (device.empty()) {
+        std::error_code ec;
+        for (const auto& entry : fs::directory_iterator("/sys/block", ec)) {
+            if (ec) break;
+            std::string name = entry.path().filename().string();
+            if (!name.starts_with("loop") && !name.starts_with("ram") && !name.starts_with("sr")) {
+                device = name;
+                break;
+            }
+        }
+        if (device.empty()) device = "sda";
+    }
+
+    std::string str_sector = "/sys/block/" + device + "/queue/hw_sector_size";
+    std::string value_sector = detail::read_line(str_sector.c_str());
+    result.sector_size = value_sector.empty() ? 512 : std::stoull(value_sector);
+
+    std::string str_model = "/sys/block/" + device + "/device/model";
+    result.model = detail::read_line(str_model.c_str());
 
     auto fetch_disk_stats = [&device]() -> std::tuple<uint64_t, uint64_t> {
         std::ifstream proc("/proc/diskstats");
         if (!proc.is_open()) return {0,0};
 
-        std::string line;
-        std::vector<std::string> tokens;
-        while (std::getline(proc, line)) {
-            /// find first line nvme0n1 string then push word into tokens vector
-            if (line.find(device) != std::string::npos) {
-            std::istringstream iss(line);
+        std::string ln;
+        while (std::getline(proc, ln)) {
+            if (ln.find(device) == std::string::npos) continue;
 
+            std::istringstream iss(ln);
             std::string token;
-                while (iss >> token)
-                tokens.push_back(token);
+            int col = 0;
+            bool is_target = false;
+            uint64_t r_sect = 0, w_sect = 0;
 
-                if (tokens.size() > 9) {
-                    uint64_t available1 = 0;
-                    detail::parse_number(tokens[5], available1);
-
-                    uint64_t available2 = 0;
-                    detail::parse_number(tokens[9], available2);
-                    return {available1, available2};
+            while (iss >> token) {
+                if (col == 2) {
+                    if (token == device) is_target = true;
+                    else break;
                 }
-                break;
+                if (is_target) {
+                    if (col == 5) r_sect = std::stoull(token);
+                    else if (col == 9) w_sect = std::stoull(token);
+                }
+                col++;
             }
+            if (is_target && col > 9) return {r_sect, w_sect};
         }
-
         return {0,0};
     };
 
-    auto [r1, w1] = fetch_disk_stats();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    auto [r2, w2] = fetch_disk_stats();
-    /// cal read && write speed of disk Mb/s
-    result.read_speed = (r2 - r1) * result.sector_size / 1024.0 / 1024.0;
-    result.write_speed = (w2 - w1) * result.sector_size / 1024.0 / 1024.0;
+    auto current_time = std::chrono::steady_clock::now();
+    auto [current_r, current_w] = fetch_disk_stats();
+
+    auto& state = disk_cache_[device];
+
+    if (!state.initialized) {
+        state.r = current_r;
+        state.w = current_w;
+        state.t = current_time;
+        state.initialized = true;
+
+        result.read_speed = 0;
+        result.write_speed = 0;
+    } else {
+        std::chrono::duration<double> dt = current_time - state.t;
+        double dt_sec = dt.count();
+
+        if (dt_sec > 0.001) {
+            uint64_t diff_r = (current_r >= state.r) ? (current_r - state.r) : 0;
+            uint64_t diff_w = (current_w >= state.w) ? (current_w - state.w) : 0;
+
+            /// Kernel: Sector in diskstats is 512 Bytes
+            result.read_speed = (diff_r * 512.0) / dt_sec;
+            result.write_speed = (diff_w * 512.0) / dt_sec;
+        } else {
+            result.read_speed = 0;
+            result.write_speed = 0;
+        }
+
+        // update Cache State
+        state.r = current_r;
+        state.w = current_w;
+        state.t = current_time;
+    }
 
     return result;
 }
 
 entity::net system_info_reader_linux::read_net() const {
-    auto get_active_net_bytes = []() -> std::pair<uint64_t, uint64_t> {
+    /// Zero-Allocation Parsing Logic
+    auto get_total_net_bytes = []() -> std::pair<uint64_t, uint64_t> {
         std::ifstream proc("/proc/net/dev");
-        if (!proc.is_open()) {
-            return {};
-        }
+        if (!proc.is_open()) return {0, 0};
 
         std::string line;
-        /// skip 2 header lines
         std::getline(proc, line);
         std::getline(proc, line);
+
+        uint64_t total_rx = 0;
+        uint64_t total_tx = 0;
 
         while (std::getline(proc, line)) {
-            std::istringstream iss(line);
-            std::string iface;
-            uint64_t rx = 0, tx = 0;
+            auto colon_pos = line.find(':');
+            if (colon_pos == std::string::npos) continue;
 
-            /// parse "<iface>:"
-            std::getline(iss, iface, ':');
-            iface.erase(0, iface.find_first_not_of(" \t"));
-            iface.erase(iface.find_last_not_of(" \t") + 1);
+            std::string_view iface_view(line.data(), colon_pos);
+            auto start = iface_view.find_first_not_of(" \t");
+            if (start != std::string_view::npos) {
+                iface_view = iface_view.substr(start);
+            }
 
-            if (iface == "lo") continue;
+            if (iface_view == "lo") continue;
 
-            uint64_t skip;
-            iss >> rx >> skip >> skip >> skip >> skip >> skip >> skip >> skip >> tx;
+            std::istringstream iss(line.substr(colon_pos + 1));
+            uint64_t rx = 0, tx = 0, skip;
 
-            if (rx > 0) return {rx, tx};
+            if (iss >> rx >> skip >> skip >> skip >> skip >> skip >> skip >> skip >> tx) {
+                total_rx += rx;
+                total_tx += tx;
+            }
         }
-
-        return {0, 0};
+        return {total_rx, total_tx};
     };
 
-    auto [rx0, tx0] = get_active_net_bytes();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    auto [rx1, tx1] = get_active_net_bytes();
-
     entity::net result;
-    result.rx_bytes = (rx1 > rx0) ? (rx1 - rx0) / 1024 : 0; /// KB/s
-    result.tx_bytes = (tx1 > tx0) ? (tx1 - tx0) / 1024 : 0;
+
+    auto current_time = std::chrono::steady_clock::now();
+    auto [current_rx, current_tx] = get_total_net_bytes();
+
+    if (!net_cache_.initialized) {
+        net_cache_.rx = current_rx;
+        net_cache_.tx = current_tx;
+        net_cache_.t = current_time;
+        net_cache_.initialized = true;
+
+        result.rx_bytes = 0;
+        result.tx_bytes = 0;
+    } else {
+        std::chrono::duration<double> dt = current_time - net_cache_.t;
+        double dt_sec = dt.count();
+
+        /// calution Delta safe
+        if (dt_sec > 0.001) {
+            uint64_t diff_rx = (current_rx >= net_cache_.rx) ? (current_rx - net_cache_.rx) : 0;
+            uint64_t diff_tx = (current_tx >= net_cache_.tx) ? (current_tx - net_cache_.tx) : 0;
+
+            /// Raw Bytes/s
+            result.rx_bytes = diff_rx / dt_sec;
+            result.tx_bytes = diff_tx / dt_sec;
+        } else {
+            result.rx_bytes = 0;
+            result.tx_bytes = 0;
+        }
+
+        /// update Cache State
+        net_cache_.rx = current_rx;
+        net_cache_.tx = current_tx;
+        net_cache_.t = current_time;
+    }
 
     return result;
 }
