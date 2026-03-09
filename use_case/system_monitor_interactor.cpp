@@ -6,10 +6,6 @@ system_monitor_interactor::system_monitor_interactor(system_monitor_output_bound
 
 }
 
-system_monitor_interactor::~system_monitor_interactor() noexcept {
-
-}
-
 void system_monitor_interactor::on_cpu_updated(const entity::cpu& cpu) {
     output_.present_cpu(cpu);
 }

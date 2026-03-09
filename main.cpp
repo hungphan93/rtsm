@@ -8,11 +8,13 @@
 #include <QDir>
 #include <QWindow>
 
-#include "ui/qt/system_monitor_qt.hpp"
+#include "ui/qt/system_monitor_view_qt.hpp"
 #include "platform/window_sticky.hpp"
 #include "use_case/system_monitor_interactor.hpp"
 #include "scheduler/system_data_scheduler.hpp"
-#include "presenter/system_monitor_view_model.hpp"
+
+// MODIFIED: Use Presenter instead of the old ViewModel
+#include "presenter/system_monitor_presenter.hpp"
 
 #if defined(__linux__)
 #include "adapter/linux/system_info_reader_linux.hpp"
@@ -27,10 +29,9 @@
 int main(int argc, char *argv[]) {
     using namespace std::chrono_literals;
 
-    /// Only one the application is open at the time
+    /// Ensure only one instance of the application is running at a time
     // QLockFile lock_file(QDir::tempPath() + "/rtsm.lock");
     // lock_file.setStaleLockTime(1000);
-
     // if (!lock_file.tryLock(100)) {
     //     qDebug() << "Another instance is already running.";
     //     return 0;
@@ -41,7 +42,9 @@ int main(int argc, char *argv[]) {
 
     QQmlApplicationEngine engine;
 
-    /// Construct system info reader
+    // -----------------------------------------------------------------
+    // STEP 1: INITIALIZE ADAPTER (Hardware reading core)
+    // -----------------------------------------------------------------
 #if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
 #elif defined(_WIN32)
@@ -50,22 +53,30 @@ int main(int argc, char *argv[]) {
     adapter::mac::system_info_reader_mac reader;
 #endif
 
-    /// 2. View Model (implements output_boundary)
-    presenter::system_monitor_view_model view_model;
+    // -----------------------------------------------------------------
+    // STEP 2: INITIALIZE PRESENTER (Unit/Format Converter)
+    // -----------------------------------------------------------------
+    // This class receives raw data, automatically converts it to MB/s, %,
+    // and generates formatted Strings for the UI.
+    presenter::system_monitor_presenter presenter;
 
-    /// 3. Interactor (implements input_boundary)
-    usecase::system_monitor_interactor interactor(view_model);
+    // -----------------------------------------------------------------
+    // STEP 3: INITIALIZE USE CASE (Business logic coordinator)
+    // -----------------------------------------------------------------
+    // Attach Presenter to Interactor so the Interactor can pump data out
+    usecase::system_monitor_interactor interactor(presenter);
 
-    /// 4. Scheduler
+    // -----------------------------------------------------------------
+    // STEP 4: INITIALIZE SCHEDULER (Multi-threading scheduler)
+    // -----------------------------------------------------------------
     scheduler::system_data_scheduler data_scheduler(reader);
 
-    /// 5. Subscribe components
-    auto cpu_id =  data_scheduler.subscribe(200ms,
+    /// Register periodic data sampling tasks
+    auto cpu_id = data_scheduler.subscribe(300ms,
                                            &usecase::system_info_reader::read_cpu,
                                            [&interactor](const entity::cpu& cpu) {
                                                interactor.on_cpu_updated(cpu);
                                            });
-
 
     auto memory_id = data_scheduler.subscribe(500ms,
                                               &usecase::system_info_reader::read_memory,
@@ -91,11 +102,18 @@ int main(int argc, char *argv[]) {
                                                interactor.on_net_updated(net);
                                            });
 
-    /// 6. Qt View Adapter
-    ui::qt::system_monitor_qt monitor_qt(view_model);
+    // -----------------------------------------------------------------
+    // STEP 5: INITIALIZE DUMB VIEW (The Humble Object)
+    // -----------------------------------------------------------------
+    // The Qt View is now completely dumb. It only takes the Presenter
+    // and extracts formatted Strings. No logic involved.
+    ui::qt::system_monitor_view_qt monitor_qt(presenter);
     engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
 
-    /// Defer window initialization until created
+    // -----------------------------------------------------------------
+    // STEP 6: CONFIGURE UI (QML & OS Windows)
+    // -----------------------------------------------------------------
+    /// Defer window initialization until the object is created by QML
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [&](QObject *obj, const QUrl &) {
@@ -110,10 +128,10 @@ int main(int argc, char *argv[]) {
 
             const QString platform = QGuiApplication::platformName();
 
-            /// Apply sticky behavior (cross-platform)
+            /// Apply cross-platform sticky window logic
             platform::make_window_sticky(window, platform);
 
-            /// show only after layer shell configured
+            /// Show only after the layer shell has been fully configured
             window->show();
         });
 

@@ -33,7 +33,7 @@ set(APP_SOURCES
   adapter/window/system_info_reader_window.cpp
   adapter/mac/system_info_reader_mac.cpp
 
-  ui/qt/system_monitor_qt.cpp
+  ui/qt/system_monitor_view_qt.cpp
 
   use_case/system_monitor_interactor.cpp
 
@@ -57,7 +57,8 @@ set(APP_HEADERS
   adapter/window/system_info_reader_window.hpp
   adapter/mac/system_info_reader_mac.hpp
 
-  ui/qt/system_monitor_qt.hpp
+  ui/qt/system_monitor_view_qt.hpp
+  presenter/system_monitor_presenter.hpp
 
   platform/window_sticky.hpp
   adapter/linux/detail/system_info_reader_linux_detail.hpp

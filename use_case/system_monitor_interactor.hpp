@@ -11,7 +11,7 @@ class system_monitor_interactor : public system_monitor_input_boundary {
 public:
     explicit system_monitor_interactor(system_monitor_output_boundary& output) noexcept;
 
-    ~system_monitor_interactor() noexcept override;
+    ~system_monitor_interactor() noexcept override = default;
 
     void on_cpu_updated(const entity::cpu& cpu) override;
     void on_memory_updated(const entity::memory& memory) override;

@@ -5,7 +5,7 @@ import QtQuick.Layouts
 
 Window {
     id: root
-    width: 1200
+    width: 1400
     height: 250
     visible: true
     /// flags: Qt.SplashScreen | Qt.FramelessWindowHint
@@ -41,8 +41,8 @@ Window {
                 [
                 system_monitor ? system_monitor.memory_usage_percent : "",
                 system_monitor ? system_monitor.memory_voltage : "",
-                system_monitor ? system_monitor.memory_used_bytes + "Gb of " +
-                                 system_monitor.memory_total_bytes + "Gb" : "",
+                system_monitor ? system_monitor.memory_used_bytes +
+                                 system_monitor.memory_total_bytes  : "",
                 system_monitor ? system_monitor.memory_frequency_mhz : "",
             ]
         },
@@ -53,8 +53,8 @@ Window {
                 [
                 system_monitor ? system_monitor.gpu_usage_percent : "",
                 system_monitor ? system_monitor.gpu_temperature_c : "",
-                system_monitor ? system_monitor.gpu_vram_used + "MB of " +
-                                 system_monitor.gpu_vram_total + "MB" : "",
+                system_monitor ? system_monitor.gpu_vram_used  +
+                                 system_monitor.gpu_vram_total  : "",
                 system_monitor ? system_monitor.gpu_frequency_mhz : "",
             ]
         },
