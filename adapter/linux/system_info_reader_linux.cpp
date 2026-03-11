@@ -13,8 +13,65 @@
 
 namespace fs = std::filesystem;
 
+#include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
+
 namespace adapter {
 namespace linux2 {
+
+///=============================================================================
+/// NVML Dynamic Loading Wrapper
+///=============================================================================
+namespace nvml {
+    typedef enum nvmlReturn_enum { NVML_SUCCESS = 0 } nvmlReturn_t;
+    typedef struct nvmlDevice_st* nvmlDevice_t;
+    typedef struct nvmlMemory_st {
+        unsigned long long total;
+        unsigned long long free;
+        unsigned long long used;
+    } nvmlMemory_t;
+
+    typedef nvmlReturn_t (*nvmlInit_t)(void);
+    typedef nvmlReturn_t (*nvmlShutdown_t)(void);
+    typedef nvmlReturn_t (*nvmlDeviceGetHandleByIndex_v2_t)(unsigned int, nvmlDevice_t*);
+    typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t*);
+    typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t, int, unsigned int*);
+    typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t, int, unsigned int*);
+
+    static void* handle = nullptr;
+    static bool loaded = false;
+    static bool init_attempted = false;
+
+    static nvmlInit_t nvmlInit_v2_ptr = nullptr;
+    static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
+    static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
+    static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
+    static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
+    static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
+
+    inline bool load_nvml() {
+        if (init_attempted) return loaded;
+        init_attempted = true;
+
+        handle = dlopen("libnvidia-ml.so.1", RTLD_LAZY);
+        if (!handle) handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
+        if (!handle) return false;
+
+        nvmlInit_v2_ptr = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
+        nvmlShutdown_ptr = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
+        nvmlDeviceGetHandle_ptr = (nvmlDeviceGetHandleByIndex_v2_t)dlsym(handle, "nvmlDeviceGetHandleByIndex_v2");
+        nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle, "nvmlDeviceGetMemoryInfo");
+        nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)dlsym(handle, "nvmlDeviceGetTemperature");
+        nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle, "nvmlDeviceGetClockInfo");
+
+        if (nvmlInit_v2_ptr && nvmlInit_v2_ptr() == NVML_SUCCESS) {
+            loaded = true;
+        } else {
+            dlclose(handle);
+            handle = nullptr;
+        }
+        return loaded;
+    }
+}
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
 
@@ -338,31 +395,38 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
     if (gpu_cache_.drm_path.empty() && !gpu_cache_.is_nvidia) return result;
 
-    if (gpu_cache_.is_nvidia) {
-        constexpr const char *cmd =
-            "/usr/bin/nvidia-smi --query-gpu=memory.total,memory.used,temperature.gpu,clocks.gr "
-            "--format=csv,noheader,nounits 2>/dev/null";
+    result.name = gpu_cache_.name;
+    result.vram_total = gpu_cache_.vram_total;
 
-        const auto value = detail::exec_cmd(cmd);
-        result.name = gpu_cache_.name;
+    /// Fast path for NVIDIA using NVML C API
+    if (gpu_cache_.is_nvidia && nvml::load_nvml()) {
+        nvml::nvmlDevice_t device;
+        if (nvml::nvmlDeviceGetHandle_ptr(0, &device) == nvml::NVML_SUCCESS) {
+            nvml::nvmlMemory_t memory;
+            if (nvml::nvmlDeviceGetMemoryInfo_ptr(device, &memory) == nvml::NVML_SUCCESS) {
+                result.vram_total = memory.total / (1024 * 1024);
+                result.vram_used = memory.used / (1024 * 1024);
+                if (result.vram_total > 0) {
+                    result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+                }
+            }
 
-        unsigned int total = 0, used = 0, temp = 0, freq = 0;
+            unsigned int temp = 0;
+            /// 0 = NVML_TEMPERATURE_GPU
+            if (nvml::nvmlDeviceGetTemperature_ptr(device, 0, &temp) == nvml::NVML_SUCCESS) {
+                result.temperature_c = temp;
+            }
 
-        if (std::sscanf(value.c_str(), "%u, %u, %u, %u", &total, &used, &temp, &freq) >= 2) {
-            result.vram_total    = total;
-            result.vram_used     = used;
-            result.temperature_c = temp;
-            result.frequency_mhz = freq;
-            if (result.vram_total > 0) {
-                result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+            unsigned int freq = 0;
+            /// 0 = NVML_CLOCK_GRAPHICS
+            if (nvml::nvmlDeviceGetClockInfo_ptr(device, 0, &freq) == nvml::NVML_SUCCESS) {
+                result.frequency_mhz = freq;
             }
         }
         return result;
     }
 
-    result.name = gpu_cache_.name;
-    result.vram_total = gpu_cache_.vram_total;
-
+    /// Fallback to fallback methods for AMD / Intel
     if (!gpu_cache_.drm_path.empty()) {
         std::string value = detail::read_line(gpu_cache_.drm_path + "/device/mem_info_vram_used");
         if (auto v = detail::to_uint(value); v) {
@@ -430,7 +494,17 @@ entity::disk system_info_reader_linux::read_disk() const {
 
         while ((mnt = getmntent(mnt_file.get())) != nullptr) {
             std::string fsname = mnt->mnt_fsname;
+            std::string fstype = mnt->mnt_type;
+
+            /// Skip pseudo filesystems, overlayfs, and known NETWORK/BLOCKING layers
             if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
+            
+            /// Critical Fix for Issue 2: Avoid statvfs freeze on disconnected network drives
+            if (fstype == "nfs" || fstype == "nfs4" || fstype == "cifs" || fstype == "smb3" ||
+                fstype == "autofs" || fstype.starts_with("fuse")) {
+                continue;
+            }
+
             if (!seen.insert(fsname).second) continue;
 
             struct statvfs stat_vfs;

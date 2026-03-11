@@ -7,8 +7,6 @@
 #include <functional>
 #include <mutex>
 #include <memory>
-#include <sstream>
-#include <iomanip>
 
 namespace presenter {
 
@@ -46,7 +44,7 @@ private:
         }
         char buffer[32];
         int precision = unit >= 3 ? 2 : 1;
-        std::snprintf(buffer, sizeof(buffer), "%.*f %s", precision, bytes_per_sec, units[unit]);
+        std::snprintf(buffer, sizeof(buffer), "%.*f%s", precision, bytes_per_sec, units[unit]);
         return std::string(buffer);
     }
 
@@ -60,7 +58,7 @@ private:
         }
         char buffer[32];
         int precision = unit >= 3 ? 2 : 1;
-        std::snprintf(buffer, sizeof(buffer), "%.*f %s", precision, bytes, units[unit]);
+        std::snprintf(buffer, sizeof(buffer), "%.*f%s", precision, bytes, units[unit]);
         return std::string(buffer);
     }
 
@@ -178,7 +176,7 @@ private:
             local_cb = f.cb;
         }
 
-        // Invoke the callback outside the lock to avoid potential deadlocks
+        /// Invoke the callback outside the lock to avoid potential deadlocks
         if (local_cb) local_cb();
     }
 

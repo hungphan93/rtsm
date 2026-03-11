@@ -119,11 +119,9 @@ int main(int argc, char *argv[]) {
     // STEP 6: CONFIGURE UI (QML & OS Windows)
     // -----------------------------------------------------------------
     /// Defer window initialization until the object is created by QML
-    qDebug ("\n 000thoat app hung phan\n");
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [&](QObject *obj, const QUrl &) {
-            qDebug ("\n 111thoat app hung phan\n");
 
             if (!obj) {
                 qCritical() << "Failed to load QML";
@@ -141,13 +139,11 @@ int main(int argc, char *argv[]) {
 
             /// Show only after the layer shell has been fully configured
             window->show();
-            qDebug ("\n 222thoat app hung phan\n");
         });
 
     /// Load QML (DO NOT auto-show)
     engine.loadFromModule("rtsm", "Main");
     if (engine.rootObjects().isEmpty()) {
-        qDebug ("\n 3333thoat app hung phan\n");
         return -1;
     }
 
@@ -161,9 +157,6 @@ int main(int argc, char *argv[]) {
         QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
     });
 
-    qDebug() << "444hung phan - starting event loop";
-    int ret = app.exec();
     
-    qDebug() << "555 - event loop finished. Returning from main()...";
-    return ret;
+    return app.exec();
 }
