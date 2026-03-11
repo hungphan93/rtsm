@@ -12,6 +12,7 @@
 #include "platform/window_sticky.hpp"
 #include "use_case/system_monitor_interactor.hpp"
 #include "scheduler/system_data_scheduler.hpp"
+#include <csignal>
 
 // MODIFIED: Use Presenter instead of the old ViewModel
 #include "presenter/system_monitor_presenter.hpp"
@@ -40,11 +41,16 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/icons/app_icon.png"));
 
+    // -----------------------------------------------------------------
+    // STEP 1: INITIALIZE QML ENGINE
+    // -----------------------------------------------------------------
     QQmlApplicationEngine engine;
 
     // -----------------------------------------------------------------
-    // STEP 1: INITIALIZE ADAPTER (Hardware reading core)
+    // STEP 2: INITIALIZE SYSTEM DATA READER (The Plug-in / Adapter)
     // -----------------------------------------------------------------
+    // Using Linux specific reader class, implementing the 'system_info_reader'
+    // Interface. Read using C++/STL and system file nodes.
 #if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
 #elif defined(_WIN32)
@@ -54,21 +60,28 @@ int main(int argc, char *argv[]) {
 #endif
 
     // -----------------------------------------------------------------
-    // STEP 2: INITIALIZE PRESENTER (Unit/Format Converter)
+    // STEP 3: INITIALIZE PRESENTER & INTERACTOR
     // -----------------------------------------------------------------
     // This class receives raw data, automatically converts it to MB/s, %,
     // and generates formatted Strings for the UI.
     presenter::system_monitor_presenter presenter;
 
-    // -----------------------------------------------------------------
-    // STEP 3: INITIALIZE USE CASE (Business logic coordinator)
-    // -----------------------------------------------------------------
     // Attach Presenter to Interactor so the Interactor can pump data out
     usecase::system_monitor_interactor interactor(presenter);
 
     // -----------------------------------------------------------------
-    // STEP 4: INITIALIZE SCHEDULER (Multi-threading scheduler)
+    // STEP 4: INITIALIZE DUMB VIEW (The Humble Object)
     // -----------------------------------------------------------------
+    // The Qt View is now completely dumb. It only takes the Presenter
+    // and extracts formatted Strings. No logic involved.
+    ui::qt::system_monitor_view_qt monitor_qt(presenter);
+    engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
+
+    // -----------------------------------------------------------------
+    // STEP 5: INITIALIZE SCHEDULER (Multi-threading scheduler)
+    // -----------------------------------------------------------------
+    // FIX: Declared AFTER monitor_qt so that when app exits, data_scheduler 
+    // is destroyed FIRST, stopping all threads BEFORE monitor_qt is destroyed.
     scheduler::system_data_scheduler data_scheduler(reader);
 
     /// Register periodic data sampling tasks
@@ -103,20 +116,15 @@ int main(int argc, char *argv[]) {
                                            });
 
     // -----------------------------------------------------------------
-    // STEP 5: INITIALIZE DUMB VIEW (The Humble Object)
-    // -----------------------------------------------------------------
-    // The Qt View is now completely dumb. It only takes the Presenter
-    // and extracts formatted Strings. No logic involved.
-    ui::qt::system_monitor_view_qt monitor_qt(presenter);
-    engine.rootContext()->setContextProperty("system_monitor", &monitor_qt);
-
-    // -----------------------------------------------------------------
     // STEP 6: CONFIGURE UI (QML & OS Windows)
     // -----------------------------------------------------------------
     /// Defer window initialization until the object is created by QML
+    qDebug ("\n 000thoat app hung phan\n");
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [&](QObject *obj, const QUrl &) {
+            qDebug ("\n 111thoat app hung phan\n");
+
             if (!obj) {
                 qCritical() << "Failed to load QML";
                 app.exit(-1);
@@ -133,12 +141,29 @@ int main(int argc, char *argv[]) {
 
             /// Show only after the layer shell has been fully configured
             window->show();
+            qDebug ("\n 222thoat app hung phan\n");
         });
 
     /// Load QML (DO NOT auto-show)
     engine.loadFromModule("rtsm", "Main");
-    if (engine.rootObjects().isEmpty())
+    if (engine.rootObjects().isEmpty()) {
+        qDebug ("\n 3333thoat app hung phan\n");
         return -1;
+    }
 
-    return app.exec();
+    /// Handle IDE and terminal Stop commands gracefully
+    std::signal(SIGINT, [](int) {
+        qDebug() << "\nReceived SIGINT. Quitting gracefully...";
+        QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+    });
+    std::signal(SIGTERM, [](int) {
+        qDebug() << "\nReceived SIGTERM. Quitting gracefully...";
+        QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+    });
+
+    qDebug() << "444hung phan - starting event loop";
+    int ret = app.exec();
+    
+    qDebug() << "555 - event loop finished. Returning from main()...";
+    return ret;
 }

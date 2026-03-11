@@ -44,10 +44,10 @@ private:
             bytes_per_sec /= 1024.0;
             unit++;
         }
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(unit >= 3 ? 2 : 1)
-            << bytes_per_sec << units[unit];
-        return out.str();
+        char buffer[32];
+        int precision = unit >= 3 ? 2 : 1;
+        std::snprintf(buffer, sizeof(buffer), "%.*f %s", precision, bytes_per_sec, units[unit]);
+        return std::string(buffer);
     }
 
     /// Specifically designed for CAPACITY (RAM, VRAM, Disk Size)
@@ -58,22 +58,22 @@ private:
             bytes /= 1024.0;
             unit++;
         }
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(unit >= 3 ? 2 : 1)
-            << bytes << units[unit];
-        return out.str();
+        char buffer[32];
+        int precision = unit >= 3 ? 2 : 1;
+        std::snprintf(buffer, sizeof(buffer), "%.*f %s", precision, bytes, units[unit]);
+        return std::string(buffer);
     }
 
     static std::string format_percent(float value) {
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(2) << value << "%";
-        return out.str();
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.2f%%", value);
+        return std::string(buffer);
     }
 
     static std::string format_float(float value, int precision, const std::string& suffix = "") {
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(precision) << value << suffix;
-        return out.str();
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.*f%s", precision, value, suffix.c_str());
+        return std::string(buffer);
     }
 
     // ---------------------------------------------------------

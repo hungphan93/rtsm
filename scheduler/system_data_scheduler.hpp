@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 
 namespace scheduler {
 
@@ -33,9 +34,14 @@ public:
         std::scoped_lock lock(mutex_);
         subscriptions_.emplace(id, std::jthread(
                                        [this, interval, reader_fn, cb = std::forward<Fn>(callback)](std::stop_token st) {
+                                           std::mutex sleep_mutex;
+                                           std::condition_variable_any cv;
                                            while (!st.stop_requested()) {
                                                cb((reader_.*reader_fn)());
-                                               std::this_thread::sleep_for(interval);
+                                               // Interruptible sleep: 
+                                               // This wakes up IMMEDIATELY when the stop token is triggered by IDE/App Exit
+                                               std::unique_lock<std::mutex> lock(sleep_mutex);
+                                               cv.wait_for(lock, st, interval, []{ return false; });
                                            }
                                        }));
         return id;
