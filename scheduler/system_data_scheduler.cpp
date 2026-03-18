@@ -3,11 +3,6 @@
 
 namespace scheduler {
 
-system_data_scheduler::system_data_scheduler(const usecase::system_info_reader& reader) noexcept
-    : reader_(reader) {
-
-}
-
 system_data_scheduler::~system_data_scheduler() noexcept {
     stop_all();
 }

@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     presenter::system_monitor_presenter presenter;
 
     // Attach Presenter to Interactor so the Interactor can pump data out
-    usecase::system_monitor_interactor interactor(presenter);
+    usecase::system_monitor_interactor interactor(reader, presenter);
 
     // -----------------------------------------------------------------
     // STEP 4: INITIALIZE DUMB VIEW (The Humble Object)
@@ -82,38 +82,15 @@ int main(int argc, char *argv[]) {
     // -----------------------------------------------------------------
     // FIX: Declared AFTER monitor_qt so that when app exits, data_scheduler 
     // is destroyed FIRST, stopping all threads BEFORE monitor_qt is destroyed.
-    scheduler::system_data_scheduler data_scheduler(reader);
+    scheduler::system_data_scheduler data_scheduler;
 
     /// Register periodic data sampling tasks
-    auto cpu_id = data_scheduler.subscribe(300ms,
-                                           &usecase::system_info_reader::read_cpu,
-                                           [&interactor](const entity::cpu& cpu) {
-                                               interactor.on_cpu_updated(cpu);
-                                           });
+    auto cpu_id = data_scheduler.subscribe(300ms, [&interactor]() { interactor.fetch_cpu(); });
+    auto memory_id = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_memory(); });
+    auto gpu_id = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_gpu(); });
+    auto disk_id = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_disk(); });
+    auto net_id = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_net(); });
 
-    auto memory_id = data_scheduler.subscribe(500ms,
-                                              &usecase::system_info_reader::read_memory,
-                                              [&interactor](const entity::memory& memory) {
-                                                  interactor.on_memory_updated(memory);
-                                              });
-
-    auto gpu_id = data_scheduler.subscribe(500ms,
-                                           &usecase::system_info_reader::read_gpu,
-                                           [&interactor](const entity::gpu& gpu) {
-                                               interactor.on_gpu_updated(gpu);
-                                           });
-
-    auto disk_id = data_scheduler.subscribe(1000ms,
-                                            &usecase::system_info_reader::read_disk,
-                                            [&interactor](const entity::disk& disk) {
-                                                interactor.on_disk_updated(disk);
-                                            });
-
-    auto net_id = data_scheduler.subscribe(1000ms,
-                                           &usecase::system_info_reader::read_net,
-                                           [&interactor](const entity::net& net) {
-                                               interactor.on_net_updated(net);
-                                           });
 
     // -----------------------------------------------------------------
     // STEP 6: CONFIGURE UI (QML & OS Windows)

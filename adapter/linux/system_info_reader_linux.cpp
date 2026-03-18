@@ -232,7 +232,7 @@ entity::memory system_info_reader_linux::read_memory() const {
     }
 
     if (!memory_cache_.initialized) {
-        std::string dmi_out = detail::exec_cmd("sudo dmidecode --type 17 2>/dev/null");
+        std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
 
         if (!dmi_out.empty()) {
             std::istringstream stream(dmi_out);
@@ -258,7 +258,6 @@ entity::memory system_info_reader_linux::read_memory() const {
                     /// 1. Manufacturer name
                     if (line.starts_with("Manufacturer:")) {
                         val = detail::trim(line.substr(13));
-                        std::clog  <<"hung test 4= "<< val;
                         if (val != "Unknown" && val != "None") {
                             memory_cache_.name = val;
                         }
