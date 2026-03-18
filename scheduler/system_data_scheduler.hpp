@@ -9,7 +9,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
-#include <print>
+
 
 namespace scheduler {
 
@@ -36,7 +36,6 @@ public:
                                            std::mutex sleep_mutex;
                                            std::condition_variable_any cv;
                                            while (!st.stop_requested()) {
-                                             std::print("sau khi gọi thread = {}\n" , this->active_count());
                                                cb();
                                                // Interruptible sleep: 
                                                // This wakes up IMMEDIATELY when the stop token is triggered by IDE/App Exit

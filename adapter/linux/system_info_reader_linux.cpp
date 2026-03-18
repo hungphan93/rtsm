@@ -82,7 +82,7 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         std::ifstream proc("/proc/cpuinfo");
         std::string line;
         /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-        const std::regex cpu_name_pattern(
+        static const std::regex cpu_name_pattern(
             R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
             std::regex::icase | std::regex::optimize
             );
