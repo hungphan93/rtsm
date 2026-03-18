@@ -35,8 +35,6 @@ set(APP_SOURCES
 
   ui/qt/system_monitor_view_qt.cpp
 
-  use_case/system_monitor_interactor.cpp
-
   scheduler/system_data_scheduler.cpp
 
 )
