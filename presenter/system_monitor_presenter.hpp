@@ -162,16 +162,12 @@ private:
 
     template<typename T>
     void update(field<T>& f, const T& v) {
-        {
-            std::scoped_lock lock(f.mtx);
-            // Prevent unnecessary UI redraws if the data has not changed
-            if (f.data && *f.data == v) return;
-        }
-
         auto new_data = std::make_shared<T>(v);
         notify local_cb;
         {
             std::scoped_lock lock(f.mtx);
+            // Prevent unnecessary UI redraws if the data has not changed
+            if (f.data && *f.data == v) return;
             f.data = std::move(new_data);
             local_cb = f.cb;
         }
