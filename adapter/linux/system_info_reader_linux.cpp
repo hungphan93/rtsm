@@ -83,14 +83,14 @@ namespace nvml {
         nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle, "nvmlDeviceGetMemoryInfo");
         nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)dlsym(handle, "nvmlDeviceGetTemperature");
         nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle, "nvmlDeviceGetClockInfo");
+        
+        // Optional pointers (we don't fail if these are missing, as they are not currently used in read_gpu)
         nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)dlsym(handle, "nvmlDeviceGetUtilizationRates");
         nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle, "nvmlDeviceGetName");
         nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)dlsym(handle, "nvmlDeviceGetCount_v2");
 
-
-        if (!nvmlInit_v2_ptr || !nvmlDeviceGetCount_v2_ptr || !nvmlDeviceGetHandle_ptr ||
-            !nvmlDeviceGetUtilizationRates_ptr || !nvmlDeviceGetMemoryInfo_ptr ||
-            !nvmlDeviceGetClockInfo_ptr || !nvmlDeviceGetTemperature_ptr || !nvmlDeviceGetName_ptr || !nvmlShutdown_ptr) {
+        if (!nvmlInit_v2_ptr || !nvmlShutdown_ptr || !nvmlDeviceGetHandle_ptr ||
+            !nvmlDeviceGetMemoryInfo_ptr || !nvmlDeviceGetTemperature_ptr || !nvmlDeviceGetClockInfo_ptr) {
             dlclose(handle);
             handle = nullptr;
             loaded = false;
@@ -541,8 +541,8 @@ entity::disk system_info_reader_linux::read_disk() const {
             struct statvfs stat_vfs;
             if (statvfs(mnt->mnt_dir, &stat_vfs) != 0) continue;
 
-            double total_gb = detail::to_gb(stat_vfs.f_blocks * stat_vfs.f_frsize);
-            double free_gb  = detail::to_gb(stat_vfs.f_bavail * stat_vfs.f_frsize);
+            double total_gb = detail::to_gb(static_cast<double>(stat_vfs.f_blocks) * static_cast<double>(stat_vfs.f_frsize));
+            double free_gb  = detail::to_gb(static_cast<double>(stat_vfs.f_bavail) * static_cast<double>(stat_vfs.f_frsize));
 
             result.total += total_gb;
             result.free  += free_gb;
@@ -591,7 +591,7 @@ entity::disk system_info_reader_linux::read_disk() const {
 
     std::string str_sector = "/sys/block/" + device + "/queue/hw_sector_size";
     std::string value_sector = detail::read_line(str_sector.c_str());
-    result.sector_size = value_sector.empty() ? 512 : std::stoull(value_sector);
+    result.sector_size = detail::to_uint(value_sector).value_or(512);
 
     std::string str_model = "/sys/block/" + device + "/device/model";
     result.model = detail::read_line(str_model.c_str());
@@ -616,8 +616,8 @@ entity::disk system_info_reader_linux::read_disk() const {
                     else break;
                 }
                 if (is_target) {
-                    if (col == 5) r_sect = std::stoull(token);
-                    else if (col == 9) w_sect = std::stoull(token);
+                    if (col == 5) r_sect = detail::to_uint(token).value_or(0);
+                    else if (col == 9) w_sect = detail::to_uint(token).value_or(0);
                 }
                 col++;
             }

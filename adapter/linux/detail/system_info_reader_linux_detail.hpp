@@ -105,13 +105,22 @@ inline std::optional<std::string> find_hwmon_by_name(const std::string& target) 
 
 /// Converting a uint string to uint64_t
 inline std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexcept {
-    uint64_t value{};
-    try {
-        value = std::stoull(std::string(s), nullptr, base);
-    } catch (...) {
-        return std::nullopt;
+    s = trim(s);
+    if (s.empty()) return std::nullopt;
+
+    if (base == 16 || base == 0) {
+        if (s.starts_with("0x") || s.starts_with("0X")) {
+            s = s.substr(2);
+            base = 16;
+        }
     }
-    return value;
+
+    uint64_t value{};
+    auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value, base);
+    if (ec == std::errc()) {
+        return value;
+    }
+    return std::nullopt;
 }
 
 } /// adapter::linux2::detail
