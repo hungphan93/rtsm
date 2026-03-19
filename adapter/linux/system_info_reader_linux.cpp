@@ -2,7 +2,6 @@
 #include "system_info_reader_linux.hpp"
 #include <fstream>
 #include <regex>
-#include <thread>
 #include <sys/statvfs.h>
 #include <mntent.h>
 #include <unordered_set>
@@ -36,17 +35,39 @@ namespace nvml {
     typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t*);
     typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t, int, unsigned int*);
     typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t, int, unsigned int*);
+    typedef nvmlReturn_t (*nvmlDeviceGetUtilizationRates_t)(nvmlDevice_t, void*); // Placeholder, actual struct needed
+    typedef nvmlReturn_t (*nvmlDeviceGetName_t)(nvmlDevice_t, char*, unsigned int);
+    typedef nvmlReturn_t (*nvmlDeviceGetCount_v2_t)(unsigned int*);
+
 
     static void* handle = nullptr;
     static bool loaded = false;
     static bool init_attempted = false;
 
     static nvmlInit_t nvmlInit_v2_ptr = nullptr;
-    static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
     static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
+    static nvmlDeviceGetUtilizationRates_t nvmlDeviceGetUtilizationRates_ptr = nullptr;
     static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
-    static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
     static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
+    static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
+    static nvmlDeviceGetName_t nvmlDeviceGetName_ptr = nullptr;
+    static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
+    static nvmlDeviceGetCount_v2_t nvmlDeviceGetCount_v2_ptr = nullptr;
+
+
+    struct nvml_guard {
+        ~nvml_guard() {
+            if (handle) {
+                if (nvmlShutdown_ptr) {
+                    nvmlShutdown_ptr();
+                }
+                dlclose(handle);
+                handle = nullptr;
+            }
+        }
+    };
+
+    static nvml_guard guard;
 
     inline bool load_nvml() {
         if (init_attempted) return loaded;
@@ -62,12 +83,23 @@ namespace nvml {
         nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle, "nvmlDeviceGetMemoryInfo");
         nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)dlsym(handle, "nvmlDeviceGetTemperature");
         nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle, "nvmlDeviceGetClockInfo");
+        nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)dlsym(handle, "nvmlDeviceGetUtilizationRates");
+        nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle, "nvmlDeviceGetName");
+        nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)dlsym(handle, "nvmlDeviceGetCount_v2");
 
-        if (nvmlInit_v2_ptr && nvmlInit_v2_ptr() == NVML_SUCCESS) {
+
+        if (!nvmlInit_v2_ptr || !nvmlDeviceGetCount_v2_ptr || !nvmlDeviceGetHandle_ptr ||
+            !nvmlDeviceGetUtilizationRates_ptr || !nvmlDeviceGetMemoryInfo_ptr ||
+            !nvmlDeviceGetClockInfo_ptr || !nvmlDeviceGetTemperature_ptr || !nvmlDeviceGetName_ptr || !nvmlShutdown_ptr) {
+            dlclose(handle);
+            handle = nullptr;
+            loaded = false;
+        } else if (nvmlInit_v2_ptr() == NVML_SUCCESS) {
             loaded = true;
         } else {
             dlclose(handle);
             handle = nullptr;
+            loaded = false;
         }
         return loaded;
     }
