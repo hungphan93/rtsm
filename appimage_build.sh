@@ -82,6 +82,10 @@ echo "📦 Step 1: Bundling dependencies..."
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
 export PATH="$TOOLS_DIR:$PATH"
 
+# ✅ path compiler
+export QMAKE="/home/$USER/Qt/6.9.1/gcc_64/bin/qmake"
+export LD_LIBRARY_PATH="/home/$USER/Qt/6.9.1/gcc_64/lib:${LD_LIBRARY_PATH:-}"
+
 # Prepare AppDir folder using linuxdeploy
 "$TOOLS_DIR/linuxdeploy-x86_64.AppImage" \
     --appdir "$APPDIR" \
