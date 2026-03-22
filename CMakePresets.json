@@ -1,0 +1,59 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "gcc15-base",
+      "hidden": true,
+      "description": "Base configuration containing customized GCC 15.2.0 path environment details",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "environment": {
+        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/15.2.0-native/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/opt/gcc/15.2.0-native/lib64:$penv{LD_LIBRARY_PATH}",
+        "CC": "/opt/gcc/15.2.0-native/bin/gcc",
+        "CXX": "/opt/gcc/15.2.0-native/bin/g++",
+        "CXXFLAGS": "-std=c++26 -fmodules-ts -Wall -Wextra"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "ON",
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.10.0/gcc_64"
+      }
+    },
+    {
+      "name": "linux-gcc15-debug",
+      "displayName": "GCC 15.2.0 (Debug Mode)",
+      "description": "Configured for step-by-step code source debugging",
+      "inherits": "gcc15-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-gcc15-release",
+      "displayName": "GCC 15.2.0 (Release Mode)",
+      "description": "Configured for optimal high-speed release software compilation",
+      "inherits": "gcc15-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-debug",
+      "configurePreset": "linux-gcc15-debug"
+    },
+    {
+      "name": "build-release",
+      "configurePreset": "linux-gcc15-release"
+    }
+  ]
+}

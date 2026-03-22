@@ -80,16 +80,16 @@ int main(int argc, char *argv[]) {
     // -----------------------------------------------------------------
     // STEP 5: INITIALIZE SCHEDULER (Multi-threading scheduler)
     // -----------------------------------------------------------------
-    // FIX: Declared AFTER monitor_qt so that when app exits, data_scheduler 
+    // FIX: Declared AFTER monitor_qt so that when app exits, data_scheduler
     // is destroyed FIRST, stopping all threads BEFORE monitor_qt is destroyed.
     scheduler::system_data_scheduler data_scheduler;
 
     /// Register periodic data sampling tasks
-    auto cpu_id = data_scheduler.subscribe(300ms, [&interactor]() { interactor.fetch_cpu(); });
-    auto memory_id = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_memory(); });
-    auto gpu_id = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_gpu(); });
-    auto disk_id = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_disk(); });
-    auto net_id = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_net(); });
+    auto _ = data_scheduler.subscribe(300ms, [&interactor]() { interactor.fetch_cpu(); });
+    auto _ = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_memory(); });
+    auto _ = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_gpu(); });
+    auto _ = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_disk(); });
+    auto _ = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_net(); });
 
 
     // -----------------------------------------------------------------
@@ -134,6 +134,38 @@ int main(int argc, char *argv[]) {
         QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
     });
 
-    
+
     return app.exec();
 }
+
+// #include <vector>
+// #include <string>
+// #import <print>
+
+
+// int main() {
+//     std::vector<std::string> names = {"C++20", "C++23", "C++26"};
+//     std::print("Sử dụng header truyền thống nhưng dùng std::print của C++26!\n");
+
+//     for (const auto& name : names) {
+//         std::print("Feature: {}\n", name);
+//     }
+// #ifdef __cpp_pattern_matching
+//     std::print("Máy bạn ĐÃ hỗ trợ inspect!\n");
+// #else
+//     std::print("Máy bạn CHƯA hỗ trợ inspect. Hãy dùng Lambda thay thế.\n");
+// #endif
+
+//     int mode = 1;
+
+//     // Gán trực tiếp kết quả vào biến 'status'
+//     // auto status = inspect (mode) {
+//     //     0 => "Đang dừng",
+//     //     1 => "Đang chạy",
+//     //     2 => "Chế độ chờ",
+//     //     _ => "Không xác định" // Dấu gạch dưới ở đây đóng vai trò 'default'
+//     // };
+
+//     // std::print("Trạng thái hệ thống: {}\n", status);
+
+// }

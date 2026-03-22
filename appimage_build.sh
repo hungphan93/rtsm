@@ -66,10 +66,19 @@ popd > /dev/null
 # ===== 3. Project Compilation (RTSM) =====
 # Clean environment for fresh build
 rm -rf "$BUILD_DIR" && mkdir -p "$BUILD_DIR"
-pushd "$BUILD_DIR" > /dev/null
-cmake "$REPO_ROOT" -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
-make -j"$(nproc)"
-make install DESTDIR="$APPDIR"
+pushd "$REPO_ROOT" > /dev/null
+
+# Inject CMake 4.3.0 to PATH (Required by project configuration)
+export PATH="/opt/cmake/cmake-4.3.0/bin:$PATH"
+
+# Configure via preset (which sets GCC-15 environment and Qt paths)
+cmake --preset linux-gcc15-release -DCMAKE_INSTALL_PREFIX=/usr
+
+# Build via preset (automatically uses configured Ninja generator)
+cmake --build --preset build-release -j"$(nproc)"
+
+# Install directly to AppDir
+DESTDIR="$APPDIR" cmake --install "$BUILD_DIR/linux-gcc15-release"
 
 # Organize Assets into standard AppDir layout
 mkdir -p "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
@@ -81,10 +90,6 @@ popd > /dev/null
 echo "📦 Step 1: Bundling dependencies..."
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
 export PATH="$TOOLS_DIR:$PATH"
-
-# ✅ path compiler
-export QMAKE="/home/$USER/Qt/6.9.1/gcc_64/bin/qmake"
-export LD_LIBRARY_PATH="/home/$USER/Qt/6.9.1/gcc_64/lib:${LD_LIBRARY_PATH:-}"
 
 # Prepare AppDir folder using linuxdeploy
 "$TOOLS_DIR/linuxdeploy-x86_64.AppImage" \
