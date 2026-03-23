@@ -24,7 +24,7 @@
         "CMAKE_CXX_EXTENSIONS": "OFF",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_SCAN_FOR_MODULES": "ON",
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.10.0/gcc_64"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.9.3/gcc_64"
       }
     },
     {

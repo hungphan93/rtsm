@@ -89,7 +89,10 @@ popd > /dev/null
 # ===== 4. Final Packaging =====
 echo "📦 Step 1: Bundling dependencies..."
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
-export PATH="$TOOLS_DIR:$PATH"
+
+# Add GCC 15 and Qt 6.10.0 paths so linuxdeploy resolves the correct dependencies instead of system ones
+export PATH="$HOME/Qt/6.9.3/gcc_64/bin:/opt/gcc/15.2.0-native/bin:$TOOLS_DIR:$PATH"
+export LD_LIBRARY_PATH="$HOME/Qt/6.9.3/gcc_64/lib:/opt/gcc/15.2.0-native/lib64:${LD_LIBRARY_PATH:-}"
 
 # Prepare AppDir folder using linuxdeploy
 "$TOOLS_DIR/linuxdeploy-x86_64.AppImage" \
