@@ -17,7 +17,7 @@
         "LD_LIBRARY_PATH": "/opt/gcc/15.2.0-native/lib64:$penv{LD_LIBRARY_PATH}",
         "CC": "/opt/gcc/15.2.0-native/bin/gcc",
         "CXX": "/opt/gcc/15.2.0-native/bin/g++",
-        "CXXFLAGS": "-std=c++26 -fmodules-ts -Wall -Wextra"
+        "CXXFLAGS": "-std=c++23 -Wall -Wextra"
       },
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",

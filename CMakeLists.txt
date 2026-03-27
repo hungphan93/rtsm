@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 4.3.0)
 
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
+
+set(CMAKE_CXX_MODULE_STD ON)
+
 project(rtsm VERSION 1.00 LANGUAGES CXX)
 
-### ==============================================================================
-### 1. FIND DEPENDENCIES
-### ==============================================================================
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 qt_standard_project_setup(REQUIRES 6.5)
 qt_policy(SET QTP0004 NEW)
@@ -13,17 +19,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(X11 REQUIRED)
 endif()
 
-### ==============================================================================
-### 2. TARGET INITIALIZATION & C++ STANDARD
-### ==============================================================================
-### Ensure CMP0156 compatibility with modern CMake versions (4.3.0)
 set(QT_FORCE_CMP0156_TO_VALUE NEW)
 
-### Initialize executable with the main entry file
 qt_add_executable(apprtsm main.cpp)
 
-### Enforce cxx_std_26 standard requirement (Compiler/Environment details handled via CMakePresets.json)
-target_compile_features(apprtsm PRIVATE cxx_std_26)
+#target_compile_features(apprtsm PRIVATE cxx_std_23)
 
 
 set_target_properties(apprtsm PROPERTIES
@@ -33,11 +33,6 @@ set_target_properties(apprtsm PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
 )
 
-### ==============================================================================
-### 3. SOURCE MANAGEMENT
-### ==============================================================================
-
-### 3.1. Common source files (Cross-platform)
 target_sources(apprtsm PRIVATE
     ### --- Code Files (.cpp) ---
     ui/qt/system_monitor_view_qt.cpp
@@ -79,33 +74,21 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin") ### macOS
     )
 endif()
 
-### ==============================================================================
-### 4. QML MODULE MANAGEMENT
-### ==============================================================================
 qt_add_qml_module(apprtsm
     URI rtsm
     VERSION 1.0
     QML_FILES ui/qt/qml/Main.qml
 )
 
-### ==============================================================================
-### 5. INCLUDE AND LINKING CONFIGURATION
-### ==============================================================================
-### Add project root as include directory
 target_include_directories(apprtsm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-### Link Qt6 libraries
 target_link_libraries(apprtsm PRIVATE Qt6::Quick)
 
-### Link X11 libraries on Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_include_directories(apprtsm PRIVATE ${X11_INCLUDE_DIR})
     target_link_libraries(apprtsm PRIVATE ${X11_LIBRARIES})
 endif()
 
-### ==============================================================================
-### 6. INSTALLATION CONFIGURATION
-### ==============================================================================
 include(GNUInstallDirs)
 install(TARGETS apprtsm
     BUNDLE DESTINATION .
