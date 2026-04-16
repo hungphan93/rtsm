@@ -1,12 +1,15 @@
 /// MIT License
-#ifndef SYSTEM_MONITOR_INTERACTOR_HPP
-#define SYSTEM_MONITOR_INTERACTOR_HPP
-#include "ports/system_monitor_input_boundary.hpp"
-#include "ports/system_monitor_output_boundary.hpp"
-#include "ports/system_info_reader.hpp"
+module;
+
 #include <mutex>
 
-namespace usecase {
+export module usecase:system_monitor_interactor;
+
+import :system_monitor_input_boundary;
+import :system_monitor_output_boundary;
+import :system_info_reader;
+
+export namespace usecase {
 
 class system_monitor_interactor : public system_monitor_input_boundary {
 
@@ -54,5 +57,3 @@ private:
 };
 
 } /// namespace usecase
-
-#endif /// SYSTEM_MONITOR_INTERACTOR_HPP

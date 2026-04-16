@@ -1,11 +1,13 @@
 /// MIT License
-#ifndef ENTITY_CPU_HPP
-#define ENTITY_CPU_HPP
+module;
 
-#include <string>
 #include <cstdint>
 
-namespace entity {
+export module entity:cpu;
+
+import std;
+
+export namespace entity {
 
 struct cpu {
     /// Name cpu
@@ -47,5 +49,3 @@ struct cpu {
 };
 
 } /// namespace entity
-
-#endif /// ENTITY_CPU_HPP

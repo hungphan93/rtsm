@@ -1,14 +1,12 @@
 /// MIT License
-#ifndef PRESENTER_SYSTEM_MONITOR_PRESENTER_HPP
-#define PRESENTER_SYSTEM_MONITOR_PRESENTER_HPP
+export module presenter:system_monitor_presenter;
 
-#include "use_case/ports/system_monitor_output_boundary.hpp"
-#include "presenter/system_monitor_view_model.hpp"
-#include <functional>
-#include <mutex>
-#include <memory>
+import std;
+import usecase;
+import entity;
+import :system_monitor_view_model;
 
-namespace presenter {
+export namespace presenter {
 
 class system_monitor_presenter : public usecase::system_monitor_output_boundary {
 public:
@@ -184,4 +182,3 @@ private:
 };
 
 } /// namespace presenter
-#endif /// PRESENTER_SYSTEM_MONITOR_PRESENTER_HPP

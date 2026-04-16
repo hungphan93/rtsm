@@ -1,17 +1,9 @@
 /// MIT License
-#ifndef SYSTEM_DATA_SCHEDULER_HPP
-#define SYSTEM_DATA_SCHEDULER_HPP
+export module system_data_scheduler;
 
-#include <chrono>
-#include <thread>
-#include <map>
-#include <mutex>
-#include <atomic>
-#include <condition_variable>
-#include <functional>
+import std;
 
-
-namespace scheduler {
+export namespace scheduler {
 
 class system_data_scheduler {
 public:
@@ -84,5 +76,3 @@ private:
 };
 
 } /// namespace scheduler
-
-#endif /// SYSTEM_DATA_SCHEDULER_HPP

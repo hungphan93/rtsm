@@ -1,12 +1,11 @@
-#ifndef SYSTEM_MONITOR_OUTPUT_BOUNDARY_HPP
-#define SYSTEM_MONITOR_OUTPUT_BOUNDARY_HPP
-#include "entity/cpu.hpp"
-#include "entity/memory.hpp"
-#include "entity/disk.hpp"
-#include "entity/net.hpp"
-#include "entity/gpu.hpp"
+/// MIT License
+module;
 
-namespace usecase {
+export module usecase:system_monitor_output_boundary;
+
+import entity;
+
+export namespace usecase {
 
 struct system_monitor_output_boundary {
 
@@ -20,5 +19,3 @@ struct system_monitor_output_boundary {
 };
 
 } /// namespace usecase
-
-#endif /// SYSTEM_MONITOR_OUTPUT_BOUNDARY_HPP

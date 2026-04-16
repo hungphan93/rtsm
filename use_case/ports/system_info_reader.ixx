@@ -1,14 +1,11 @@
 /// MIT License
-#ifndef USECASE_SYSTEM_INFO_READER_HPP
-#define USECASE_SYSTEM_INFO_READER_HPP
+module;
 
-#include "entity/cpu.hpp"
-#include "entity/disk.hpp"
-#include "entity/gpu.hpp"
-#include "entity/memory.hpp"
-#include "entity/net.hpp"
+export module usecase:system_info_reader;
 
-namespace usecase {
+import entity;
+
+export namespace usecase {
 
 struct system_info_reader {
 
@@ -31,5 +28,3 @@ struct system_info_reader {
 };
 
 } /// namespace usecase
-
-#endif /// USECASE_SYSTEM_INFO_READER_HPP

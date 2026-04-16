@@ -1,5 +1,5 @@
 /// MIT License
-#include "system_data_scheduler.hpp"
+module system_data_scheduler;
 
 namespace scheduler {
 

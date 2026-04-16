@@ -1,11 +1,11 @@
 /// MIT License
-#ifndef ENTITY_NET_HPP
-#define ENTITY_NET_HPP
+module;
 
-#include <compare>
 #include <cstdint>
 
-namespace entity {
+export module entity:net;
+
+export namespace entity {
 
 struct net {
     uint64_t rx_bytes = 0;
@@ -15,5 +15,3 @@ struct net {
 };
 
 } /// namespace entity
-
-#endif /// ENTITY_NET_HPP

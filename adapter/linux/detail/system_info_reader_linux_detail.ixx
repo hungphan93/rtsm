@@ -1,14 +1,15 @@
 /// MIT License
-#ifndef ADAPTER_SYSTEM_INFO_READER_LINUX_DETAIL_HPP
-#define ADAPTER_SYSTEM_INFO_READER_LINUX_DETAIL_HPP
+module;
 
-#include <charconv>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <optional>
+#include <cstdint>
+#include <memory>
 
-namespace adapter::linux2::detail {
+export module adapter:system_info_reader_linux_detail;
+
+import std;
+
+export namespace adapter::linux2::detail {
+
 namespace fs = std::filesystem;
 
 inline std::string_view extract_value(const std::string_view line) {
@@ -123,6 +124,5 @@ inline std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexce
     return std::nullopt;
 }
 
-} /// adapter::linux2::detail
+} /// adapter::linux::detail
 
-#endif /// ADAPTER_SYSTEM_INFO_READER_LINUX_DETAIL_HPP

@@ -1,13 +1,19 @@
 /// MIT License
 #ifndef UI_QT_SYSTEM_MONITOR_VIEW_QT_HPP
 #define UI_QT_SYSTEM_MONITOR_VIEW_QT_HPP
-#include "presenter/system_monitor_presenter.hpp"
 
 #include <QObject>
 #include <QTimer>
+#include <memory>
+#include "system_monitor_backend_fwd.hpp"
 
-namespace ui {
-namespace qt {
+// Khai báo trước (forward declaration) để Qt biết có 1 cái hộp sỏ tồn tại
+// nhưng Qt không cần (và không được) biết bên trong nó có gì.
+// struct system_monitor_backend_engine;
+// // Hàm Factory "nhà máy" chế tạo hộp sỏ. (Vẫn né hệ thống C++20 Module)
+// std::unique_ptr<system_monitor_backend_engine> create_system_monitor_backend();
+
+namespace ui::qt {
 
 /// This class is controller in MVC pattern
 class system_monitor_view_qt : public QObject {
@@ -52,7 +58,9 @@ class system_monitor_view_qt : public QObject {
     Q_PROPERTY(QString net_tx_bytes READ net_tx_bytes NOTIFY net_changed)
 
 public:
-    explicit system_monitor_view_qt(presenter::system_monitor_presenter& view_model, QObject* parent = nullptr);
+    //explicit system_monitor_view_qt(presenter::system_monitor_presenter& view_model, QObject* parent = nullptr);
+    explicit system_monitor_view_qt(std::shared_ptr<system_monitor_backend_engine> backend, QObject* parent = nullptr);
+    ~system_monitor_view_qt();
     /// cpu
     [[nodiscard]] QString cpu_model_name() const;
     [[nodiscard]] QString cpu_usage_percent() const;
@@ -101,10 +109,12 @@ signals:
     void net_changed();
 
 private:
-    presenter::system_monitor_presenter& view_model_;
+    //presenter::system_monitor_presenter& view_model_;
+    //  std::unique_ptr<system_monitor_presenter_pimpl> view_model_;
+    // Pimpl bây giờ chính là cục backend hộp đen đó!
+    std::shared_ptr<system_monitor_backend_engine> backend_;
 };
 
-} /// namespace qt
-} /// namespace ui
+} /// namespace
 
 #endif /// UI_QT_SYSTEM_MONITOR_View_QT_HPP

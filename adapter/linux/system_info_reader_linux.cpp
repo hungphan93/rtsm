@@ -1,21 +1,20 @@
-/// MIT License
-#include "system_info_reader_linux.hpp"
-#include <fstream>
+module;
+
 #include <regex>
+#include <cstdint>
 #include <sys/statvfs.h>
 #include <mntent.h>
-#include <unordered_set>
-#include <filesystem>
-#include <iostream>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
+#include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
+
+module adapter;
+//#include "detail/system_info_reader_linux_detail.hpp"
+import std;
 
 namespace fs = std::filesystem;
 
-#include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
-
-namespace adapter {
-namespace linux2 {
+namespace adapter::linux2 {
 
 ///=============================================================================
 /// NVML Dynamic Loading Wrapper
@@ -739,5 +738,4 @@ entity::net system_info_reader_linux::read_net() const {
     return result;
 }
 
-} /// namespace linux2
-} /// namespace adapter
+} /// namespace

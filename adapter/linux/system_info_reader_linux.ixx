@@ -1,14 +1,16 @@
 /// MIT License
-#ifndef ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP
-#define ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP
+module;
 
-#include "use_case/ports/system_info_reader.hpp"
-#include "detail/system_info_reader_linux_detail.hpp"
-#include <optional>
-#include <unordered_map>
+#include <cstdint>
 
-namespace adapter {
-namespace linux2 {
+export module adapter:system_info_reader_linux;
+
+import usecase;
+import entity;
+import :system_info_reader_linux_detail;
+import std;
+
+export namespace adapter::linux2 {
 
 struct cpu_static_info {
     bool initialized = false; /// flag for lazy initialization
@@ -85,7 +87,4 @@ private:
     mutable std::unordered_map<std::string, disk_static_info> disk_cache_{};
 };
 
-} /// namespace linux2
 } /// namespace adapter
-
-#endif /// ADAPTER_LINUX_SYSTEM_INFO_READER_LINUX_HPP

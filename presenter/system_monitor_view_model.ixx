@@ -1,10 +1,9 @@
 /// MIT License
-#ifndef PRESENTER_SYSTEM_MONITOR_VIEW_MODEL_HPP
-#define PRESENTER_SYSTEM_MONITOR_VIEW_MODEL_HPP
+export module presenter:system_monitor_view_model;
 
-#include <string>
+import std;
 
-namespace presenter {
+export namespace presenter {
 
 struct cpu_view_model {
     std::string model_name;
@@ -59,4 +58,3 @@ struct net_view_model {
 };
 
 } /// namespace presenter
-#endif /// PRESENTER_SYSTEM_MONITOR_VIEW_MODEL_HPP

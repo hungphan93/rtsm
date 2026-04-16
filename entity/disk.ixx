@@ -1,11 +1,13 @@
 /// MIT License
-#ifndef ENTITY_DISK_HPP
-#define ENTITY_DISK_HPP
+module;
 
-#include <string>
 #include <cstdint>
 
-namespace entity {
+export module entity:disk;
+
+import std;
+
+export namespace entity {
 
 struct disk {
     /// read speed of disk
@@ -35,5 +37,3 @@ struct disk {
 };
 
 } /// namespace entity
-
-#endif /// ENTITY_DISK_HPP

@@ -1,11 +1,13 @@
 /// MIT License
-#ifndef ENTITY_MEMORY_HPP
-#define ENTITY_MEMORY_HPP
+module;
 
 #include <cstdint>
-#include <string>
 
-namespace entity {
+export module entity:memory;
+
+import std;
+
+export namespace entity {
 
 struct memory {
     float vram_free = 0.0f;
@@ -22,5 +24,3 @@ struct memory {
 };
 
 } /// namespace entity
-
-#endif /// ENTITY_MEMORY_HPP

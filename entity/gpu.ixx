@@ -1,11 +1,13 @@
 /// MIT License
-#ifndef ENTITY_GPU_HPP
-#define ENTITY_GPU_HPP
+module;
 
 #include <cstdint>
-#include <string>
 
-namespace entity {
+export module entity:gpu;
+
+import std;
+
+export namespace entity {
 
 struct gpu {
     std::string name;
@@ -21,5 +23,3 @@ struct gpu {
 };
 
 } /// namespace entity
-
-#endif /// ENTITY_GPU_HPP

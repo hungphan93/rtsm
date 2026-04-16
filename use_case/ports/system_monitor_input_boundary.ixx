@@ -1,7 +1,9 @@
-#ifndef SYSTEM_MONITOR_INPUT_BOUNDARY_HPP
-#define SYSTEM_MONITOR_INPUT_BOUNDARY_HPP
+/// MIT License
+module;
 
-namespace usecase {
+export module usecase:system_monitor_input_boundary;
+
+export namespace usecase {
 
 struct system_monitor_input_boundary {
 
@@ -15,5 +17,3 @@ struct system_monitor_input_boundary {
 };
 
 } /// namespace usecase
-
-#endif /// SYSTEM_MONITOR_INPUT_BOUNDARY_HPP
