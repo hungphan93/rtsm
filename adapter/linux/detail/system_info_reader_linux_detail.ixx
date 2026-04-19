@@ -12,16 +12,47 @@ export namespace adapter::linux2::detail {
 
 namespace fs = std::filesystem;
 
-inline std::string_view extract_value(const std::string_view line) {
+std::string_view trim(std::string_view s) noexcept {
+    const auto start = s.find_first_not_of(" \t\n\r");
+    if (start == std::string_view::npos) return {};
+    const auto end = s.find_last_not_of(" \t\n\r");
+    return s.substr(start, end - start + 1);
+};
+
+std::string_view extract_value(const std::string_view line) noexcept {
     auto pos = line.find(':');
-    return (pos == std::string_view::npos || pos + 2 >= line.size())
-               ? "" : line.substr(pos + 2);
+
+    if (pos == std::string_view::npos) {
+        return {};
+    }
+
+    return trim(line.substr(pos + 1));
 }
 
+
 template<typename T>
-inline bool parse_number(std::string_view text, T& out) {
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), out);
-    return ec == std::errc();
+    requires std::is_arithmetic_v<T>
+std::expected<T, std::errc> parse_number(std::string_view text, int base = 10) noexcept {
+    T out{};
+    const auto first = text.data();
+    const auto last = first + text.size();
+
+    std::from_chars_result result;
+    if constexpr (std::is_integral_v<T>) {
+        result = std::from_chars(first, last, out, base);
+    } else {
+        result = std::from_chars(first, last, out);
+    }
+
+    if (result.ec != std::errc{}) {
+        return std::unexpected(result.ec);
+    }
+
+    if (result.ptr != last) {
+        return std::unexpected(std::errc::invalid_argument);
+    }
+
+    return out;
 }
 
 struct cpu_times {
@@ -43,24 +74,51 @@ struct cpu_times {
     }
 };
 
-inline cpu_times read_cpu_times() {
-    cpu_times times{};
+std::expected<cpu_times, std::errc> read_cpu_times() {
     std::ifstream proc("/proc/stat");
-    if (!proc.is_open()) return times;
+    if (!proc.is_open()) {
+        return std::unexpected(std::errc::no_such_file_or_directory);
+    }
 
-    std::string cpu_label;
-    proc >> cpu_label >> times.user >> times.nice >> times.system
-        >> times.idle >> times.iowait >> times.irq >> times.softirq >> times.steal;
+    std::string line;
+    if (!std::getline(proc, line)) {
+        return std::unexpected(std::errc::io_error);
+    }
+
+    /// only checking first line
+    constexpr std::string_view prefix = "cpu ";
+    if (!std::string_view(line).starts_with(prefix)) {
+        return std::unexpected(std::errc::protocol_error);
+    }
+
+    cpu_times times{};
+    const auto* first = line.data() + prefix.size();
+    const auto* last = line.data() + line.size();
+
+    for (auto out : {&times.user, &times.nice, &times.system, &times.idle,
+                     &times.iowait, &times.irq, &times.softirq, &times.steal}) {
+
+        /// ignoring character space
+        while (first < last && *first == ' ') ++first;
+
+        auto [next, ec] = std::from_chars(first, last, *out);
+        if (ec != std::errc{}) {
+            return std::unexpected(ec);
+        }
+        first = next;
+    }
+
     return times;
 }
 
-inline std::string read_line(const std::string& path) {
+std::string read_line(const fs::path& path) {
     std::ifstream file(path);
     std::string line;
-    return (file.is_open() && std::getline(file, line)) ? line : "";
+    std::getline(file, line);
+    return line;
 };
 
-inline std::string exec_cmd(const char* cmd) {
+std::string exec_cmd(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     using pipe_close_t = int(*)(FILE*);
@@ -75,39 +133,38 @@ inline std::string exec_cmd(const char* cmd) {
     return result;
 }
 
-inline std::string_view trim(std::string_view s) noexcept {
-    const auto start = s.find_first_not_of(" \t\n\r");
-    if (start == std::string_view::npos) return {};
-    const auto end = s.find_last_not_of(" \t\n\r");
-    return s.substr(start, end - start + 1);
-};
-
-inline float to_gb(float bytes) {
+float to_gb(float bytes) {
     return bytes / (1024.0 * 1024.0 * 1024.0);
 }
 
 template<typename T>
-inline float percent(T used, T total) {
-    return (total > 0) ? (100.0 * used / total) : 0;
+    requires std::is_arithmetic_v<T>
+float percent(T used, T total) noexcept {
+    if (total == T{}) {
+        return 0;
+    }
+
+    return (100.0 * used) / total;
 }
 
-inline std::optional<std::string> find_hwmon_by_name(const std::string& target) {
-    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon")) {
-        std::ifstream name_file(entry.path() / "name");
-        std::string name;
-        if (name_file && std::getline(name_file, name)) {
-            if (name == target) {
-                return entry.path().string();
-            }
+std::expected<std::string, std::errc> find_hwmon_by_name(const std::string& target) {
+    std::error_code ec;
+
+    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon", ec)) {
+        if(read_line(entry.path() / "name") == target) {
+            std::println("tét = {}", entry.path().string());
+            return entry.path().string();
         }
     }
-    return std::nullopt;
+
+    return std::unexpected(std::errc::no_such_device);
 }
 
 /// Converting a uint string to uint64_t
-inline std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexcept {
-    s = trim(s);
-    if (s.empty()) return std::nullopt;
+template<typename T = uint64_t>
+    requires std::is_arithmetic_v<T>
+std::expected<T, std::errc> to_uint(std::string_view s, int base = 10) noexcept {
+    if (s = trim(s); s.empty()) return std::unexpected(std::errc::invalid_argument);
 
     if (base == 16 || base == 0) {
         if (s.starts_with("0x") || s.starts_with("0X")) {
@@ -116,12 +173,7 @@ inline std::optional<uint64_t> to_uint(std::string_view s, int base = 10) noexce
         }
     }
 
-    uint64_t value{};
-    auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value, base);
-    if (ec == std::errc()) {
-        return value;
-    }
-    return std::nullopt;
+    return parse_number<T>(s, base);
 }
 
 } /// adapter::linux::detail

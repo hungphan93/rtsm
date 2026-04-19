@@ -37,14 +37,7 @@ int main(int argc, char *argv[]) {
 
     QQmlApplicationEngine engine;
 
-
-#if defined(__linux__)
     adapter::linux2::system_info_reader_linux reader;
-#elif defined(_WIN32)
-    adapter::window::system_info_reader_window reader;
-#elif defined(__APPLE__)
-    adapter::mac::system_info_reader_mac reader;
-#endif
 
     auto presenter = std::make_shared<presenter::system_monitor_presenter>();
 

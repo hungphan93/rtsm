@@ -10,6 +10,8 @@ import entity;
 import :system_info_reader_linux_detail;
 import std;
 
+namespace fs = std::filesystem;
+
 export namespace adapter::linux2 {
 
 struct cpu_static_info {
@@ -24,8 +26,8 @@ struct cpu_static_info {
     uint32_t l2_cache_kib = 0;
 
     /// Caching path hwmon O(1)
-    std::optional<std::string> hwmon_cpu_path;
-    std::optional<std::string> hwmon_gpu_path;
+    std::expected<fs::path, std::errc> hwmon_cpu_path;
+    std::expected<fs::path, std::errc> hwmon_gpu_path;
 };
 
 struct memory_static_info {
@@ -43,7 +45,7 @@ struct gpu_static_info {
 
     std::string name = "Unknown GPU";
     std::string drm_path; /// Cache path example: "/sys/class/drm/card0"
-    std::optional<std::string> hwmon_path;
+    std::expected<fs::path, std::errc> hwmon_path;
 
     uint64_t vram_total = 0;
 };

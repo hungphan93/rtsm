@@ -9,99 +9,101 @@ module;
 #include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
 
 module adapter;
-//#include "detail/system_info_reader_linux_detail.hpp"
 import std;
 
-namespace fs = std::filesystem;
-
 namespace adapter::linux2 {
+/// Regex pattern: matches things like "AMD Ryzen 5 7430U"
+static const std::regex cpu_name_pattern(
+    R"(AMD\s+\w+(?:\s+\d+)?\s+\d+\w*|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
+    std::regex::icase | std::regex::optimize
+    );
 
 ///=============================================================================
 /// NVML Dynamic Loading Wrapper
 ///=============================================================================
 namespace nvml {
-    typedef enum nvmlReturn_enum { NVML_SUCCESS = 0 } nvmlReturn_t;
-    typedef struct nvmlDevice_st* nvmlDevice_t;
-    typedef struct nvmlMemory_st {
-        unsigned long long total;
-        unsigned long long free;
-        unsigned long long used;
-    } nvmlMemory_t;
+typedef enum nvmlReturn_enum { NVML_SUCCESS = 0 } nvmlReturn_t;
+typedef struct nvmlDevice_st* nvmlDevice_t;
+typedef struct nvmlMemory_st {
+    unsigned long long total;
+    unsigned long long free;
+    unsigned long long used;
+} nvmlMemory_t;
 
-    typedef nvmlReturn_t (*nvmlInit_t)(void);
-    typedef nvmlReturn_t (*nvmlShutdown_t)(void);
-    typedef nvmlReturn_t (*nvmlDeviceGetHandleByIndex_v2_t)(unsigned int, nvmlDevice_t*);
-    typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t*);
-    typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t, int, unsigned int*);
-    typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t, int, unsigned int*);
-    typedef nvmlReturn_t (*nvmlDeviceGetUtilizationRates_t)(nvmlDevice_t, void*); // Placeholder, actual struct needed
-    typedef nvmlReturn_t (*nvmlDeviceGetName_t)(nvmlDevice_t, char*, unsigned int);
-    typedef nvmlReturn_t (*nvmlDeviceGetCount_v2_t)(unsigned int*);
-
-
-    static void* handle = nullptr;
-    static bool loaded = false;
-    static bool init_attempted = false;
-
-    static nvmlInit_t nvmlInit_v2_ptr = nullptr;
-    static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
-    static nvmlDeviceGetUtilizationRates_t nvmlDeviceGetUtilizationRates_ptr = nullptr;
-    static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
-    static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
-    static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
-    static nvmlDeviceGetName_t nvmlDeviceGetName_ptr = nullptr;
-    static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
-    static nvmlDeviceGetCount_v2_t nvmlDeviceGetCount_v2_ptr = nullptr;
+typedef nvmlReturn_t (*nvmlInit_t)(void);
+typedef nvmlReturn_t (*nvmlShutdown_t)(void);
+typedef nvmlReturn_t (*nvmlDeviceGetHandleByIndex_v2_t)(unsigned int, nvmlDevice_t*);
+typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t*);
+typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t, int, unsigned int*);
+typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t, int, unsigned int*);
+typedef nvmlReturn_t (*nvmlDeviceGetUtilizationRates_t)(nvmlDevice_t, void*); // Placeholder, actual struct needed
+typedef nvmlReturn_t (*nvmlDeviceGetName_t)(nvmlDevice_t, char*, unsigned int);
+typedef nvmlReturn_t (*nvmlDeviceGetCount_v2_t)(unsigned int*);
 
 
-    struct nvml_guard {
-        ~nvml_guard() {
-            if (handle) {
-                if (nvmlShutdown_ptr) {
-                    nvmlShutdown_ptr();
-                }
-                dlclose(handle);
-                handle = nullptr;
+static void* handle = nullptr;
+static bool loaded = false;
+static bool init_attempted = false;
+
+static nvmlInit_t nvmlInit_v2_ptr = nullptr;
+static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
+static nvmlDeviceGetUtilizationRates_t nvmlDeviceGetUtilizationRates_ptr = nullptr;
+static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
+static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
+static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
+static nvmlDeviceGetName_t nvmlDeviceGetName_ptr = nullptr;
+static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
+static nvmlDeviceGetCount_v2_t nvmlDeviceGetCount_v2_ptr = nullptr;
+
+
+struct nvml_guard {
+    ~nvml_guard() {
+        if (handle) {
+            if (nvmlShutdown_ptr) {
+                nvmlShutdown_ptr();
             }
-        }
-    };
-
-    static nvml_guard guard;
-
-    inline bool load_nvml() {
-        if (init_attempted) return loaded;
-        init_attempted = true;
-
-        handle = dlopen("libnvidia-ml.so.1", RTLD_LAZY);
-        if (!handle) handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
-        if (!handle) return false;
-
-        nvmlInit_v2_ptr = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
-        nvmlShutdown_ptr = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
-        nvmlDeviceGetHandle_ptr = (nvmlDeviceGetHandleByIndex_v2_t)dlsym(handle, "nvmlDeviceGetHandleByIndex_v2");
-        nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle, "nvmlDeviceGetMemoryInfo");
-        nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)dlsym(handle, "nvmlDeviceGetTemperature");
-        nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle, "nvmlDeviceGetClockInfo");
-        
-        // Optional pointers (we don't fail if these are missing, as they are not currently used in read_gpu)
-        nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)dlsym(handle, "nvmlDeviceGetUtilizationRates");
-        nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle, "nvmlDeviceGetName");
-        nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)dlsym(handle, "nvmlDeviceGetCount_v2");
-
-        if (!nvmlInit_v2_ptr || !nvmlShutdown_ptr || !nvmlDeviceGetHandle_ptr ||
-            !nvmlDeviceGetMemoryInfo_ptr || !nvmlDeviceGetTemperature_ptr || !nvmlDeviceGetClockInfo_ptr) {
             dlclose(handle);
             handle = nullptr;
-            loaded = false;
-        } else if (nvmlInit_v2_ptr() == NVML_SUCCESS) {
-            loaded = true;
-        } else {
-            dlclose(handle);
-            handle = nullptr;
-            loaded = false;
         }
-        return loaded;
     }
+};
+
+static nvml_guard guard;
+
+bool load_nvml() {
+    if (init_attempted) return loaded;
+    init_attempted = true;
+
+    handle = dlopen("libnvidia-ml.so.1", RTLD_LAZY);
+    if (!handle) handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
+    if (!handle) return false;
+
+    nvmlInit_v2_ptr = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
+    nvmlShutdown_ptr = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
+    nvmlDeviceGetHandle_ptr = (nvmlDeviceGetHandleByIndex_v2_t)dlsym(handle, "nvmlDeviceGetHandleByIndex_v2");
+    nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle, "nvmlDeviceGetMemoryInfo");
+    nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)dlsym(handle, "nvmlDeviceGetTemperature");
+    nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle, "nvmlDeviceGetClockInfo");
+
+    // Optional pointers (we don't fail if these are missing, as they are not currently used in read_gpu)
+    nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)dlsym(handle, "nvmlDeviceGetUtilizationRates");
+    nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle, "nvmlDeviceGetName");
+    nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)dlsym(handle, "nvmlDeviceGetCount_v2");
+
+    if (!nvmlInit_v2_ptr || !nvmlShutdown_ptr || !nvmlDeviceGetHandle_ptr ||
+        !nvmlDeviceGetMemoryInfo_ptr || !nvmlDeviceGetTemperature_ptr || !nvmlDeviceGetClockInfo_ptr) {
+        dlclose(handle);
+        handle = nullptr;
+        loaded = false;
+    } else if (nvmlInit_v2_ptr() == NVML_SUCCESS) {
+        loaded = true;
+    } else {
+        dlclose(handle);
+        handle = nullptr;
+        loaded = false;
+    }
+    return loaded;
+}
 }
 
 system_info_reader_linux::system_info_reader_linux() noexcept {}
@@ -112,107 +114,92 @@ entity::cpu system_info_reader_linux::read_cpu() const {
     if (!cache_cpu_.initialized) {
         std::ifstream proc("/proc/cpuinfo");
         std::string line;
-        /// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-        static const std::regex cpu_name_pattern(
-            R"(AMD\s+Ryzen\s+\d+\s+\d+\w+\b|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
-            std::regex::icase | std::regex::optimize
-            );
 
-        while(proc.is_open() && std::getline(proc, line)) {
-            if (line.empty()) continue;
+        auto assign = [&] (auto& field, std::string_view s) {
+            using T = std::remove_reference_t<decltype(field)>;
+            if (auto r = detail::parse_number<T>(s); r) field = *r;
+        };
 
+        while(std::getline(proc, line)) {
             auto value = detail::trim(detail::extract_value(line));
 
             if (line.starts_with("model name")) {
-                std::smatch match;
-                std::string sv_str(value);
-                if (std::regex_search(sv_str, match, cpu_name_pattern)) {
+                std::cmatch match;
+                if (std::regex_search(value.data(), value.data() + value.size(), match, cpu_name_pattern)) {
                     cache_cpu_.model_name = match.str();
+                } else {
+                    cache_cpu_.model_name = value; /// fallback: raw
                 }
             }
-
-            else if (line.starts_with("cpu cores")) {
-                detail::parse_number(value, cache_cpu_.cpu_cores);
-            }
-
-            else if (line.starts_with("processor")) {
-                detail::parse_number(value, cache_cpu_.processor_id);
-            }
-
             else if (line.starts_with("cache size")) {
-                detail::parse_number(value, cache_cpu_.l2_cache_kib);
+                auto num = value.substr(0, value.find(' '));   /// "512 KB" → "512"
+                assign(cache_cpu_.l2_cache_kib, num);
             }
 
-            else if (line.starts_with("physical id")) {
-                detail::parse_number(value, cache_cpu_.physical_id);
-            }
-
-            else if (line.starts_with("siblings")) {
-                detail::parse_number(value,  cache_cpu_.siblings);
-            }
-
-            else if (line.starts_with("core id")) {
-                detail::parse_number(value, cache_cpu_.core_id);
-            }
-
-            cache_cpu_.hwmon_cpu_path = detail::find_hwmon_by_name("k10temp");
-            cache_cpu_.hwmon_gpu_path = detail::find_hwmon_by_name("amdgpu");
-
-            cache_cpu_.initialized = true;
+            else if (line.starts_with("cpu cores")) assign(cache_cpu_.cpu_cores, value);
+            else if (line.starts_with("processor")) assign(cache_cpu_.processor_id, value);
+            else if (line.starts_with("physical id")) assign(cache_cpu_.physical_id, value);
+            else if (line.starts_with("siblings")) assign(cache_cpu_.siblings, value);
+            else if (line.starts_with("core id")) assign(cache_cpu_.core_id, value);
         }
+
+        /// temp cpu
+        if (auto r = detail::find_hwmon_by_name("k10temp"); r) {
+            cache_cpu_.hwmon_cpu_path = *r;
+        }
+        /// temp gpu
+        if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
+            cache_cpu_.hwmon_gpu_path = *r;
+        }
+
+        cache_cpu_.initialized = true;
+        result.model_name   = cache_cpu_.model_name;
+        result.cpu_cores    = cache_cpu_.cpu_cores;
+        result.processor_id = cache_cpu_.processor_id;
+        result.l2_cache_kib = cache_cpu_.l2_cache_kib;
+        result.physical_id  = cache_cpu_.physical_id;
+        result.siblings     = cache_cpu_.siblings;
+        result.core_id      = cache_cpu_.core_id;
     }
 
-    result.model_name   = cache_cpu_.model_name;
-    result.cpu_cores    = cache_cpu_.cpu_cores;
-    result.processor_id = cache_cpu_.processor_id;
-    result.l2_cache_kib = cache_cpu_.l2_cache_kib;
-    result.physical_id  = cache_cpu_.physical_id;
-    result.siblings     = cache_cpu_.siblings;
-    result.core_id      = cache_cpu_.core_id;
+    auto times_result = detail::read_cpu_times();
+    if (!times_result) {
+        return result;
+    }
 
-    detail::cpu_times current_times = detail::read_cpu_times();
+    const auto& current_times = *times_result;
 
     if (is_first_cpu_read_) {
         result.usage_percent = 0.0f;
         is_first_cpu_read_ = false;
-    } else {
-        const auto idle_diff = current_times.idle_time() - last_cpu_times_.idle_time();
+    }
+    else {
+        const auto idle_diff  = current_times.idle_time() - last_cpu_times_.idle_time();
         const auto total_diff = current_times.total() - last_cpu_times_.total();
 
         if (total_diff > 0) {
-            result.usage_percent = detail::percent((total_diff - idle_diff), total_diff);
+            result.usage_percent = detail::percent(total_diff - idle_diff, total_diff);
         }
     }
 
     last_cpu_times_ = current_times;
-    std::string line;
+
+    auto read_scaled_float = [](const fs::path& p, float scale) -> std::optional<float> {
+        auto r = detail::parse_number<float>(detail::read_line(p));
+        return r ? std::optional{*r / scale} : std::nullopt;
+    };
 
     /// Read frequency mHz from the sysfs record using the read /proc/cpuinfo
-    std::ifstream freq_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
-    if (freq_file && std::getline(freq_file, line)) {
-        float frequency = 0;
-        detail::parse_number(line, frequency);
-        result.frequency_mhz = frequency / 1000.0f;
-    }
+    if (auto v = read_scaled_float("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", 1000.f); v) result.frequency_mhz = *v;
 
     /// Using Cache Path dynamically to read CPU temp from k10temp (not loop all folder)
     if (cache_cpu_.hwmon_cpu_path) {
-        std::ifstream temp_file(*cache_cpu_.hwmon_cpu_path + "/temp1_input");
-        if (temp_file && std::getline(temp_file, line)) {
-            float temperature = 0;
-            detail::parse_number(line, temperature);
-            result.temperature_c = temperature / 1000.f;
-        }
+        if (auto v = read_scaled_float(*cache_cpu_.hwmon_cpu_path / "temp1_input", 1000.f); v) result.temperature_c = *v;
     }
 
     /// Using Cache Path dynamically to read power from amdgpu if integrated APU
     if (cache_cpu_.hwmon_gpu_path) {
-        std::ifstream pwr_file(*cache_cpu_.hwmon_gpu_path + "/power1_input");
-        if (pwr_file && std::getline(pwr_file, line)) {
-            float power = 0;
-            detail::parse_number(line, power);
-            result.power_uw = power;
-        }
+        if (auto v = read_scaled_float(*cache_cpu_.hwmon_gpu_path / "power1_input", 1.f); v) result.power_uw = *v;
     }
 
     return result;
@@ -300,7 +287,9 @@ entity::memory system_info_reader_linux::read_memory() const {
                         val = detail::trim(line.substr(line.find(':') + 1));
                         if (val != "Unknown" && val != "None") {
                             float raw_speed = 0.0f;
-                            detail::parse_number(val, raw_speed);
+                            // detail::parse_number(val, raw_speed);
+                            auto result = detail::parse_number<float>(line);
+                            if (result) raw_speed = *result;
                             /// dmidecode returns MT/s, divide by 2 to get actual MHz
                             memory_cache_.frequency_mhz = raw_speed / 2.0f;
                         }
@@ -312,7 +301,9 @@ entity::memory system_info_reader_linux::read_memory() const {
                              || line.starts_with("Voltage:")) {
                         val = std::string(detail::trim(line.substr(line.find(':') + 1)));
                         if (val != "Unknown" && val != "None") {
-                            detail::parse_number(val, memory_cache_.voltage);
+                            // detail::parse_number(val, memory_cache_.voltage);
+                            auto result = detail::parse_number<float>(line);
+                            if (result) memory_cache_.voltage = *result;
                         }
                     }
                 }
@@ -484,13 +475,13 @@ entity::gpu system_info_reader_linux::read_gpu() const {
         }
 
         if (gpu_cache_.hwmon_path) {
-            std::ifstream temp_file(*gpu_cache_.hwmon_path + "/temp1_input");
+            std::ifstream temp_file(*gpu_cache_.hwmon_path / "temp1_input");
             if (temp_file && std::getline(temp_file, line)) {
                 auto temp_val = detail::to_uint(line).value_or(0);
                 if (temp_val > 0) result.temperature_c = temp_val / 1000.f;
             }
 
-            std::ifstream pwr_file(*gpu_cache_.hwmon_path + "/power1_input");
+            std::ifstream pwr_file(*gpu_cache_.hwmon_path / "power1_input");
             if (pwr_file && std::getline(pwr_file, line)) {
                 auto pwr_val = detail::to_uint(line).value_or(0);
                 if (pwr_val > 0) result.power = pwr_val / 1000000.f;
