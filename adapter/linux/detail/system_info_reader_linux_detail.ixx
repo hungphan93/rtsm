@@ -152,7 +152,6 @@ std::expected<std::string, std::errc> find_hwmon_by_name(const std::string& targ
 
     for (const auto& entry : fs::directory_iterator("/sys/class/hwmon", ec)) {
         if(read_line(entry.path() / "name") == target) {
-            std::println("tét = {}", entry.path().string());
             return entry.path().string();
         }
     }

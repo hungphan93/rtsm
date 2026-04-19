@@ -127,9 +127,9 @@ entity::cpu system_info_reader_linux::read_cpu() const {
                 std::cmatch match;
                 if (std::regex_search(value.data(), value.data() + value.size(), match, cpu_name_pattern)) {
                     cache_cpu_.model_name = match.str();
-                } else {
+                } /*else {
                     cache_cpu_.model_name = value; /// fallback: raw
-                }
+                }*/
             }
             else if (line.starts_with("cache size")) {
                 auto num = value.substr(0, value.find(' '));   /// "512 KB" → "512"
@@ -153,14 +153,15 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         }
 
         cache_cpu_.initialized = true;
-        result.model_name   = cache_cpu_.model_name;
-        result.cpu_cores    = cache_cpu_.cpu_cores;
-        result.processor_id = cache_cpu_.processor_id;
-        result.l2_cache_kib = cache_cpu_.l2_cache_kib;
-        result.physical_id  = cache_cpu_.physical_id;
-        result.siblings     = cache_cpu_.siblings;
-        result.core_id      = cache_cpu_.core_id;
     }
+
+    result.model_name   = cache_cpu_.model_name;
+    result.cpu_cores    = cache_cpu_.cpu_cores;
+    result.processor_id = cache_cpu_.processor_id;
+    result.l2_cache_kib = cache_cpu_.l2_cache_kib;
+    result.physical_id  = cache_cpu_.physical_id;
+    result.siblings     = cache_cpu_.siblings;
+    result.core_id      = cache_cpu_.core_id;
 
     auto times_result = detail::read_cpu_times();
     if (!times_result) {
