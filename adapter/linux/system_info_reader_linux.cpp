@@ -109,7 +109,7 @@ bool load_nvml() {
 system_info_reader_linux::system_info_reader_linux() noexcept {}
 
 entity::cpu system_info_reader_linux::read_cpu() const {
-    entity::cpu result;
+    entity::cpu result{};
 
     if (!cache_cpu_.initialized) {
         std::ifstream proc("/proc/cpuinfo");
@@ -121,15 +121,15 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         };
 
         while(std::getline(proc, line)) {
-            auto value = detail::trim(detail::extract_value(line));
+            auto value = detail::extract_value(line);
 
             if (line.starts_with("model name")) {
                 std::cmatch match;
                 if (std::regex_search(value.data(), value.data() + value.size(), match, cpu_name_pattern)) {
                     cache_cpu_.model_name = match.str();
-                } /*else {
+                } else {
                     cache_cpu_.model_name = value; /// fallback: raw
-                }*/
+                }
             }
             else if (line.starts_with("cache size")) {
                 auto num = value.substr(0, value.find(' '));   /// "512 KB" → "512"
@@ -209,29 +209,31 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 entity::memory system_info_reader_linux::read_memory() const {
     entity::memory result{};
 
+    /// https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/deployment_guide/s2-proc-meminfo
     std::ifstream meminfo("/proc/meminfo");
-    if (!meminfo.is_open()) return result;
 
-    std::string key;
-    uint64_t val_kb = 0;
-    std::string unit;
+    auto assign = [&] (auto& field, std::string_view s) {
+        auto num = s.substr(0, s.find(' '));   /// "512 KB" → "512"
+        using T = std::remove_reference_t<decltype(field)>;
+        if (auto r = detail::parse_number<T>(num); r)
+        {field = *r;
+            std::clog << "r = " << *r <<"\n";
+            std::clog << "field = " << field << "\n";}
+    };
 
     uint64_t total_kb = 0;
     uint64_t free_kb = 0;
     uint64_t available_kb = 0;
+    std::string line;
 
-    while (meminfo >> key >> val_kb >> unit) {
-        if (key == "MemTotal:") {
-            total_kb = val_kb;
-        }
+    while (std::getline(meminfo, line)) {
+        auto value = detail::trim(detail::extract_value(line));
+        std::clog << "value = "<< value;
 
-        else if (key == "MemFree:") {
-            free_kb = val_kb;
-        }
+        if (line.starts_with("MemTotal:")) assign(total_kb, value);
 
-        else if (key == "MemAvailable:") {
-            available_kb = val_kb;
-        }
+        else if (line.starts_with("MemFree:")) assign(free_kb, value);
+        else if (line.starts_with("MemAvailable:")) assign(available_kb,value);
 
         if (total_kb > 0 && free_kb > 0 && available_kb > 0) {
             break;
@@ -250,68 +252,36 @@ entity::memory system_info_reader_linux::read_memory() const {
         result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
+    /// https://linux.die.net/man/8/dmidecode
     if (!memory_cache_.initialized) {
         std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
 
-        if (!dmi_out.empty()) {
-            std::istringstream stream(dmi_out);
-            std::string line;
-            bool in_valid_slot = false;
+        std::ifstream stream(dmi_out);
 
-            while (std::getline(stream, line)) {
-                line = std::string(detail::trim(line));
+        while (std::getline(stream, line)) {
+            auto value = detail::extract_value(line);
 
-                /// Start of a new memory device block
-                if (line.starts_with("Memory Device")) {
-                    in_valid_slot = true;
-                }
+            if (line.starts_with("Manufacturer:")) {
+                memory_cache_.name = value;
+            }
 
-                /// IF IT IS AN EMPTY SLOT -> Set flag to false to ignore all junk parameters below
-                else if (line.starts_with("Size: No Module Installed")) {
-                    in_valid_slot = false;
-                }
+            else if (line.starts_with("Configured Memory Speed:")) {
+                uint8_t raw_speed = 0;
+                auto result = detail::parse_number<uint8_t>(value);
+                if (result) raw_speed = *result;
+                /// dmidecode returns MT/s, divide by 2 to get actual MHz
+                memory_cache_.frequency_mhz = raw_speed / 2;
+            }
 
-                /// IF RAM IS INSTALLED IN THE SLOT -> Proceed to extract data and SAVE TO CACHE
-                else if (in_valid_slot) {
-                    std::string val;
-                    /// 1. Manufacturer name
-                    if (line.starts_with("Manufacturer:")) {
-                        val = detail::trim(line.substr(13));
-                        if (val != "Unknown" && val != "None") {
-                            memory_cache_.name = val;
-                        }
-                    }
-
-                    /// 2. Frequency (Configured Memory Speed or Speed)
-                    else if (line.starts_with("Configured Memory Speed:") ||
-                             (line.starts_with("Speed:"))) {
-                        val = detail::trim(line.substr(line.find(':') + 1));
-                        if (val != "Unknown" && val != "None") {
-                            float raw_speed = 0.0f;
-                            // detail::parse_number(val, raw_speed);
-                            auto result = detail::parse_number<float>(line);
-                            if (result) raw_speed = *result;
-                            /// dmidecode returns MT/s, divide by 2 to get actual MHz
-                            memory_cache_.frequency_mhz = raw_speed / 2.0f;
-                        }
-                    }
-
-                    /// 3. Voltage (Configured Voltage or Voltage)
-                    else if (line.starts_with("Configured Voltage:")
-                             || line.starts_with("Maximum Voltage:")
-                             || line.starts_with("Voltage:")) {
-                        val = std::string(detail::trim(line.substr(line.find(':') + 1)));
-                        if (val != "Unknown" && val != "None") {
-                            // detail::parse_number(val, memory_cache_.voltage);
-                            auto result = detail::parse_number<float>(line);
-                            if (result) memory_cache_.voltage = *result;
-                        }
-                    }
+            else if (line.starts_with("Configured Voltage:") || line.starts_with("Maximum Voltage:")) {
+                if (!value.contains("Unknown")) {
+                    auto result = detail::parse_number<float>(value);
+                    if (result) memory_cache_.voltage = *result;
                 }
             }
         }
 
-        else {
+        if (line.empty()) {
             /// Print warning to configure sudo privileges
             std::clog << "Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode\n";
         }

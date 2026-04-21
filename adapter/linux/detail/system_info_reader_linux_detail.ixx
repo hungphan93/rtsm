@@ -13,9 +13,9 @@ export namespace adapter::linux2::detail {
 namespace fs = std::filesystem;
 
 std::string_view trim(std::string_view s) noexcept {
-    const auto start = s.find_first_not_of(" \t\n\r");
+    const auto start = s.find_first_not_of("\t\n\r");
     if (start == std::string_view::npos) return {};
-    const auto end = s.find_last_not_of(" \t\n\r");
+    const auto end = s.find_last_not_of("\t\n\r");
     return s.substr(start, end - start + 1);
 };
 
@@ -141,10 +141,10 @@ template<typename T>
     requires std::is_arithmetic_v<T>
 float percent(T used, T total) noexcept {
     if (total == T{}) {
-        return 0;
+        return 0.0f;
     }
 
-    return (100.0 * used) / total;
+    return (100.0f * used) / total;
 }
 
 std::expected<std::string, std::errc> find_hwmon_by_name(const std::string& target) {
