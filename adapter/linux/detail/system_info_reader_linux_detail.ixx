@@ -55,6 +55,16 @@ std::expected<T, std::errc> parse_number(std::string_view text, int base = 10) n
     return out;
 }
 
+template<typename T>
+    requires std::is_arithmetic_v<T>
+void parse_first_number(T& field, std::string_view s, int base = 10) noexcept {
+    auto start = s.find_first_not_of(' ');
+    if (start == std::string_view::npos) return;
+    s = s.substr(start);
+    s = s.substr(0, s.find(' '));   /// "16384 kB" → "16384"
+    if (auto r = parse_number<T>(s, base); r) field = *r;
+}
+
 struct cpu_times {
     uint64_t user = 0;
     uint64_t nice = 0;

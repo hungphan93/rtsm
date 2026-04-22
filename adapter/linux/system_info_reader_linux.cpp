@@ -115,15 +115,10 @@ entity::cpu system_info_reader_linux::read_cpu() const {
         std::ifstream proc("/proc/cpuinfo");
         std::string line;
 
-        auto assign = [&] (auto& field, std::string_view s) {
-            using T = std::remove_reference_t<decltype(field)>;
-            if (auto r = detail::parse_number<T>(s); r) field = *r;
-        };
-
         while(std::getline(proc, line)) {
             auto value = detail::extract_value(line);
 
-            if (line.starts_with("model name")) {
+            if (line.contains("model name")) {
                 std::cmatch match;
                 if (std::regex_search(value.data(), value.data() + value.size(), match, cpu_name_pattern)) {
                     cache_cpu_.model_name = match.str();
@@ -131,16 +126,12 @@ entity::cpu system_info_reader_linux::read_cpu() const {
                     cache_cpu_.model_name = value; /// fallback: raw
                 }
             }
-            else if (line.starts_with("cache size")) {
-                auto num = value.substr(0, value.find(' '));   /// "512 KB" → "512"
-                assign(cache_cpu_.l2_cache_kib, num);
-            }
-
-            else if (line.starts_with("cpu cores")) assign(cache_cpu_.cpu_cores, value);
-            else if (line.starts_with("processor")) assign(cache_cpu_.processor_id, value);
-            else if (line.starts_with("physical id")) assign(cache_cpu_.physical_id, value);
-            else if (line.starts_with("siblings")) assign(cache_cpu_.siblings, value);
-            else if (line.starts_with("core id")) assign(cache_cpu_.core_id, value);
+            else if (line.contains("cache size")) detail::parse_first_number(cache_cpu_.l2_cache_kib, value);
+            else if (line.contains("cpu cores")) detail::parse_first_number(cache_cpu_.cpu_cores, value);
+            else if (line.contains("processor")) detail::parse_first_number(cache_cpu_.processor_id, value);
+            else if (line.contains("physical id")) detail::parse_first_number(cache_cpu_.physical_id, value);
+            else if (line.contains("siblings")) detail::parse_first_number(cache_cpu_.siblings, value);
+            else if (line.contains("core id")) detail::parse_first_number(cache_cpu_.core_id, value);
         }
 
         /// temp cpu
@@ -212,28 +203,18 @@ entity::memory system_info_reader_linux::read_memory() const {
     /// https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/deployment_guide/s2-proc-meminfo
     std::ifstream meminfo("/proc/meminfo");
 
-    auto assign = [&] (auto& field, std::string_view s) {
-        auto num = s.substr(0, s.find(' '));   /// "512 KB" → "512"
-        using T = std::remove_reference_t<decltype(field)>;
-        if (auto r = detail::parse_number<T>(num); r)
-        {field = *r;
-            std::clog << "r = " << *r <<"\n";
-            std::clog << "field = " << field << "\n";}
-    };
-
     uint64_t total_kb = 0;
     uint64_t free_kb = 0;
     uint64_t available_kb = 0;
     std::string line;
 
     while (std::getline(meminfo, line)) {
-        auto value = detail::trim(detail::extract_value(line));
-        std::clog << "value = "<< value;
+        auto value = detail::extract_value(line);
 
-        if (line.starts_with("MemTotal:")) assign(total_kb, value);
+        if (line.contains("MemTotal:")) detail::parse_first_number(total_kb, value);
 
-        else if (line.starts_with("MemFree:")) assign(free_kb, value);
-        else if (line.starts_with("MemAvailable:")) assign(available_kb,value);
+        else if (line.contains("MemFree:")) detail::parse_first_number(free_kb, value);
+        else if (line.contains("MemAvailable:")) detail::parse_first_number(available_kb,value);
 
         if (total_kb > 0 && free_kb > 0 && available_kb > 0) {
             break;
@@ -256,32 +237,27 @@ entity::memory system_info_reader_linux::read_memory() const {
     if (!memory_cache_.initialized) {
         std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
 
-        std::ifstream stream(dmi_out);
+        std::istringstream stream(dmi_out);
 
         while (std::getline(stream, line)) {
             auto value = detail::extract_value(line);
 
-            if (line.starts_with("Manufacturer:")) {
+            if (line.contains("Manufacturer:")) {
                 memory_cache_.name = value;
             }
 
-            else if (line.starts_with("Configured Memory Speed:")) {
-                uint8_t raw_speed = 0;
-                auto result = detail::parse_number<uint8_t>(value);
-                if (result) raw_speed = *result;
-                /// dmidecode returns MT/s, divide by 2 to get actual MHz
+            else if (line.contains("Configured Memory Speed:")) {
+                float raw_speed = 0;
+                detail::parse_first_number(raw_speed, value);
                 memory_cache_.frequency_mhz = raw_speed / 2;
             }
 
-            else if (line.starts_with("Configured Voltage:") || line.starts_with("Maximum Voltage:")) {
-                if (!value.contains("Unknown")) {
-                    auto result = detail::parse_number<float>(value);
-                    if (result) memory_cache_.voltage = *result;
-                }
+            else if (line.contains("Configured Voltage:") || line.contains("Maximum Voltage:")) {
+                detail::parse_first_number(memory_cache_.voltage, value);
             }
         }
 
-        if (line.empty()) {
+        if (!line.empty()) {
             /// Print warning to configure sudo privileges
             std::clog << "Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode\n";
         }
@@ -289,6 +265,7 @@ entity::memory system_info_reader_linux::read_memory() const {
         memory_cache_.initialized = true;
     }
 
+    /// data read only once
     result.name = memory_cache_.name;
     result.frequency_mhz = memory_cache_.frequency_mhz;
     result.voltage = memory_cache_.voltage;
