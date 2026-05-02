@@ -17,41 +17,19 @@ std::shared_ptr<system_monitor_backend_engine> create_system_monitor_backend(std
     return engine;
 }
 
-// Define destructor ở đây, KHÔNG để = default trong header
-//system_monitor_backend_engine::~system_monitor_backend_engine() = default;
-
 namespace ui::qt {
 
-//system_monitor_view_qt::system_monitor_view_qt(presenter::system_monitor_presenter& view_mode,QObject* parent) :
-// system_monitor_view_qt::system_monitor_view_qt(QObject* parent) :
-//     QObject(parent), backend_{std::make_unique<system_monitor_presenter_pimpl>()} {
-
-//     auto bind = [this](auto register_fn, auto signal) {
-//         (backend_->smp->*register_fn)([this, signal] {
-//             QMetaObject::invokeMethod(this, signal, Qt::QueuedConnection);
-//         });
-//     };
-
-//     bind(&presenter::system_monitor_presenter::on_cpu_changed,    &system_monitor_view_qt::cpu_changed);
-//     bind(&presenter::system_monitor_presenter::on_memory_changed, &system_monitor_view_qt::memory_changed);
-//     bind(&presenter::system_monitor_presenter::on_gpu_changed,    &system_monitor_view_qt::gpu_changed);
-//     bind(&presenter::system_monitor_presenter::on_disk_changed,   &system_monitor_view_qt::disk_changed);
-//     bind(&presenter::system_monitor_presenter::on_net_changed,    &system_monitor_view_qt::net_changed);
-// }
-// 3. Sự kết hợp hoàn mỹ ở Constructor (Bơm sẵn backend đã lắp ráp)
 system_monitor_view_qt::system_monitor_view_qt(std::shared_ptr<system_monitor_backend_engine> backend, QObject* parent)
     : QObject(parent), backend_(std::move(backend)) {
 
     if (!backend_ || !backend_->smp) return;
-    // Công thức Lambda đắt giá bẻ luồng Event:
+
     auto bind_signal = [this](auto register_fn, auto signal) {
-        // Áp dụng con trỏ register_fn lên lõi object thật.
-        // LƯU Ý LỖI HỒI NÃY CỦA BẠN: Dùng .get() để lấy con trỏ thô của shared_ptr ->*
         (backend_->smp.get()->*register_fn)([this, signal] {
             QMetaObject::invokeMethod(this, signal, Qt::QueuedConnection);
         });
     };
-    // Móc Callback vào Qt Signals
+
     bind_signal(&presenter::system_monitor_presenter::on_cpu_changed,    &system_monitor_view_qt::cpu_changed);
     bind_signal(&presenter::system_monitor_presenter::on_memory_changed, &system_monitor_view_qt::memory_changed);
     bind_signal(&presenter::system_monitor_presenter::on_gpu_changed,    &system_monitor_view_qt::gpu_changed);

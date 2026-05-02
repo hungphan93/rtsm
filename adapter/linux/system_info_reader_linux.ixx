@@ -14,6 +14,14 @@ namespace fs = std::filesystem;
 
 export namespace adapter::linux2 {
 
+enum class gpu_vendor : uint16_t {
+    NVIDIA   = 0x10DE,
+    AMD      = 0x1002,
+    INTEL    = 0x8086,
+    QUALCOMM = 0x17CB,
+    UNKNOWN  = 0x0000
+};
+
 struct cpu_static_info {
     bool initialized = false; /// flag for lazy initialization
 
@@ -39,15 +47,18 @@ struct memory_static_info {
 
 struct gpu_static_info {
     bool initialized = false;
-    bool is_nvidia = false;
-    bool is_amd = false;
-    bool is_intel = false;
+    gpu_vendor vendor;
+    uint16_t device_id;
 
-    std::string name = "Unknown GPU";
-    std::string drm_path; /// Cache path example: "/sys/class/drm/card0"
-    std::expected<fs::path, std::errc> hwmon_path;
-
+    std::string name;
     uint64_t vram_total = 0;
+
+    fs::path hwmon_path;
+    fs::path drm_path; /// Cache path example: "/sys/class/drm/card0"
+    fs::path vram_used_path;
+    fs::path sclk_path;
+    fs::path temp_input_path;
+    fs::path power_input_path;
 };
 
 struct disk_static_info {
@@ -87,6 +98,11 @@ private:
     mutable gpu_static_info gpu_cache_{};
     mutable net_static_info net_cache_{};
     mutable std::unordered_map<std::string, disk_static_info> disk_cache_{};
+
+    void read_nvidia_gpu(entity::gpu& result) const;
+    void read_amd_igpu(entity::gpu& result) const;
+    void read_amd_dgpu(entity::gpu& result) const;
+    void classify_gpu(entity::gpu &result) const;
 };
 
 } /// namespace adapter

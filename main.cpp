@@ -24,12 +24,12 @@ int main(int argc, char *argv[]) {
     using namespace std::chrono_literals;
 
     /// Ensure only one instance of the application is running at a time
-    // QLockFile lock_file(QDir::tempPath() + "/rtsm.lock");
-    // lock_file.setStaleLockTime(1000);
-    // if (!lock_file.tryLock(100)) {
-    //     qDebug() << "Another instance is already running.";
-    //     return 0;
-    // }
+    QLockFile lock_file(QDir::tempPath() + "/rtsm.lock");
+    lock_file.setStaleLockTime(1000);
+    if (!lock_file.tryLock(100)) {
+        qDebug() << "Another instance is already running.";
+        return 0;
+    }
 
     QGuiApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/icons/app_icon.png"));

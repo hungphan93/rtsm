@@ -13,9 +13,9 @@ export namespace adapter::linux2::detail {
 namespace fs = std::filesystem;
 
 std::string_view trim(std::string_view s) noexcept {
-    const auto start = s.find_first_not_of("\t\n\r");
+    const auto start = s.find_first_not_of(" \t\n\r");
     if (start == std::string_view::npos) return {};
-    const auto end = s.find_last_not_of("\t\n\r");
+    const auto end = s.find_last_not_of(" \t\n\r");
     return s.substr(start, end - start + 1);
 };
 
@@ -61,7 +61,7 @@ void parse_first_number(T& field, std::string_view s, int base = 10) noexcept {
     auto start = s.find_first_not_of(' ');
     if (start == std::string_view::npos) return;
     s = s.substr(start);
-    s = s.substr(0, s.find(' '));   /// "16384 kB" → "16384"
+    s = s.substr(0, s.find_first_not_of("0123456789."));   /// "16384 kB" → "16384", "1234Mhz" → "1234"
     if (auto r = parse_number<T>(s, base); r) field = *r;
 }
 
