@@ -325,30 +325,40 @@ void system_info_reader_linux::classify_gpu(entity::gpu &result) const {
 
 void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const {
     /// Fast path for NVIDIA using NVML C API
-    if (nvml::load_nvml()) {
-        nvml::nvmlDevice_t device;
-        if (nvml::nvmlDeviceGetHandle_ptr(0, &device) == nvml::NVML_SUCCESS) {
-            nvml::nvmlMemory_t memory;
-            if (nvml::nvmlDeviceGetMemoryInfo_ptr(device, &memory) == nvml::NVML_SUCCESS) {
-                result.vram_total = memory.total / (1024 * 1024);
-                result.vram_used = memory.used / (1024 * 1024);
-                if (result.vram_total > 0) {
-                    result.usage_percent = detail::percent(result.vram_used, result.vram_total);
-                }
-            }
+    if (!nvml::load_nvml()) return;
 
-            unsigned int temp = 0;
-            /// 0 = NVML_TEMPERATURE_GPU
-            if (nvml::nvmlDeviceGetTemperature_ptr(device, 0, &temp) == nvml::NVML_SUCCESS) {
-                result.temperature_c = temp;
-            }
+    nvml::nvmlDevice_t device;
+    if (nvml::nvmlDeviceGetHandle_ptr(0, &device) != nvml::NVML_SUCCESS) return;
 
-            unsigned int freq = 0;
-            /// 0 = NVML_CLOCK_GRAPHICS
-            if (nvml::nvmlDeviceGetClockInfo_ptr(device, 0, &freq) == nvml::NVML_SUCCESS) {
-                result.frequency_mhz = freq;
-            }
+    /// GPU name (written into cache so result.name stays up-to-date)
+    if (nvml::nvmlDeviceGetName_ptr) {
+        char name_buf[96] = {};
+        if (nvml::nvmlDeviceGetName_ptr(device, name_buf, sizeof(name_buf)) == nvml::NVML_SUCCESS) {
+            gpu_cache_.name = name_buf;
+            result.name     = name_buf;
         }
+    }
+
+    /// VRAM
+    nvml::nvmlMemory_t memory;
+    if (nvml::nvmlDeviceGetMemoryInfo_ptr(device, &memory) == nvml::NVML_SUCCESS) {
+        result.vram_total = memory.total / (1024 * 1024);
+        result.vram_used  = memory.used  / (1024 * 1024);
+        if (result.vram_total > 0) {
+            result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+        }
+    }
+
+    /// Temperature  (0 = NVML_TEMPERATURE_GPU)
+    unsigned int temp = 0;
+    if (nvml::nvmlDeviceGetTemperature_ptr(device, 0, &temp) == nvml::NVML_SUCCESS) {
+        result.temperature_c = temp;
+    }
+
+    /// Core clock  (0 = NVML_CLOCK_GRAPHICS)
+    unsigned int freq = 0;
+    if (nvml::nvmlDeviceGetClockInfo_ptr(device, 0, &freq) == nvml::NVML_SUCCESS) {
+        result.frequency_mhz = freq;
     }
 }
 
@@ -393,8 +403,9 @@ entity::gpu system_info_reader_linux::read_gpu() const {
 
         for (auto const& dir_entry : dir) {
 
-            const std::string name = dir_entry.path().filename().string();
-            if (!name.starts_with("card") || name.size() < 5 || name.size() > 6 || !std::isdigit(static_cast<unsigned char>(name[4]))) {
+            const std::string entry_name = dir_entry.path().filename().string();
+            if (!entry_name.starts_with("card") || entry_name.size() < 5 || entry_name.size() > 6
+                || !std::isdigit(static_cast<unsigned char>(entry_name[4]))) {
                 continue;
             }
 
@@ -405,21 +416,35 @@ entity::gpu system_info_reader_linux::read_gpu() const {
             const auto device_hex = detail::to_uint<uint16_t>(device_str, 16);
             if (!vendor_hex || !device_hex) continue;
 
-            gpu_cache_.name = "AMD Radeon Graphics";
-            gpu_cache_.drm_path = dir_entry.path();
-
-            auto mem_total = detail::read_line(gpu_cache_.drm_path / "device/mem_info_vram_total");
-            if (auto v = detail::to_uint(mem_total); v) gpu_cache_.vram_total = *v / (1024 * 1024);
-
-
-            gpu_cache_.hwmon_path = *detail::find_hwmon_by_name("amdgpu");
-            gpu_cache_.vram_used_path = gpu_cache_.drm_path  / "device/mem_info_vram_used";
-            gpu_cache_.sclk_path = gpu_cache_.drm_path / "device/pp_dpm_sclk";
-            gpu_cache_.temp_input_path =  gpu_cache_.hwmon_path / "temp1_input";
-            gpu_cache_.power_input_path = gpu_cache_.hwmon_path / "power1_input";
-
-            gpu_cache_.vendor = static_cast<gpu_vendor>(*vendor_hex);
+            gpu_cache_.vendor    = static_cast<gpu_vendor>(*vendor_hex);
             gpu_cache_.device_id = *device_hex;
+            gpu_cache_.drm_path  = dir_entry.path();
+
+            if (gpu_cache_.vendor == gpu_vendor::NVIDIA) {
+                gpu_cache_.name = "NVIDIA GPU";
+            }
+            else if (gpu_cache_.vendor == gpu_vendor::AMD) {
+                gpu_cache_.name = "AMD Radeon Graphics";
+
+                auto mem_total = detail::read_line(gpu_cache_.drm_path / "device/mem_info_vram_total");
+                if (auto v = detail::to_uint(mem_total); v) gpu_cache_.vram_total = *v / (1024 * 1024);
+
+                if (auto hwmon = detail::find_hwmon_by_name("amdgpu"); hwmon) {
+                    gpu_cache_.hwmon_path = *hwmon;
+                }
+
+                gpu_cache_.vram_used_path   = gpu_cache_.drm_path / "device/mem_info_vram_used";
+                gpu_cache_.sclk_path        = gpu_cache_.drm_path / "device/pp_dpm_sclk";
+                gpu_cache_.temp_input_path  = gpu_cache_.hwmon_path / "temp1_input";
+                gpu_cache_.power_input_path = gpu_cache_.hwmon_path / "power1_input";
+
+            }
+            else if (gpu_cache_.vendor == gpu_vendor::INTEL) {
+                gpu_cache_.name = "Intel Graphics";
+            }
+            else {
+                gpu_cache_.name = "Unknown GPU";
+            }
         }
 
         gpu_cache_.initialized = true;
