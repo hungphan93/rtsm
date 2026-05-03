@@ -38,15 +38,24 @@ sudo tee "$WRAPPER_SCRIPT" > /dev/null <<EOF
 export QT_QPA_PLATFORM=xcb
 export GDK_BACKEND=x11
 
-# Auto-detect screen DPI: HiDPI laptop >= 120dpi dùng scale 2, desktop dùng scale 1
-DPI=\$(xdpyinfo 2>/dev/null | awk '/resolution/{print \$2}' | cut -dx -f1)
-if [ -n "\$DPI" ] && [ "\$DPI" -ge 120 ]; then
-    export QT_SCREEN_SCALE_FACTORS="2"
-    export QT_ENABLE_HIGHDPI_SCALING=1
-    export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+# Calculate DPI from xrandr
+DISPLAY_LINE=\$(xrandr --current 2>/dev/null | grep ' connected' | head -1)
+RES_W=\$(echo "\$DISPLAY_LINE" | grep -oP '\d+(?=x\d+\+)' | head -1)
+PHYS_W=\$(echo "\$DISPLAY_LINE" | grep -oP '\d+(?=mm x)' | head -1)
+
+if [ -n "\$RES_W" ] && [ -n "\$PHYS_W" ] && [ "\$PHYS_W" -gt 0 ]; then
+    DPI=\$(( RES_W * 254 / PHYS_W / 10 ))
 else
-    export QT_AUTO_SCREEN_SCALE_FACTOR=0
-    export QT_ENABLE_HIGHDPI_SCALING=0
+    DPI=96
+fi
+
+if [ "\$DPI" -ge 120 ]; then
+    export QT_SCREEN_SCALE_FACTORS="2"
+    #export QT_ENABLE_HIGHDPI_SCALING=1
+    #export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+else
+    #export QT_AUTO_SCREEN_SCALE_FACTOR=0
+    #export QT_ENABLE_HIGHDPI_SCALING=0
     export QT_SCALE_FACTOR="1"
 fi
 
