@@ -37,8 +37,8 @@ sudo tee "$WRAPPER_SCRIPT" > /dev/null <<EOF
 
 export QT_QPA_PLATFORM=xcb
 export GDK_BACKEND=x11
-export QT_SCREEN_SCALE_FACTORS="2"
-#export QT_AUTO_SCREEN_SCALE_FACTOR=1 
+export QT_ENABLE_HIGHDPI_SCALING=1
+export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 
 exec "$APP_PATH" "\$@"
 EOF
