@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+QT_VERSION="6.11.0"
+GCC_VERSION="15.2.0-native"
+
 # ===== 1. Configuration & Context =====
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$REPO_ROOT/build"
@@ -69,7 +72,7 @@ rm -rf "$BUILD_DIR" && mkdir -p "$BUILD_DIR"
 pushd "$REPO_ROOT" > /dev/null
 
 # Inject CMake 4.3.0 to PATH (Required by project configuration)
-export PATH="/opt/cmake/cmake-4.3.0/bin:$PATH"
+export PATH="$HOME/Qt/Tools/CMake/bin:$PATH"
 
 # Configure via preset (which sets GCC-15 environment and Qt paths)
 cmake --preset linux-gcc15-release -DCMAKE_INSTALL_PREFIX=/usr
@@ -91,8 +94,8 @@ echo "📦 Step 1: Bundling dependencies..."
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
 
 # Add GCC 15 and Qt 6.10.0 paths so linuxdeploy resolves the correct dependencies instead of system ones
-export PATH="$HOME/Qt/6.9.1/gcc_64/bin:/opt/gcc/15.2.0-native/bin:$TOOLS_DIR:$PATH"
-export LD_LIBRARY_PATH="$HOME/Qt/6.9.1/gcc_64/lib:/opt/gcc/15.2.0-native/lib64:${LD_LIBRARY_PATH:-}"
+export PATH="$HOME/Qt/$QT_VERSION/gcc_64/bin:/opt/gcc/$GCC_VERSION/bin:$TOOLS_DIR:$PATH"
+export LD_LIBRARY_PATH="$HOME/Qt/$QT_VERSION/gcc_64/lib:/opt/gcc/$GCC_VERSION/lib64:${LD_LIBRARY_PATH:-}"
 
 # Prepare AppDir folder using linuxdeploy
 "$TOOLS_DIR/linuxdeploy-x86_64.AppImage" \
