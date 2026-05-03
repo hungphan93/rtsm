@@ -35,8 +35,19 @@ echo "🛠️ Creating AppRun wrapper..."
 sudo tee "$WRAPPER_SCRIPT" > /dev/null <<EOF
 #!/usr/bin/env bash
 
-export QT_QPA_PLATFORM=xcb
-export GDK_BACKEND=x11
+# Auto-detect display server: only force xcb on X11 sessions,
+# let Qt pick the wayland plugin natively on Wayland sessions
+# so fractional scaling on HiDPI screens (3K/4K) works correctly.
+if [ "\${XDG_SESSION_TYPE:-}" = "wayland" ] || [ -n "\${WAYLAND_DISPLAY:-}" ]; then
+    export QT_QPA_PLATFORM="wayland;xcb"
+    export GDK_BACKEND=wayland,x11
+else
+    export QT_QPA_PLATFORM=xcb
+    export GDK_BACKEND=x11
+fi
+
+# Qt6 enables HighDPI by default; PassThrough avoids integer rounding
+# on fractional-scale screens (1.5x, 1.75x) like 3K laptops.
 export QT_ENABLE_HIGHDPI_SCALING=1
 export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 
