@@ -37,7 +37,18 @@ sudo tee "$WRAPPER_SCRIPT" > /dev/null <<EOF
 
 export QT_QPA_PLATFORM=xcb
 export GDK_BACKEND=x11
-export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+
+# Auto-detect screen DPI: HiDPI laptop >= 120dpi dùng scale 2, desktop dùng scale 1
+DPI=\$(xdpyinfo 2>/dev/null | awk '/resolution/{print \$2}' | cut -dx -f1)
+if [ -n "\$DPI" ] && [ "\$DPI" -ge 120 ]; then
+    export QT_SCREEN_SCALE_FACTORS="2"
+    export QT_ENABLE_HIGHDPI_SCALING=1
+    export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+else
+    export QT_AUTO_SCREEN_SCALE_FACTOR=0
+    export QT_ENABLE_HIGHDPI_SCALING=0
+    export QT_SCALE_FACTOR="1"
+fi
 
 exec "$APP_PATH" "\$@"
 EOF
