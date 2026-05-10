@@ -12,6 +12,7 @@ export namespace entity {
 struct memory {
     float vram_free = 0.0f;
     float vram_total = 0.0f;
+    float vram_available = 0.0f;
     float vram_used = 0.0f;
     float usage_percent =0.0f;
     uint64_t cached = 0;

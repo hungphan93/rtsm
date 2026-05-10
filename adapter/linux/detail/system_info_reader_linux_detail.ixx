@@ -3,6 +3,7 @@ module;
 
 #include <cstdint>
 #include <memory>
+#include <regex>
 
 export module adapter:system_info_reader_linux_detail;
 
@@ -11,6 +12,12 @@ import std;
 export namespace adapter::linux2::detail {
 
 namespace fs = std::filesystem;
+
+/// Regex pattern: matches things like "AMD Ryzen 5 7430U"
+const std::regex cpu_name_pattern(
+    R"(AMD\s+\w+(?:\s+\d+)?\s+\d+\w*|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
+    std::regex::icase | std::regex::optimize
+    );
 
 std::string_view trim(std::string_view s) noexcept {
     const auto start = s.find_first_not_of(" \t\n\r");
@@ -157,16 +164,41 @@ float percent(T used, T total) noexcept {
     return (100.0f * used) / total;
 }
 
-std::expected<std::string, std::errc> find_hwmon_by_name(const std::string& target) {
+std::expected<std::string, std::errc> find_hwmon_by_name(std::string_view target) {
     std::error_code ec;
+    fs::directory_iterator it("/sys/class/hwmon/", ec);
 
-    for (const auto& entry : fs::directory_iterator("/sys/class/hwmon", ec)) {
-        if(read_line(entry.path() / "name") == target) {
+    if (ec) return std::unexpected(std::errc::no_such_file_or_directory);
+
+    for (const auto& entry : it) {
+        auto name_path = entry.path() / "name";
+        auto name = read_line(name_path);
+
+        if (name == target) {
             return entry.path().string();
         }
     }
 
     return std::unexpected(std::errc::no_such_device);
+}
+
+std::expected<float, std::errc> read_cpu_frequency_avg(std::string_view filename) noexcept {
+    float sum = 0;
+    int count = 0;
+
+    while (true) {
+        auto path = std::format("/sys/devices/system/cpu/cpu{}/cpufreq/{}", count++, filename);
+        auto line = read_line(path);
+        if (line.empty()) break;
+
+        if (auto v = parse_number<float>(line); v) {
+            sum += *v;
+        }
+    }
+
+    if (count == 0) return std::unexpected(std::errc::no_such_device);
+
+    return sum / count / 1000.f;
 }
 
 /// Converting a uint string to uint64_t

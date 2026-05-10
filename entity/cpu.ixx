@@ -43,7 +43,7 @@ struct cpu {
     float power_uw = 0.0f;
 
     /// Logical processor/thread ID
-    uint8_t processor_id = 0;
+    uint16_t processor_id = 0;
 
     auto operator <=> (const cpu&) const = default;
 };

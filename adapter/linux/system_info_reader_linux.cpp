@@ -1,6 +1,5 @@
 module;
 
-#include <regex>
 #include <cstdint>
 #include <sys/statvfs.h>
 #include <mntent.h>
@@ -12,11 +11,6 @@ module adapter;
 import std;
 
 namespace adapter::linux2 {
-/// Regex pattern: matches things like "AMD Ryzen 5 7430U"
-static const std::regex cpu_name_pattern(
-    R"(AMD\s+\w+(?:\s+\d+)?\s+\d+\w*|Intel\(R\)\s+.*\s+CPU\s+.*@.*GHz)",
-    std::regex::icase | std::regex::optimize
-    );
 
 ///=============================================================================
 /// NVML Dynamic Loading Wrapper
@@ -106,53 +100,53 @@ bool load_nvml() {
 }
 }
 
-system_info_reader_linux::system_info_reader_linux() noexcept {}
+system_info_reader_linux::system_info_reader_linux() noexcept :
+    proc_cpu_{"/proc/cpuinfo"}, proc_ram_{"/proc/meminfo"} {
+}
 
 entity::cpu system_info_reader_linux::read_cpu() const {
     entity::cpu result{};
 
-    if (!cache_cpu_.initialized) {
-        std::ifstream proc("/proc/cpuinfo");
-        std::string line;
+    proc_cpu_.clear();
+    proc_cpu_.seekg(0);
 
-        while(std::getline(proc, line)) {
-            auto value = detail::extract_value(line);
+    std::string line;
 
-            if (line.contains("model name")) {
-                std::cmatch match;
-                if (std::regex_search(value.data(), value.data() + value.size(), match, cpu_name_pattern)) {
-                    cache_cpu_.model_name = match.str();
-                } else {
-                    cache_cpu_.model_name = value; /// fallback: raw
-                }
+    while(std::getline(proc_cpu_, line)) {
+        auto value = detail::extract_value(line);
+
+        if (line.contains("model name")) {
+            std::cmatch match;
+            if (std::regex_search(value.data(), value.data() + value.size(), match, detail::cpu_name_pattern)) {
+                result.model_name = match.str();
+            } else {
+                result.model_name = value;
             }
-            else if (line.contains("cache size")) detail::parse_first_number(cache_cpu_.l2_cache_kib, value);
-            else if (line.contains("cpu cores")) detail::parse_first_number(cache_cpu_.cpu_cores, value);
-            else if (line.contains("processor")) detail::parse_first_number(cache_cpu_.processor_id, value);
-            else if (line.contains("physical id")) detail::parse_first_number(cache_cpu_.physical_id, value);
-            else if (line.contains("siblings")) detail::parse_first_number(cache_cpu_.siblings, value);
-            else if (line.contains("core id")) detail::parse_first_number(cache_cpu_.core_id, value);
         }
-
-        /// temp cpu
-        if (auto r = detail::find_hwmon_by_name("k10temp"); r) {
-            cache_cpu_.hwmon_cpu_path = *r;
-        }
-        /// temp gpu
-        if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
-            cache_cpu_.hwmon_gpu_path = *r;
-        }
-
-        cache_cpu_.initialized = true;
+        else if (line.contains("cache size")) detail::parse_first_number(result.l2_cache_kib, value);
+        else if (line.contains("cpu cores")) detail::parse_first_number(result.cpu_cores, value);
+        else if (line.contains("processor")) detail::parse_first_number(result.processor_id, value);
+        else if (line.contains("physical id")) detail::parse_first_number(result.physical_id, value);
+        else if (line.contains("siblings")) detail::parse_first_number(result.siblings, value);
+        else if (line.contains("core id")) detail::parse_first_number(result.core_id, value);
     }
 
-    result.model_name   = cache_cpu_.model_name;
-    result.cpu_cores    = cache_cpu_.cpu_cores;
-    result.processor_id = cache_cpu_.processor_id;
-    result.l2_cache_kib = cache_cpu_.l2_cache_kib;
-    result.physical_id  = cache_cpu_.physical_id;
-    result.siblings     = cache_cpu_.siblings;
-    result.core_id      = cache_cpu_.core_id;
+    /// temp cpu amd
+    if (auto r = detail::find_hwmon_by_name("k10temp"); r) {
+        hwmon_cpu_path_ = *r;
+    }
+
+    /// temp cpu intel
+    if (auto r = detail::find_hwmon_by_name("coretemp"); r) {
+        hwmon_cpu_path_ = *r;
+    }
+
+    /// temp gpu card onboard
+    if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
+        hwmon_gpu_path_ = *r;
+    }
+
+    result.usage_percent = 0.0f;
 
     auto times_result = detail::read_cpu_times();
     if (!times_result) {
@@ -161,72 +155,57 @@ entity::cpu system_info_reader_linux::read_cpu() const {
 
     const auto& current_times = *times_result;
 
-    if (is_first_cpu_read_) {
-        result.usage_percent = 0.0f;
-        is_first_cpu_read_ = false;
-    }
-    else {
-        const auto idle_diff  = current_times.idle_time() - last_cpu_times_.idle_time();
-        const auto total_diff = current_times.total() - last_cpu_times_.total();
+    const auto idle_diff  = current_times.idle_time() - last_cpu_times_.idle_time();
+    const auto total_diff = current_times.total() - last_cpu_times_.total();
 
-        if (total_diff > 0) {
-            result.usage_percent = detail::percent(total_diff - idle_diff, total_diff);
-        }
+    if (total_diff > 0) {
+        result.usage_percent = detail::percent(total_diff - idle_diff, total_diff);
     }
 
     last_cpu_times_ = current_times;
 
-    auto read_scaled_float = [](const fs::path& p, float scale) -> std::optional<float> {
-        auto r = detail::parse_number<float>(detail::read_line(p));
-        return r ? std::optional{*r / scale} : std::nullopt;
-    };
-
     /// Read frequency mHz from the sysfs record using the read /proc/cpuinfo
-    if (auto v = read_scaled_float("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", 1000.f); v) result.frequency_mhz = *v;
+    if (auto v = detail::read_cpu_frequency_avg("scaling_cur_freq"); v) result.frequency_mhz = *v;
 
     /// Using Cache Path dynamically to read CPU temp from k10temp (not loop all folder)
-    if (cache_cpu_.hwmon_cpu_path) {
-        if (auto v = read_scaled_float(*cache_cpu_.hwmon_cpu_path / "temp1_input", 1000.f); v) result.temperature_c = *v;
+    if (auto v = detail::parse_number<float>(detail::read_line(*hwmon_cpu_path_ / "temp1_input")); v) {
+        result.temperature_c = *v / 1000.f;
     }
 
     /// Using Cache Path dynamically to read power from amdgpu if integrated APU
-    if (cache_cpu_.hwmon_gpu_path) {
-        if (auto v = read_scaled_float(*cache_cpu_.hwmon_gpu_path / "power1_input", 1.f); v) result.power_uw = *v;
+    if (auto v = detail::parse_number<float>(detail::read_line(*hwmon_gpu_path_ / "power1_input")); v) {
+        result.power_uw = *v;
     }
 
     return result;
 }
 
+/// https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/deployment_guide/s2-proc-meminfo
 entity::memory system_info_reader_linux::read_memory() const {
     entity::memory result{};
 
-    /// https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/deployment_guide/s2-proc-meminfo
-    std::ifstream meminfo("/proc/meminfo");
+    proc_ram_.clear();
+    proc_ram_.seekg(0);
 
-    uint64_t total_kb = 0;
-    uint64_t free_kb = 0;
-    uint64_t available_kb = 0;
     std::string line;
 
-    while (std::getline(meminfo, line)) {
+    while (std::getline(proc_ram_, line)) {
         auto value = detail::extract_value(line);
 
-        if (line.contains("MemTotal:")) detail::parse_first_number(total_kb, value);
+        if (line.contains("MemTotal:")) detail::parse_first_number(result.vram_total, value);
+        else if (line.contains("MemFree:")) detail::parse_first_number(result.vram_free, value);
+        else if (line.contains("MemAvailable:")) detail::parse_first_number(result.vram_available,value);
 
-        else if (line.contains("MemFree:")) detail::parse_first_number(free_kb, value);
-        else if (line.contains("MemAvailable:")) detail::parse_first_number(available_kb,value);
-
-        if (total_kb > 0 && free_kb > 0 && available_kb > 0) {
+        if (result.vram_total > 0 && result.vram_free > 0 && result.vram_available > 0) {
             break;
         }
     }
 
     /// KB -> MB -> GB
-    result.vram_total = total_kb / (1024.0f * 1024.0f);
-    result.vram_free  = free_kb / (1024.0f * 1024.0f);
+    result.vram_total = result.vram_total / (1024.0f * 1024.0f);
+    result.vram_free  = result.vram_free / (1024.0f * 1024.0f);
 
-    float available_gb = available_kb / (1024.0f * 1024.0f);
-    result.vram_used   = result.vram_total - available_gb;
+    result.vram_used   = result.vram_total - result.vram_available / (1024.0f * 1024.0f);
 
     /// Using percent of RAM
     if (result.vram_used > 0 && result.vram_total > 0) {
@@ -234,41 +213,34 @@ entity::memory system_info_reader_linux::read_memory() const {
     }
 
     /// https://linux.die.net/man/8/dmidecode
-    if (!memory_cache_.initialized) {
-        std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
+    std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
 
-        std::istringstream stream(dmi_out);
+    std::istringstream stream(dmi_out);
 
-        while (std::getline(stream, line)) {
-            auto value = detail::extract_value(line);
+    while (std::getline(stream, line)) {
+        auto value = detail::extract_value(line);
 
-            if (line.contains("Manufacturer:")) {
-                memory_cache_.name = value;
-            }
-
-            else if (line.contains("Configured Memory Speed:")) {
-                float raw_speed = 0;
-                detail::parse_first_number(raw_speed, value);
-                memory_cache_.frequency_mhz = raw_speed / 2;
-            }
-
-            else if (line.contains("Configured Voltage:") || line.contains("Maximum Voltage:")) {
-                detail::parse_first_number(memory_cache_.voltage, value);
-            }
+        if (line.contains("Manufacturer:")) {
+            result.name = value;
         }
 
-        if (!line.empty()) {
-            /// Print warning to configure sudo privileges
-            std::clog << "Please run \nsudo visudo\nusername ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode\n";
+        else if (line.contains("Configured Memory Speed:")) {
+            float raw_speed = 0;
+            detail::parse_first_number(raw_speed, value);
+            result.frequency_mhz = raw_speed / 2;
         }
 
-        memory_cache_.initialized = true;
+        else if (line.contains("Configured Voltage:") || line.contains("Maximum Voltage:")) {
+            detail::parse_first_number(result.voltage, value);
+        }
     }
 
-    /// data read only once
-    result.name = memory_cache_.name;
-    result.frequency_mhz = memory_cache_.frequency_mhz;
-    result.voltage = memory_cache_.voltage;
+    if (stream) {
+        /// Print warning to configure sudo privileges
+        std::clog << "Please run two command on terminal\n";
+        std::clog << R"(sudo sh -c 'echo "hungphan ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode, /usr/bin/dmidecode" > /etc/sudoers.d/dmidecode')" << "\n";
+        std::clog << R"(sudo chmod 0440 /etc/sudoers.d/dmidecode)" << "\n";
+    }
 
     return result;
 }
@@ -299,16 +271,17 @@ bool is_amd_integrated(uint16_t device_id) {
     return false; /// default is dGPU if not match
 }
 
-void system_info_reader_linux::classify_gpu(entity::gpu &result) const {
-    switch (gpu_cache_.vendor) {
+void system_info_reader_linux::classify_gpu(fs::path& hwmon_path, entity::gpu &result) const {
+    const auto vendor  = static_cast<gpu_vendor>(result.vendor);
+
+    switch (vendor) {
 
     case gpu_vendor::NVIDIA:
         read_nvidia_gpu(result);
         break;
 
     case gpu_vendor::AMD:
-        is_amd_integrated(gpu_cache_.device_id)? read_amd_igpu(result) : read_amd_dgpu(result);
-
+        is_amd_integrated((uint16_t)result.device)? read_amd_igpu(hwmon_path, result) : read_amd_dgpu(hwmon_path, result);
         break;
 
     case gpu_vendor::INTEL:
@@ -334,7 +307,6 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const {
     if (nvml::nvmlDeviceGetName_ptr) {
         char name_buf[96] = {};
         if (nvml::nvmlDeviceGetName_ptr(device, name_buf, sizeof(name_buf)) == nvml::NVML_SUCCESS) {
-            gpu_cache_.name = name_buf;
             result.name     = name_buf;
         }
     }
@@ -362,266 +334,131 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const {
     }
 }
 
-void system_info_reader_linux::read_amd_igpu(entity::gpu &result) const {
+void system_info_reader_linux::read_amd_igpu(fs::path& hwmon_path, entity::gpu& result) const {
 
-    if (auto v = detail::to_uint(detail::read_line(gpu_cache_.vram_used_path)); v) {
-        result.vram_used    = *v / (1024 * 1024);
+    auto mem_total = detail::read_line(hwmon_path / "device/mem_info_vram_total");
+    if (auto v = detail::to_uint(mem_total); v) result.vram_total = *v / (1024 * 1024);
+
+    auto vram_used = detail::read_line(hwmon_path / "device/mem_info_vram_used");
+    if (auto v = detail::to_uint(vram_used); v)  result.vram_used = *v / (1024 * 1024);
+
+    auto temperature_c = detail::read_line(hwmon_path / "temp1_input");
+    if (auto v = detail::to_uint(temperature_c); v)  result.temperature_c = *v / 1000.f;
+
+    auto power = detail::read_line(hwmon_path / "power1_input");
+    if (auto v = detail::to_uint(power); v)  result.power = *v / 1000000.f;
+
+    if (result.vram_used > 0 && result.vram_total > 0) {
         result.usage_percent = detail::percent(result.vram_used, result.vram_total);
     }
 
-
-    std::ifstream sclk_file(gpu_cache_.sclk_path);
-    std::string line;
-
-    while (std::getline(sclk_file, line)) {
-        if (line.find('*') != std::string::npos) {
-            size_t colon_pos = line.find(':');
-            if (colon_pos != std::string::npos) {
-                auto value = detail::extract_value(line);
-                detail::parse_first_number<uint64_t>(result.frequency_mhz, value);
-            }
-            break;
-        }
-    }
-
-    if (auto temp_val = detail::to_uint(detail::read_line(gpu_cache_.temp_input_path)); temp_val && *temp_val > 0)
-        result.temperature_c = *temp_val / 1000.f;
-
-    if (auto pwr_val = detail::to_uint(detail::read_line(gpu_cache_.power_input_path)); pwr_val && *pwr_val > 0)
-        result.power = *pwr_val / 1000000.f;
+    auto frequency_mhz = detail::read_line(hwmon_path / "freq1_input");
+    if (auto v = detail::to_uint(frequency_mhz); v)  result.frequency_mhz = *v / 1000000.f;
 }
 
-void system_info_reader_linux::read_amd_dgpu(entity::gpu& result) const {
-
+void system_info_reader_linux::read_amd_dgpu(fs::path& hwmon_path, entity::gpu& result) const {
+    std::clog << "future support\n";
 }
 
 entity::gpu system_info_reader_linux::read_gpu() const {
-    entity::gpu result;
+    entity::gpu result{};
+    fs::path hwmon_path;
 
-    if (!gpu_cache_.initialized) {
-        fs::directory_iterator dir{"/sys/class/drm"};
-
-        for (auto const& dir_entry : dir) {
-
-            const std::string entry_name = dir_entry.path().filename().string();
-            if (!entry_name.starts_with("card") || entry_name.size() < 5 || entry_name.size() > 6
-                || !std::isdigit(static_cast<unsigned char>(entry_name[4]))) {
-                continue;
-            }
-
-            const std::string vendor_str = detail::read_line(dir_entry.path() / "device/vendor");
-            const std::string device_str = detail::read_line(dir_entry.path() / "device/device");
-
-            const auto vendor_hex = detail::to_uint<uint16_t>(vendor_str, 16);
-            const auto device_hex = detail::to_uint<uint16_t>(device_str, 16);
-            if (!vendor_hex || !device_hex) continue;
-
-            gpu_cache_.vendor    = static_cast<gpu_vendor>(*vendor_hex);
-            gpu_cache_.device_id = *device_hex;
-            gpu_cache_.drm_path  = dir_entry.path();
-
-            if (gpu_cache_.vendor == gpu_vendor::NVIDIA) {
-                gpu_cache_.name = "NVIDIA GPU";
-            }
-            else if (gpu_cache_.vendor == gpu_vendor::AMD) {
-                gpu_cache_.name = "AMD Radeon Graphics";
-
-                auto mem_total = detail::read_line(gpu_cache_.drm_path / "device/mem_info_vram_total");
-                if (auto v = detail::to_uint(mem_total); v) gpu_cache_.vram_total = *v / (1024 * 1024);
-
-                if (auto hwmon = detail::find_hwmon_by_name("amdgpu"); hwmon) {
-                    gpu_cache_.hwmon_path = *hwmon;
-                }
-
-                gpu_cache_.vram_used_path   = gpu_cache_.drm_path / "device/mem_info_vram_used";
-                gpu_cache_.sclk_path        = gpu_cache_.drm_path / "device/pp_dpm_sclk";
-                gpu_cache_.temp_input_path  = gpu_cache_.hwmon_path / "temp1_input";
-                gpu_cache_.power_input_path = gpu_cache_.hwmon_path / "power1_input";
-
-            }
-            else if (gpu_cache_.vendor == gpu_vendor::INTEL) {
-                gpu_cache_.name = "Intel Graphics";
-            }
-            else {
-                gpu_cache_.name = "Unknown GPU";
-            }
-        }
-
-        gpu_cache_.initialized = true;
+    if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
+        hwmon_path = *r;
     }
 
-    result.name = gpu_cache_.name;
-    result.vram_total = gpu_cache_.vram_total;
+    const auto vendor_str = detail::read_line(hwmon_path / "device/vendor");
+    const auto device_str = detail::read_line(hwmon_path / "device/device");
 
-    classify_gpu(result);
+    if (auto r = detail::to_uint<uint16_t>(vendor_str, 16); r) {
+        result.vendor = *r;
+    }
+
+    if (auto r = detail::to_uint<uint16_t>(device_str, 16); r) {
+        result.device  = *r;
+    }
+
+    const auto vendor  = static_cast<gpu_vendor>(result.vendor);
+
+    if (vendor == gpu_vendor::NVIDIA) {
+        result.name = "NVIDIA GPU";
+    }
+    else if (vendor == gpu_vendor::AMD) {
+        result.name = "AMD Radeon Graphics";
+    }
+    else if (vendor == gpu_vendor::INTEL) {
+        result.name = "Intel Graphics";
+    }
+    else {
+        result.name = "Unknown GPU";
+    }
+
+    classify_gpu(hwmon_path, result);
 
     return result;
 }
 
 entity::disk system_info_reader_linux::read_disk() const {
-    entity::disk result;
+    entity::disk result{};
+    uint64_t total_r = 0, total_w = 0;
 
-    float swap_total_kb = 0, swap_free_kb = 0;
-    std::string line;
+    /// /sys/block: aggregate sectors + grab first disk model
+    std::error_code ec;
+    for (const auto& entry : fs::directory_iterator("/sys/block", ec)) {
+        if (ec) break;
+        const auto name = entry.path().filename().string();
+        if (!name.starts_with("nvme") && !name.starts_with("sd")) continue;
 
-    for (std::ifstream meminfo("/proc/meminfo"); std::getline(meminfo, line); ) {
-        if (line.starts_with("SwapTotal:")) {
-            swap_total_kb = std::stoull(line.substr(10));
-        } else if (line.starts_with("SwapFree:")) {
-            swap_free_kb = std::stoull(line.substr(9));
-        }
-    }
-    float swap_used_gb = (swap_total_kb - swap_free_kb) / (1024.0 * 1024.0);
-    result.swap = swap_used_gb;
+        if (result.model.empty())
+            result.model = detail::read_line(entry.path() / "device/model");
 
-    std::unique_ptr<FILE, decltype(&endmntent)> mnt_file(setmntent("/proc/mounts", "r"), endmntent);
-    if (mnt_file) {
-        std::unordered_set<std::string> seen;
-        struct mntent* mnt = nullptr;
-
-        while ((mnt = getmntent(mnt_file.get())) != nullptr) {
-            std::string fsname = mnt->mnt_fsname;
-            std::string fstype = mnt->mnt_type;
-
-            /// Skip pseudo filesystems, overlayfs, and known NETWORK/BLOCKING layers
-            if (fsname.find("/dev/") != 0 || fsname.find("/dev/loop") == 0) continue;
-            
-            /// Critical Fix for Issue 2: Avoid statvfs freeze on disconnected network drives
-            if (fstype == "nfs" || fstype == "nfs4" || fstype == "cifs" || fstype == "smb3" ||
-                fstype == "autofs" || fstype.starts_with("fuse")) {
-                continue;
-            }
-
-            if (!seen.insert(fsname).second) continue;
-
-            struct statvfs stat_vfs;
-            if (statvfs(mnt->mnt_dir, &stat_vfs) != 0) continue;
-
-            double total_gb = detail::to_gb(static_cast<double>(stat_vfs.f_blocks) * static_cast<double>(stat_vfs.f_frsize));
-            double free_gb  = detail::to_gb(static_cast<double>(stat_vfs.f_bavail) * static_cast<double>(stat_vfs.f_frsize));
-
-            result.total += total_gb;
-            result.free  += free_gb;
-            result.used  += total_gb - free_gb;
-        }
-    }
-    result.used += swap_used_gb;
-
-    std::string device = "";
-    struct ::stat root_stat;
-
-    if (::stat("/", &root_stat) == 0) {
-        unsigned int maj = major(root_stat.st_dev);
-        unsigned int min = minor(root_stat.st_dev);
-        std::string sys_path = "/sys/dev/block/" + std::to_string(maj) + ":" + std::to_string(min);
-
-        std::error_code ec;
-        auto target = fs::read_symlink(sys_path, ec);
-        if (!ec) {
-            std::string target_str = target.string();
-            size_t block_pos = target_str.find("/block/");
-            if (block_pos != std::string::npos) {
-                size_t dev_start = block_pos + 7;
-                size_t dev_end = target_str.find('/', dev_start);
-                if (dev_end != std::string::npos) {
-                    device = target_str.substr(dev_start, dev_end - dev_start);
-                } else {
-                    device = target_str.substr(dev_start);
-                }
-            }
-        }
+        std::istringstream iss(detail::read_line(entry.path() / "stat"));
+        uint64_t a, b, r_sect, c, d, e, w_sect;
+        iss >> a >> b >> r_sect >> c >> d >> e >> w_sect;
+        total_r += r_sect;
+        total_w += w_sect;
     }
 
-    if (device.empty()) {
-        std::error_code ec;
-        for (const auto& entry : fs::directory_iterator("/sys/block", ec)) {
-            if (ec) break;
-            std::string name = entry.path().filename().string();
-            if (!name.starts_with("loop") && !name.starts_with("ram") && !name.starts_with("sr")) {
-                device = name;
-                break;
-            }
-        }
-        if (device.empty()) device = "sda";
+    /// /proc/mounts + statvfs: aggregate total/used across real partitions
+    std::unique_ptr<FILE, decltype(&endmntent)> mnt(setmntent("/proc/mounts", "r"), endmntent);
+    std::unordered_set<std::string> seen;
+
+    for (struct mntent* m; mnt && (m = getmntent(mnt.get())); ) {
+        std::string fs = m->mnt_fsname, ft = m->mnt_type;
+        if (!fs.starts_with("/dev/") || fs.starts_with("/dev/loop")) continue;
+        if (ft == "nfs" || ft == "nfs4" || ft == "cifs" || ft == "autofs" || ft.starts_with("fuse")) continue;
+        if (!seen.insert(fs).second) continue;
+
+        struct statvfs sv;
+        if (statvfs(m->mnt_dir, &sv) != 0) continue;
+        result.total += (double)sv.f_blocks * sv.f_frsize;
+        result.used  += (double)(sv.f_blocks - sv.f_bavail) * sv.f_frsize;
     }
 
-    std::string str_sector = "/sys/block/" + device + "/queue/hw_sector_size";
-    std::string value_sector = detail::read_line(str_sector.c_str());
-    result.sector_size = detail::to_uint(value_sector).value_or(512);
+    const auto current_time = std::chrono::steady_clock::now();
+    const std::chrono::duration<double> dt = current_time - disk_prev_t_;
+    const double dt_sec = dt.count();
 
-    std::string str_model = "/sys/block/" + device + "/device/model";
-    result.model = detail::read_line(str_model.c_str());
-
-    auto fetch_disk_stats = [&device]() -> std::tuple<uint64_t, uint64_t> {
-        std::ifstream proc("/proc/diskstats");
-        if (!proc.is_open()) return {0,0};
-
-        std::string ln;
-        while (std::getline(proc, ln)) {
-            if (ln.find(device) == std::string::npos) continue;
-
-            std::istringstream iss(ln);
-            std::string token;
-            int col = 0;
-            bool is_target = false;
-            uint64_t r_sect = 0, w_sect = 0;
-
-            while (iss >> token) {
-                if (col == 2) {
-                    if (token == device) is_target = true;
-                    else break;
-                }
-                if (is_target) {
-                    if (col == 5) r_sect = detail::to_uint(token).value_or(0);
-                    else if (col == 9) w_sect = detail::to_uint(token).value_or(0);
-                }
-                col++;
-            }
-            if (is_target && col > 9) return {r_sect, w_sect};
-        }
-        return {0,0};
-    };
-
-    auto current_time = std::chrono::steady_clock::now();
-    auto [current_r, current_w] = fetch_disk_stats();
-
-    auto& state = disk_cache_[device];
-
-    if (!state.initialized) {
-        state.r = current_r;
-        state.w = current_w;
-        state.t = current_time;
-        state.initialized = true;
-
-        result.read_speed = 0;
-        result.write_speed = 0;
-    } else {
-        std::chrono::duration<double> dt = current_time - state.t;
-        double dt_sec = dt.count();
-
-        if (dt_sec > 0.001) {
-            uint64_t diff_r = (current_r >= state.r) ? (current_r - state.r) : 0;
-            uint64_t diff_w = (current_w >= state.w) ? (current_w - state.w) : 0;
-
-            /// Kernel: Sector in diskstats is 512 Bytes
-            result.read_speed = (diff_r * 512.0) / dt_sec;
-            result.write_speed = (diff_w * 512.0) / dt_sec;
-        } else {
-            result.read_speed = 0;
-            result.write_speed = 0;
-        }
-
-        // update Cache State
-        state.r = current_r;
-        state.w = current_w;
-        state.t = current_time;
+    /// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
+    if (dt_sec > 0.001) {
+        const uint64_t diff_r = (total_r >= disk_prev_r_) ? (total_r - disk_prev_r_) : 0;
+        const uint64_t diff_w = (total_w >= disk_prev_w_) ? (total_w - disk_prev_w_) : 0;
+        result.read_speed  = (diff_r * 512.0) / dt_sec;
+        result.write_speed = (diff_w * 512.0) / dt_sec;
     }
+
+    /// update status
+    disk_prev_t_ = current_time;
+    disk_prev_r_ = total_r;
+    disk_prev_w_ = total_w;
 
     return result;
 }
 
 entity::net system_info_reader_linux::read_net() const {
-    /// Zero-Allocation Parsing Logic
+    entity::net result{};
+
     auto get_total_net_bytes = []() -> std::pair<uint64_t, uint64_t> {
         std::ifstream proc("/proc/net/dev");
         if (!proc.is_open()) return {0, 0};
@@ -656,41 +493,29 @@ entity::net system_info_reader_linux::read_net() const {
         return {total_rx, total_tx};
     };
 
-    entity::net result;
-
     auto current_time = std::chrono::steady_clock::now();
     auto [current_rx, current_tx] = get_total_net_bytes();
 
-    if (!net_cache_.initialized) {
-        net_cache_.rx = current_rx;
-        net_cache_.tx = current_tx;
-        net_cache_.t = current_time;
-        net_cache_.initialized = true;
+    result.rx_bytes = net_prev_rx_;
+    result.tx_bytes = net_prev_tx_;
 
-        result.rx_bytes = 0;
-        result.tx_bytes = 0;
-    } else {
-        std::chrono::duration<double> dt = current_time - net_cache_.t;
-        double dt_sec = dt.count();
+    std::chrono::duration<double> dt = current_time - net_prev_t_;
+    double dt_sec = dt.count();
 
-        /// calution Delta safe
-        if (dt_sec > 0.001) {
-            uint64_t diff_rx = (current_rx >= net_cache_.rx) ? (current_rx - net_cache_.rx) : 0;
-            uint64_t diff_tx = (current_tx >= net_cache_.tx) ? (current_tx - net_cache_.tx) : 0;
+    /// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
+    if (dt_sec > 0.001) {
+        uint64_t diff_rx = (current_rx >= net_prev_rx_) ? (current_rx - net_prev_rx_) : 0;
+        uint64_t diff_tx = (current_tx >=  net_prev_tx_) ? (current_tx - net_prev_tx_) : 0;
 
-            /// Raw Bytes/s
-            result.rx_bytes = diff_rx / dt_sec;
-            result.tx_bytes = diff_tx / dt_sec;
-        } else {
-            result.rx_bytes = 0;
-            result.tx_bytes = 0;
-        }
-
-        /// update Cache State
-        net_cache_.rx = current_rx;
-        net_cache_.tx = current_tx;
-        net_cache_.t = current_time;
+        /// Raw Bytes/s
+        result.rx_bytes = diff_rx / dt_sec;
+        result.tx_bytes = diff_tx / dt_sec;
     }
+
+    /// Update status
+    net_prev_t_ = current_time;
+    net_prev_rx_ = current_rx;
+    net_prev_tx_ = current_tx;
 
     return result;
 }
