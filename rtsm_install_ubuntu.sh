@@ -7,7 +7,7 @@ set -euo pipefail
 USER_NAME="$USER"
 USER_HOME="/home/$USER_NAME"
 
-APPIMAGE_NAME=$(find output_appimage -maxdepth 1 -type f -name "RTSM-*x86_64.AppImage" | head -n1)
+APPIMAGE_NAME=$(find output_appimage -maxdepth 1 -type f -name "RTSM-*.AppImage" | head -n1)
 APP_DEST="/opt/rtsm/bin"
 APP_PATH="$APP_DEST/$(basename "$APPIMAGE_NAME")"
 
