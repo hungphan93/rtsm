@@ -1,6 +1,7 @@
-#include <gtest/gtest.h>
 #include "../adapters/adlinuxsysteminforeader.h"
 #include "../entities/ecpuinfo.h"
+
+#include <gtest/gtest.h>
 // #include "../entities/ememoryinfo.h"
 // #include "../entities/egpuinfo.h"
 // #include "../entities/ediskinfo.h"
@@ -13,12 +14,12 @@
 //     CpuTimes times = reader.readCpuTimes();
 //     EXPECT_GT(times.total(), 0);
 // }
-TEST(ADLinuxSystemInfoReaderTest, ReadCpuModel_NotEmpty) {
-    ADLinuxSystemInfoReader reader;
-    ESystemInfo info = reader.read();  // assuming this calls readCpuTimes()
-    EXPECT_FALSE(info.cpu.modelName.empty());
+TEST(ADLinuxSystemInfoReaderTest, ReadCpuModel_NotEmpty)
+{
+	ADLinuxSystemInfoReader reader;
+	ESystemInfo info = reader.read(); // assuming this calls readCpuTimes()
+	EXPECT_FALSE(info.cpu.modelName.empty());
 }
-
 
 // TEST(ADLinuxSystemInfoReaderTest, ReadCpuUsagePercent_ReasonableValue) {
 //     ADLinuxSystemInfoReader reader;

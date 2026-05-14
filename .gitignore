@@ -89,5 +89,3 @@ CMakeLists.txt.user
 valgrind.log
 .qtcreator/
 CLAUDE.md
-.clang-format
-.git-blame-ignore-revs

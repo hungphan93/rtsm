@@ -1,0 +1,361 @@
+# =============================================================================
+# .clang-format — Linux Kernel C Coding Style, adapted for C++23
+# =============================================================================
+# Reference  : https://docs.kernel.org/process/coding-style.html
+# Standard   : C++23 (GCC 15.2 / clang-format >= 18)
+# Scope      : All C++ sources in the project (.ixx / .hpp / .cpp)
+#
+# Usage:
+#   clang-format -style=file -i path/to/file.cpp
+#   Qt Creator → Preferences → C++ → Code Style → Formatting mode: Full
+#
+# Philosophy:
+#   - "Indentation is part of what makes code readable" — Linus Torvalds
+#   - Tab 8, K&R braces, 80 columns, pointer next to variable.
+#   - C++ only breaks kernel rules when C-style cannot express the concept
+#     (namespace, template, class access, constructor init list,
+#     concepts / requires).
+# =============================================================================
+
+Language:        Cpp
+BasedOnStyle:    LLVM
+Standard:        Latest
+
+# =============================================================================
+# 1. INDENTATION — Tab 8, non-negotiable
+# =============================================================================
+# Kernel rule:
+#   "Tabs are 8 characters, and thus indentations are also 8 characters.
+#    There are heretic movements that try to make indentations 4 (or even 2!)
+#    characters deep, and that is akin to trying to define the value of PI
+#    to be 3."
+#
+# If you need > 3 levels of indent → refactor, do not shrink the indent.
+# (This rule cannot be enforced by clang-format — reviewer's responsibility.)
+# -----------------------------------------------------------------------------
+UseTab:                      AlignWithSpaces   # tab for indent, spaces for alignment (consistent across editor tab widths)
+TabWidth:                    8
+IndentWidth:                 8
+ContinuationIndentWidth:     8
+ConstructorInitializerIndentWidth: 8
+
+# C++ adaptations:
+AccessModifierOffset:        -8      # public:/private: aligned with class
+NamespaceIndentation:        None    # do not indent inside namespace
+IndentCaseLabels:            false   # case aligned with switch (kernel style)
+IndentCaseBlocks:            false
+IndentGotoLabels:            false   # label flush to column 0
+IndentPPDirectives:          None    # #ifdef not indented
+IndentExternBlock:           NoIndent
+IndentWrappedFunctionNames:  false
+
+# C++20/23 concepts:
+IndentRequiresClause:        false
+RequiresClausePosition:      OwnLine
+RequiresExpressionIndentation: OuterScope
+
+# Lambda body: aligned with signature
+LambdaBodyIndentation:       Signature
+
+# =============================================================================
+# 2. LINE LENGTH — 80 columns (preferred), do not break strings
+# =============================================================================
+# "The limit on the length of lines is 80 columns and this is a strongly
+#  preferred limit."
+# -----------------------------------------------------------------------------
+ColumnLimit:                 80
+BreakStringLiterals:         false   # do not break — preserves grep-ability
+BinPackArguments:            false   # one argument per line when wrapping
+BinPackParameters:           false
+
+# =============================================================================
+# 3. BRACES — K&R (function is the exception: brace on next line)
+# =============================================================================
+# Kernel rule:
+#   - function:                brace on its own line
+#   - control flow:            brace on same line (if/for/while/switch/do)
+#   - struct/class/enum/union: brace on SAME line (strict kernel C rule)
+#                              Linus: "functions are special anyway, you can't
+#                              nest them in C" — only functions get their own
+#                              brace line.
+#   - namespace:               brace on next line (matches official
+#                              linux/.clang-format)
+#   - else/catch/while-of-do:  same line as }  (kernel style)
+# -----------------------------------------------------------------------------
+BreakBeforeBraces:           Custom
+BraceWrapping:
+  AfterCaseLabel:            false
+  AfterClass:                false
+  AfterControlStatement:     Never
+  AfterEnum:                 false
+  AfterFunction:             true
+  AfterNamespace:            true
+  AfterStruct:               false
+  AfterUnion:                false
+  AfterExternBlock:          false
+  BeforeCatch:               false
+  BeforeElse:                false
+  BeforeLambdaBody:          false
+  BeforeWhile:               false
+  IndentBraces:              false
+  SplitEmptyFunction:        false
+  SplitEmptyRecord:          false
+  SplitEmptyNamespace:       false
+
+# Single-statement: always use braces (safer; kernel allows both, but
+# C++ RAII/destructor makes brace-less forms error-prone → braces required)
+AllowShortBlocksOnASingleLine:        Never
+AllowShortFunctionsOnASingleLine:     None
+AllowShortIfStatementsOnASingleLine:  Never
+AllowShortLoopsOnASingleLine:         false
+AllowShortCaseLabelsOnASingleLine:    false
+AllowShortLambdasOnASingleLine:       None
+AllowShortEnumsOnASingleLine:         false
+AllowAllArgumentsOnNextLine:          false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# =============================================================================
+# 4. SPACES — space after keyword, NO space after function name
+# =============================================================================
+# Kernel:
+#   if (x)          ← space after if
+#   sizeof(x)       ← NO space after sizeof (operator behaves like a function)
+#   foo(x)          ← NO space after function name
+#   *p, &x          ← * and & adjacent to the variable
+# -----------------------------------------------------------------------------
+SpaceBeforeParens:                    ControlStatements
+SpaceBeforeParensOptions:
+  AfterControlStatements:    true
+  AfterFunctionDeclarationName: false
+  AfterFunctionDefinitionName:  false
+  AfterOverloadedOperator:   false
+  AfterRequiresInClause:     true
+  AfterRequiresInExpression: false
+  BeforeNonEmptyParentheses: false
+
+SpaceAfterCStyleCast:                 false
+SpaceAfterLogicalNot:                 false
+SpaceAfterTemplateKeyword:            true
+SpaceAroundPointerQualifiers:         Default
+SpaceBeforeAssignmentOperators:       true
+SpaceBeforeCaseColon:                 false
+SpaceBeforeCpp11BracedList:           false
+SpaceBeforeCtorInitializerColon:      true
+SpaceBeforeInheritanceColon:          true
+SpaceBeforeRangeBasedForLoopColon:    true
+SpaceBeforeSquareBrackets:            false
+SpaceInEmptyBlock:                    false
+SpaceInEmptyParentheses:              false
+SpacesBeforeTrailingComments:         1
+SpacesInAngles:                       Never
+SpacesInCStyleCastParentheses:        false
+SpacesInConditionalStatement:         false
+SpacesInContainerLiterals:            false
+SpacesInParentheses:                  false
+SpacesInSquareBrackets:               false
+SpacesInLineCommentPrefix:
+  Minimum:                   1
+  Maximum:                   -1
+BitFieldColonSpacing:                 Both
+
+# =============================================================================
+# 5. POINTERS & REFERENCES — adjacent to the variable
+# =============================================================================
+# Kernel: char *foo, int *p, struct device *dev
+# C++ references follow the same convention for consistency: int &ref
+# -----------------------------------------------------------------------------
+PointerAlignment:            Right
+ReferenceAlignment:          Right
+DerivePointerAlignment:      false
+
+# const placed BEFORE the type (kernel C style): const int *p
+# (not int const *p)
+QualifierAlignment:          Left
+
+# =============================================================================
+# 6. INCLUDES — DO NOT SORT (kernel philosophy)
+# =============================================================================
+# Linux kernel sets `SortIncludes: false`. Rationale: include order is
+# *semantic*, not stylistic. A formatter that reorders includes can break the
+# build in ways that are painful to debug — for example, Qt headers must be
+# included BEFORE any header that transitively pulls <X11/Xlib.h>, because
+# Xlib defines `Status` as a global macro that collides with
+# QTextStream::Status. Author owns the order; the tool preserves it.
+#
+# Convention (enforced by reviewers, NOT the tool):
+#   1. Qt headers          — <QtCore/QObject>   (must precede anything that pulls Xlib)
+#   2. Project headers     — "platform/foo.hpp"
+#   3. C++ standard library— <vector>, <expected>
+#   4. POSIX / system      — <sys/...>, <unistd.h>
+#
+# Separate each group with a blank line. If reordering is required for a
+# specific TU (load-bearing dependency), write a comment explaining *why*.
+# -----------------------------------------------------------------------------
+SortIncludes:                Never        # kernel-style: never reorder
+IncludeBlocks:               Preserve     # keep author-written grouping intact
+
+# =============================================================================
+# 7. COMMENTS — `///` is the default, `/* */` for large blocks
+# =============================================================================
+# Convention:
+#
+#   DEFAULT — Doxygen `///` for every ordinary comment:
+#
+#       /// Brief description on a single line.
+#       /// @param x value to process
+#       /// @return processed result
+#       int compute(int x);
+#
+#       /// Inline note next to a field.
+#       std::uint16_t cpu_cores = 0;        /// trailing also uses ///
+#
+#   BLOCK — `/* */` only for:
+#       (a) License header / SPDX:
+#               /*
+#                * SPDX-License-Identifier: MIT
+#                * Copyright (C) 2026 ...
+#                */
+#       (b) Multi-paragraph commentary that needs explicit sentence breaks.
+#
+#   NAMESPACE CLOSING — write `/// namespace x` by hand:
+#       export namespace entity
+#       {
+#               ...
+#       } /// namespace entity
+#
+#       Since `FixNamespaceComments: false`, clang-format will not auto-insert
+#       `// namespace x`. Write it once by hand; clang-format will preserve it.
+#       (clang-format does not support generating `///`-style closings —
+#        the `//` prefix is hard-coded.)
+#
+# clang-format mechanics:
+#   - `///` is recognised as a line documentation comment.
+#   - `ReflowComments: false` guarantees each `///` line keeps its line break
+#     and is not merged — essential for Doxygen rendering.
+#   - `CommentPragmas` prevents Doxygen tags from being wrapped at ColumnLimit.
+# -----------------------------------------------------------------------------
+ReflowComments:              false
+CommentPragmas:              '^(\s*([@\\](brief|param|return|returns|tparam|throws?|throw|note|warning|see|code|endcode|cond|endcond|file|class|struct|enum|var|fn|details|pre|post|invariant|since|deprecated|todo|bug|copyright|author|date|version|defgroup|ingroup|addtogroup|name|relates|relatesalso))|!|TODO|FIXME|XXX|HACK|NOTE|SAFETY)'
+
+AlignTrailingComments:
+  Kind:                      Always
+  OverEmptyLines:            1
+
+# =============================================================================
+# 8. ALIGNMENT — align declarations + macros (deviation from kernel, favours
+#                readability)
+# =============================================================================
+# Kernel C bans alignment (reason: changing one type forces re-formatting of
+# the whole block → diff noise). This project takes the opposite stance and
+# enables alignment for declarations and macros because the Entity layer is
+# composed of DTO structs whose types rarely change.
+# -----------------------------------------------------------------------------
+AlignAfterOpenBracket:                Align
+AlignArrayOfStructures:               None
+AlignConsecutiveAssignments:
+  Enabled:                   true    # `=` aligned (consistent with declarations)
+  AcrossEmptyLines:          false   # blank line BREAKS alignment
+  AcrossComments:            true    # /// comment does NOT break alignment
+  AlignCompound:             false   # `+=` not aligned with `=`
+  PadOperators:              true
+AlignConsecutiveBitFields:
+  Enabled:                   false
+AlignConsecutiveDeclarations:
+  Enabled:                   true    # variable names aligned (deviation, favours readability)
+  AcrossEmptyLines:          false   # blank line BREAKS alignment — isolates functions from vars
+  AcrossComments:            true    # /// does NOT break — vars stay aligned across comments
+  AlignCompound:             false   # `+=` not aligned with `=`
+  PadOperators:              true
+AlignConsecutiveMacros:
+  Enabled:                   true    # exception: #define values aligned for readability
+  AcrossEmptyLines:          false
+  AcrossComments:            false
+AlignEscapedNewlines:        Left    # macro `\` aligned left
+AlignOperands:               Align
+
+# =============================================================================
+# 9. EMPTY LINES — minimal, separate logical blocks
+# =============================================================================
+MaxEmptyLinesToKeep:                  1
+KeepEmptyLinesAtTheStartOfBlocks:     false
+KeepEmptyLinesAtEOF:                  false
+EmptyLineBeforeAccessModifier:        LogicalBlock
+EmptyLineAfterAccessModifier:         Never
+SeparateDefinitionBlocks:             Leave
+
+# Note for C++20/23 modules (.ixx):
+#   Insert blank lines between the regions by hand — clang-format preserves
+#   them but never inserts new ones:
+#
+#       module;                          // global module fragment
+#
+#       #include <sys/socket.h>          // legacy headers (if needed)
+#
+#       export module net.socket;        // module declaration
+#
+#       import std;                      // imports
+#       import :detail;
+#
+#       export namespace net { ... }
+
+# =============================================================================
+# 10. C++ SPECIFIC — class, template, constructor, namespace
+# =============================================================================
+BreakConstructorInitializers:         BeforeComma
+BreakInheritanceList:                 BeforeComma
+PackConstructorInitializers:          Never
+BreakTemplateDeclarations:            Yes
+AlwaysBreakAfterReturnType:           None
+AlwaysBreakBeforeMultilineStrings:    false
+BreakBeforeBinaryOperators:           None
+BreakBeforeConceptDeclarations:       Always
+BreakBeforeTernaryOperators:          true
+BreakAfterAttributes:                 Leave
+Cpp11BracedListStyle:                 false
+FixNamespaceComments:                 false   # write `/// namespace x` by hand (Doxygen style)
+ShortNamespaceLines:                  0
+CompactNamespaces:                    false
+
+# =============================================================================
+# 11. MISC
+# =============================================================================
+InsertTrailingCommas:                 None
+InsertBraces:                         false   # never inject braces — leave logic to the author
+InsertNewlineAtEOF:                   true
+RemoveBracesLLVM:                     false
+RemoveSemicolon:                      false
+
+# Penalty — prefers breaking at certain locations when a line exceeds 80 cols
+PenaltyBreakAssignment:               150
+PenaltyBreakBeforeFirstCallParameter: 150
+PenaltyBreakComment:                  300
+PenaltyBreakFirstLessLess:            120
+PenaltyBreakOpenParenthesis:          0
+PenaltyBreakString:                   1000
+PenaltyBreakTemplateDeclaration:      10
+PenaltyExcessCharacter:               1000000
+PenaltyIndentedWhitespace:            0
+PenaltyReturnTypeOnItsOwnLine:        200
+
+# =============================================================================
+# 12. NAMING — clang-format does NOT enforce; manual convention
+# =============================================================================
+# Kernel C → C++23 mapping (apply consistently across the project):
+#
+#   Local var, short:       i, j, n, ret, tmp, dev, buf, len
+#   Free function:          snake_case          — read_proc_stat, parse_uptime
+#   File-scope helper:      snake_case (static) — static void update_cache(...)
+#   Type / class / struct:  snake_case          — cpu_sample, ring_buffer
+#                           (kernel C style — NEVER CamelCase)
+#   Concept:                snake_case          — readable_buffer
+#   Template parameter:     CamelCase (single letter T, U where context permits)
+#   Member variable:        snake_case + trailing _   — count_, last_seen_
+#   Constant / constexpr:   SCREAMING_SNAKE_CASE — MAX_CPU_COUNT
+#   Enum class value:       snake_case          — enum class state { idle, busy }
+#   Macro:                  SCREAMING_SNAKE_CASE — only when no alternative exists
+#   Module name:            dotted.snake_case   — rtsm.entity.cpu
+#   File name:              snake_case          — cpu_sample.ixx, proc_reader.cpp
+#
+# One class = one concept. One function = one job.
+# A name longer than 40 characters is a signal to split the abstraction.
+# =============================================================================

@@ -4,21 +4,22 @@
 
 #include "use_case/ports/system_info_reader.hpp"
 
-namespace adapter {
-namespace mac {
+namespace adapter
+{
+namespace mac
+{
 
 class system_info_reader_mac : public usecase::system_info_reader {
-
 public:
-    entity::cpu read_cpu() const override;
+	entity::cpu read_cpu() const override;
 
-    entity::memory read_memory() const override;
+	entity::memory read_memory() const override;
 
-    entity::gpu read_gpu() const override;
+	entity::gpu read_gpu() const override;
 
-    entity::disk read_disk() const override;
+	entity::disk read_disk() const override;
 
-    entity::net read_net() const override;
+	entity::net read_net() const override;
 };
 
 } // namespace mac
