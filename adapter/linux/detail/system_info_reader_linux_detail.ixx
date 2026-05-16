@@ -1,7 +1,6 @@
 /// MIT License
 module;
 
-#include <cstdint>
 #include <memory>
 #include <regex>
 
@@ -81,21 +80,21 @@ void parse_first_number(T &field, std::string_view s, int base = 10) noexcept
 }
 
 struct cpu_times {
-	uint64_t user = 0;
-	uint64_t nice = 0;
-	uint64_t system = 0;
-	uint64_t idle = 0;
-	uint64_t iowait = 0;
-	uint64_t irq = 0;
-	uint64_t softirq = 0;
-	uint64_t steal = 0;
+	std::uint64_t user = 0;
+	std::uint64_t nice = 0;
+	std::uint64_t system = 0;
+	std::uint64_t idle = 0;
+	std::uint64_t iowait = 0;
+	std::uint64_t irq = 0;
+	std::uint64_t softirq = 0;
+	std::uint64_t steal = 0;
 
-	inline uint64_t total() const noexcept
+	inline std::uint64_t total() const noexcept
 	{
 		return user + nice + system + idle + iowait + irq + softirq + steal;
 	}
 
-	inline uint64_t idle_time() const noexcept
+	inline std::uint64_t idle_time() const noexcept
 	{
 		return idle + iowait;
 	}

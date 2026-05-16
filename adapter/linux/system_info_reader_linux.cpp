@@ -1,7 +1,5 @@
 module;
 
-#include <cstdint>
-
 #include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
 #include <mntent.h>
 #include <sys/stat.h>
@@ -284,7 +282,7 @@ entity::memory system_info_reader_linux::read_memory() const
 	return result;
 }
 
-bool is_intel_integrated(uint16_t device_id)
+bool is_intel_integrated(std::uint16_t device_id)
 {
 	/// Arc (Discrete) → 0x56A0 - 0x56FF
 	if (device_id >= 0x56A0 && device_id <= 0x56FF)
@@ -293,7 +291,7 @@ bool is_intel_integrated(uint16_t device_id)
 	return true; /// Vendor Intel + không phải Arc = iGPU
 }
 
-bool is_amd_integrated(uint16_t device_id)
+bool is_amd_integrated(std::uint16_t device_id)
 {
 	/// APU / iGPU ranges
 	if (device_id >= 0x1304 && device_id <= 0x131F)
@@ -334,7 +332,7 @@ void system_info_reader_linux::classify_gpu(fs::path &hwmon_path, entity::gpu &r
 		break;
 
 	case gpu_vendor::AMD:
-		is_amd_integrated((uint16_t)result.device) ? read_amd_igpu(hwmon_path, result)
+		is_amd_integrated((std::uint16_t)result.device) ? read_amd_igpu(hwmon_path, result)
 							   : read_amd_dgpu(hwmon_path, result);
 		break;
 
@@ -436,11 +434,11 @@ entity::gpu system_info_reader_linux::read_gpu() const
 	const auto vendor_str = detail::read_line(hwmon_path / "device/vendor");
 	const auto device_str = detail::read_line(hwmon_path / "device/device");
 
-	if (auto r = detail::to_uint<uint16_t>(vendor_str, 16); r) {
+	if (auto r = detail::to_uint<std::uint16_t>(vendor_str, 16); r) {
 		result.vendor = *r;
 	}
 
-	if (auto r = detail::to_uint<uint16_t>(device_str, 16); r) {
+	if (auto r = detail::to_uint<std::uint16_t>(device_str, 16); r) {
 		result.device = *r;
 	}
 
@@ -464,7 +462,7 @@ entity::gpu system_info_reader_linux::read_gpu() const
 entity::disk system_info_reader_linux::read_disk() const
 {
 	entity::disk result{};
-	uint64_t total_r = 0, total_w = 0;
+	std::uint64_t total_r = 0, total_w = 0;
 
 	/// /sys/block: aggregate sectors + grab first disk model
 	std::error_code ec;
@@ -479,7 +477,7 @@ entity::disk system_info_reader_linux::read_disk() const
 			result.model = detail::read_line(entry.path() / "device/model");
 
 		std::istringstream iss(detail::read_line(entry.path() / "stat"));
-		uint64_t a, b, r_sect, c, d, e, w_sect;
+		std::uint64_t a, b, r_sect, c, d, e, w_sect;
 		iss >> a >> b >> r_sect >> c >> d >> e >> w_sect;
 		total_r += r_sect;
 		total_w += w_sect;
@@ -512,8 +510,8 @@ entity::disk system_info_reader_linux::read_disk() const
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
-		const uint64_t diff_r = (total_r >= disk_prev_r_) ? (total_r - disk_prev_r_) : 0;
-		const uint64_t diff_w = (total_w >= disk_prev_w_) ? (total_w - disk_prev_w_) : 0;
+		const std::uint64_t diff_r = (total_r >= disk_prev_r_) ? (total_r - disk_prev_r_) : 0;
+		const std::uint64_t diff_w = (total_w >= disk_prev_w_) ? (total_w - disk_prev_w_) : 0;
 		result.read_speed = (diff_r * 512.0) / dt_sec;
 		result.write_speed = (diff_w * 512.0) / dt_sec;
 	}
@@ -530,7 +528,7 @@ entity::net system_info_reader_linux::read_net() const
 {
 	entity::net result{};
 
-	auto get_total_net_bytes = []() -> std::pair<uint64_t, uint64_t> {
+	auto get_total_net_bytes = []() -> std::pair<std::uint64_t, std::uint64_t> {
 		std::ifstream proc("/proc/net/dev");
 		if (!proc.is_open())
 			return { 0, 0 };
@@ -539,8 +537,8 @@ entity::net system_info_reader_linux::read_net() const
 		std::getline(proc, line);
 		std::getline(proc, line);
 
-		uint64_t total_rx = 0;
-		uint64_t total_tx = 0;
+		std::uint64_t total_rx = 0;
+		std::uint64_t total_tx = 0;
 
 		while (std::getline(proc, line)) {
 			auto colon_pos = line.find(':');
@@ -557,7 +555,7 @@ entity::net system_info_reader_linux::read_net() const
 				continue;
 
 			std::istringstream iss(line.substr(colon_pos + 1));
-			uint64_t rx = 0, tx = 0, skip;
+			std::uint64_t rx = 0, tx = 0, skip;
 
 			if (iss >> rx >> skip >> skip >> skip >> skip >> skip >> skip >> skip >>
 			    tx) {
@@ -579,8 +577,8 @@ entity::net system_info_reader_linux::read_net() const
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
-		uint64_t diff_rx = (current_rx >= net_prev_rx_) ? (current_rx - net_prev_rx_) : 0;
-		uint64_t diff_tx = (current_tx >= net_prev_tx_) ? (current_tx - net_prev_tx_) : 0;
+		std::uint64_t diff_rx = (current_rx >= net_prev_rx_) ? (current_rx - net_prev_rx_) : 0;
+		std::uint64_t diff_tx = (current_tx >= net_prev_tx_) ? (current_tx - net_prev_tx_) : 0;
 
 		/// Raw Bytes/s
 		result.rx_bytes = diff_rx / dt_sec;
