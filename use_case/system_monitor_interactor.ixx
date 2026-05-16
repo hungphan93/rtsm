@@ -14,9 +14,8 @@ export namespace usecase
 
 class system_monitor_interactor : public system_monitor_input_boundary {
 public:
-	explicit system_monitor_interactor(
-		const system_info_reader &reader,
-		system_monitor_output_boundary &output) noexcept
+	explicit system_monitor_interactor(const system_info_reader &reader,
+					   system_monitor_output_boundary &output) noexcept
 		: reader_{ reader }
 		, output_{ output }
 	{}

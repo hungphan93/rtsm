@@ -16,56 +16,37 @@ namespace ui::qt
 class system_monitor_view_qt : public QObject {
 	Q_OBJECT
 	/// cpu
-	Q_PROPERTY(
-		QString cpu_model_name READ cpu_model_name NOTIFY cpu_changed)
-	Q_PROPERTY(QString cpu_usage_percent READ cpu_usage_percent NOTIFY
-			   cpu_changed)
-	Q_PROPERTY(QString cpu_frequency_mhz READ cpu_frequency_mhz NOTIFY
-			   cpu_changed)
-	Q_PROPERTY(QString cpu_temperature_c READ cpu_temperature_c NOTIFY
-			   cpu_changed)
+	Q_PROPERTY(QString cpu_model_name READ cpu_model_name NOTIFY cpu_changed)
+	Q_PROPERTY(QString cpu_usage_percent READ cpu_usage_percent NOTIFY cpu_changed)
+	Q_PROPERTY(QString cpu_frequency_mhz READ cpu_frequency_mhz NOTIFY cpu_changed)
+	Q_PROPERTY(QString cpu_temperature_c READ cpu_temperature_c NOTIFY cpu_changed)
 	Q_PROPERTY(QString cpu_power READ cpu_power NOTIFY cpu_changed)
 
 	/// memory
-	Q_PROPERTY(QString memory_vram_used READ memory_vram_used NOTIFY
-			   memory_changed)
-	Q_PROPERTY(QString memory_total_bytes READ memory_total_bytes NOTIFY
-			   memory_changed)
-	Q_PROPERTY(QString memory_used_bytes READ memory_used_bytes NOTIFY
-			   memory_changed)
-	Q_PROPERTY(QString memory_usage_percent READ memory_usage_percent NOTIFY
-			   memory_changed)
+	Q_PROPERTY(QString memory_vram_used READ memory_vram_used NOTIFY memory_changed)
+	Q_PROPERTY(QString memory_total_bytes READ memory_total_bytes NOTIFY memory_changed)
+	Q_PROPERTY(QString memory_used_bytes READ memory_used_bytes NOTIFY memory_changed)
+	Q_PROPERTY(QString memory_usage_percent READ memory_usage_percent NOTIFY memory_changed)
 	Q_PROPERTY(QString memory_name READ memory_name NOTIFY memory_changed)
-	Q_PROPERTY(QString memory_voltage READ memory_voltage NOTIFY
-			   memory_changed)
-	Q_PROPERTY(QString memory_frequency_mhz READ memory_frequency_mhz NOTIFY
-			   memory_changed)
+	Q_PROPERTY(QString memory_voltage READ memory_voltage NOTIFY memory_changed)
+	Q_PROPERTY(QString memory_frequency_mhz READ memory_frequency_mhz NOTIFY memory_changed)
 
 	/// gpu
 	Q_PROPERTY(QString gpu_name READ gpu_name NOTIFY gpu_changed)
-	Q_PROPERTY(
-		QString gpu_vram_total READ gpu_vram_total NOTIFY gpu_changed)
+	Q_PROPERTY(QString gpu_vram_total READ gpu_vram_total NOTIFY gpu_changed)
 	Q_PROPERTY(QString gpu_vram_used READ gpu_vram_used NOTIFY gpu_changed)
-	Q_PROPERTY(QString gpu_usage_percent READ gpu_usage_percent NOTIFY
-			   gpu_changed)
+	Q_PROPERTY(QString gpu_usage_percent READ gpu_usage_percent NOTIFY gpu_changed)
 	Q_PROPERTY(QString gpu_cores READ gpu_cores NOTIFY gpu_changed)
-	Q_PROPERTY(QString gpu_frequency_mhz READ gpu_frequency_mhz NOTIFY
-			   gpu_changed)
-	Q_PROPERTY(QString gpu_temperature_c READ gpu_temperature_c NOTIFY
-			   gpu_changed)
+	Q_PROPERTY(QString gpu_frequency_mhz READ gpu_frequency_mhz NOTIFY gpu_changed)
+	Q_PROPERTY(QString gpu_temperature_c READ gpu_temperature_c NOTIFY gpu_changed)
 
 	/// disk
-	Q_PROPERTY(QString disk_usage_percent READ disk_usage_percent NOTIFY
-			   disk_changed)
-	Q_PROPERTY(QString disk_read_speed READ disk_read_speed NOTIFY
-			   disk_changed)
-	Q_PROPERTY(QString disk_write_speed READ disk_write_speed NOTIFY
-			   disk_changed)
-	Q_PROPERTY(QString disk_sector_size READ disk_sector_size NOTIFY
-			   disk_changed)
+	Q_PROPERTY(QString disk_usage_percent READ disk_usage_percent NOTIFY disk_changed)
+	Q_PROPERTY(QString disk_read_speed READ disk_read_speed NOTIFY disk_changed)
+	Q_PROPERTY(QString disk_write_speed READ disk_write_speed NOTIFY disk_changed)
+	Q_PROPERTY(QString disk_sector_size READ disk_sector_size NOTIFY disk_changed)
 	Q_PROPERTY(QString disk_model READ disk_model NOTIFY disk_changed)
-	Q_PROPERTY(QString disk_serial_number READ disk_serial_number NOTIFY
-			   disk_changed)
+	Q_PROPERTY(QString disk_serial_number READ disk_serial_number NOTIFY disk_changed)
 	Q_PROPERTY(QString disk_size READ disk_size NOTIFY disk_changed)
 
 	/// net
@@ -73,9 +54,8 @@ class system_monitor_view_qt : public QObject {
 	Q_PROPERTY(QString net_tx_bytes READ net_tx_bytes NOTIFY net_changed)
 
 public:
-	explicit system_monitor_view_qt(
-		std::shared_ptr<system_monitor_backend_engine> backend,
-		QObject *parent = nullptr);
+	explicit system_monitor_view_qt(std::shared_ptr<system_monitor_backend_engine> backend,
+					QObject *parent = nullptr);
 	~system_monitor_view_qt();
 	/// cpu
 	[[nodiscard]] QString cpu_model_name() const;

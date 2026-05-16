@@ -29,15 +29,13 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr,
 			       QString platform_name = QString())
 {
 	if (!window) {
-		std::cerr
-			<< "[platform] No window provided for make_window_sticky.\n";
+		std::cerr << "[platform] No window provided for make_window_sticky.\n";
 		return;
 	}
 
 #if defined(__linux__)
 	if (platform_name.startsWith("wayland", Qt::CaseInsensitive)) {
-		std::clog
-			<< "[Wayland] Currently LayerShell don'nt supported on wayland\n";
+		std::clog << "[Wayland] Currently LayerShell don'nt supported on wayland\n";
 		// std::clog << "[Wayland] Applying LayerShell\n";
 
 		// LayerShellQt::Shell::useLayerShell();
@@ -74,9 +72,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr,
 		auto get_atom = [&](const char *name) -> Atom {
 			Atom atom = XInternAtom(display, name, False);
 			if (atom == None) {
-				std::clog
-					<< "[platform] Failed to get X11 atom:"
-					<< name << "\n";
+				std::clog << "[platform] Failed to get X11 atom:" << name << "\n";
 			}
 			return atom;
 		};
@@ -92,11 +88,9 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr,
 					32,
 					PropModeReplace,
 					reinterpret_cast<unsigned char *>(
-						const_cast<unsigned long *>(
-							&ALL_DESKTOPS)),
+						const_cast<unsigned long *>(&ALL_DESKTOPS)),
 					1);
-			std::clog
-				<< "[platform] Set _NET_WM_DESKTOP to all desktops.\n";
+			std::clog << "[platform] Set _NET_WM_DESKTOP to all desktops.\n";
 		}
 
 		/// Proper client message for _NET_WM_STATE sticky + below
@@ -119,8 +113,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr,
 			XSendEvent(display,
 				   DefaultRootWindow(display),
 				   False,
-				   SubstructureRedirectMask |
-					   SubstructureNotifyMask,
+				   SubstructureRedirectMask | SubstructureNotifyMask,
 				   &e);
 
 			std::clog
@@ -132,8 +125,7 @@ inline void make_window_sticky(QPointer<QWindow> window = nullptr,
 	}
 
 	else {
-		std::cerr
-			<< "[platform] Unsupported platform for sticky window.\n";
+		std::cerr << "[platform] Unsupported platform for sticky window.\n";
 	}
 
 #elif defined(_WIN32)

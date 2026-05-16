@@ -9,36 +9,30 @@ import :system_monitor_view_model;
 export namespace presenter
 {
 
-class system_monitor_presenter
-	: public usecase::system_monitor_output_boundary {
+class system_monitor_presenter : public usecase::system_monitor_output_boundary {
 public:
 	using notify = std::function<void()>;
 
 	system_monitor_presenter() noexcept = default;
 
 	/// Provide the prepared ViewModel for the View layer
-	[[nodiscard]] std::shared_ptr<const cpu_view_model> cpu_vm()
-		const noexcept
+	[[nodiscard]] std::shared_ptr<const cpu_view_model> cpu_vm() const noexcept
 	{
 		return get(cpu_);
 	}
-	[[nodiscard]] std::shared_ptr<const memory_view_model> memory_vm()
-		const noexcept
+	[[nodiscard]] std::shared_ptr<const memory_view_model> memory_vm() const noexcept
 	{
 		return get(memory_);
 	}
-	[[nodiscard]] std::shared_ptr<const gpu_view_model> gpu_vm()
-		const noexcept
+	[[nodiscard]] std::shared_ptr<const gpu_view_model> gpu_vm() const noexcept
 	{
 		return get(gpu_);
 	}
-	[[nodiscard]] std::shared_ptr<const disk_view_model> disk_vm()
-		const noexcept
+	[[nodiscard]] std::shared_ptr<const disk_view_model> disk_vm() const noexcept
 	{
 		return get(disk_);
 	}
-	[[nodiscard]] std::shared_ptr<const net_view_model> net_vm()
-		const noexcept
+	[[nodiscard]] std::shared_ptr<const net_view_model> net_vm() const noexcept
 	{
 		return get(net_);
 	}
@@ -100,12 +94,7 @@ private:
 		}
 		char buffer[32];
 		int precision = unit >= 3 ? 2 : 1;
-		std::snprintf(buffer,
-			      sizeof(buffer),
-			      "%.*f%s",
-			      precision,
-			      bytes,
-			      units[unit]);
+		std::snprintf(buffer, sizeof(buffer), "%.*f%s", precision, bytes, units[unit]);
 		return std::string(buffer);
 	}
 
@@ -116,17 +105,10 @@ private:
 		return std::string(buffer);
 	}
 
-	static std::string format_float(float value,
-					int precision,
-					const std::string &suffix = "")
+	static std::string format_float(float value, int precision, const std::string &suffix = "")
 	{
 		char buffer[32];
-		std::snprintf(buffer,
-			      sizeof(buffer),
-			      "%.*f%s",
-			      precision,
-			      value,
-			      suffix.c_str());
+		std::snprintf(buffer, sizeof(buffer), "%.*f%s", precision, value, suffix.c_str());
 		return std::string(buffer);
 	}
 
@@ -150,11 +132,8 @@ private:
 		vm.name = v.name;
 
 		// FIX: The entity stores RAM in GiB. We must multiply by 1024^3 to restore it to Raw Bytes
-		vm.vram_total = format_bytes(v.vram_total * 1024.0 * 1024.0 *
-					     1024.0);
-		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0 *
-					    1024.0) +
-			       " of ";
+		vm.vram_total = format_bytes(v.vram_total * 1024.0 * 1024.0 * 1024.0);
+		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0 * 1024.0) + " of ";
 
 		vm.usage_percent = format_percent(v.usage_percent);
 		vm.voltage = format_float(v.voltage, 1, "V");
@@ -169,8 +148,7 @@ private:
 
 		// FIX: GPU VRAM is stored in MiB. Multiply by 1024^2 to restore it to Raw Bytes
 		vm.vram_total = format_bytes(v.vram_total * 1024.0 * 1024.0);
-		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0) +
-			       " of ";
+		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0) + " of ";
 
 		vm.usage_percent = format_percent(v.usage_percent);
 		vm.cores = std::to_string(v.cores);
@@ -189,13 +167,11 @@ private:
 		vm.size = format_bytes(v.total * 1024.0 * 1024.0 * 1024.0);
 
 		vm.read_speed = format_speed(
-			v.read_speed); // Already calculated as Bytes/s in the Adapter
+			v.read_speed);	// Already calculated as Bytes/s in the Adapter
 		vm.write_speed = format_speed(
 			v.write_speed); // Already calculated as Bytes/s in the Adapter
-		vm.usage_percent = v.total > 0
-					   ? format_percent(100.0f * v.used /
-							    v.total)
-					   : "0.00%";
+		vm.usage_percent = v.total > 0 ? format_percent(100.0f * v.used / v.total)
+					       : "0.00%";
 		vm.sector_size = std::to_string(v.sector_size);
 		update(disk_, vm);
 	}
@@ -221,8 +197,7 @@ private:
 	};
 
 	template <typename T>
-	[[nodiscard]] std::shared_ptr<const T> get(
-		const field<T> &f) const noexcept
+	[[nodiscard]] std::shared_ptr<const T> get(const field<T> &f) const noexcept
 	{
 		std::scoped_lock lock(f.mtx);
 		return f.data;

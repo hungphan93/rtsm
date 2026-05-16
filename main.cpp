@@ -39,8 +39,7 @@ int main(int argc, char *argv[])
 
 	adapter::linux2::system_info_reader_linux reader;
 
-	auto presenter =
-		std::make_shared<presenter::system_monitor_presenter>();
+	auto presenter = std::make_shared<presenter::system_monitor_presenter>();
 
 	usecase::system_monitor_interactor interactor(reader, *presenter);
 
@@ -52,26 +51,21 @@ int main(int argc, char *argv[])
 	scheduler::system_data_scheduler data_scheduler;
 
 	/// Register periodic data sampling tasks
-	[[maybe_unused]] auto t1_ = data_scheduler
-					    .subscribe(300ms, [&interactor]() {
-						    interactor.fetch_cpu();
-					    });
-	[[maybe_unused]] auto t2_ = data_scheduler
-					    .subscribe(500ms, [&interactor]() {
-						    interactor.fetch_memory();
-					    });
-	[[maybe_unused]] auto t3_ = data_scheduler
-					    .subscribe(500ms, [&interactor]() {
-						    interactor.fetch_gpu();
-					    });
-	[[maybe_unused]] auto t4_ = data_scheduler
-					    .subscribe(1000ms, [&interactor]() {
-						    interactor.fetch_disk();
-					    });
-	[[maybe_unused]] auto t5_ = data_scheduler
-					    .subscribe(1000ms, [&interactor]() {
-						    interactor.fetch_net();
-					    });
+	[[maybe_unused]] auto t1_ = data_scheduler.subscribe(300ms, [&interactor]() {
+		interactor.fetch_cpu();
+	});
+	[[maybe_unused]] auto t2_ = data_scheduler.subscribe(500ms, [&interactor]() {
+		interactor.fetch_memory();
+	});
+	[[maybe_unused]] auto t3_ = data_scheduler.subscribe(500ms, [&interactor]() {
+		interactor.fetch_gpu();
+	});
+	[[maybe_unused]] auto t4_ = data_scheduler.subscribe(1000ms, [&interactor]() {
+		interactor.fetch_disk();
+	});
+	[[maybe_unused]] auto t5_ = data_scheduler.subscribe(1000ms, [&interactor]() {
+		interactor.fetch_net();
+	});
 
 	QObject::connect(&engine,
 			 &QQmlApplicationEngine::objectCreated,
@@ -87,8 +81,7 @@ int main(int argc, char *argv[])
 				 if (!window)
 					 return;
 
-				 const QString platform =
-					 QGuiApplication::platformName();
+				 const QString platform = QGuiApplication::platformName();
 
 				 /// Apply cross-platform sticky window logic
 				 platform::make_window_sticky(window, platform);

@@ -41,8 +41,7 @@ std::string_view extract_value(const std::string_view line) noexcept
 
 template <typename T>
 requires std::is_arithmetic_v<T>
-std::expected<T, std::errc> parse_number(std::string_view text,
-					 int base = 10) noexcept
+std::expected<T, std::errc> parse_number(std::string_view text, int base = 10) noexcept
 {
 	T out{};
 	const auto first = text.data();
@@ -74,10 +73,9 @@ void parse_first_number(T &field, std::string_view s, int base = 10) noexcept
 	if (start == std::string_view::npos)
 		return;
 	s = s.substr(start);
-	s = s.substr(
-		0,
-		s.find_first_not_of(
-			"0123456789.")); /// "16384 kB" → "16384", "1234Mhz" → "1234"
+	s = s.substr(0,
+		     s.find_first_not_of(
+			     "0123456789.")); /// "16384 kB" → "16384", "1234Mhz" → "1234"
 	if (auto r = parse_number<T>(s, base); r)
 		field = *r;
 }
@@ -94,8 +92,7 @@ struct cpu_times {
 
 	inline uint64_t total() const noexcept
 	{
-		return user + nice + system + idle + iowait + irq + softirq +
-		       steal;
+		return user + nice + system + idle + iowait + irq + softirq + steal;
 	}
 
 	inline uint64_t idle_time() const noexcept
@@ -162,8 +159,7 @@ std::string exec_cmd(const char *cmd)
 	std::string result;
 	using pipe_close_t = int (*)(FILE *);
 	std::unique_ptr<FILE, pipe_close_t> pipe(popen(cmd, "r"),
-						 static_cast<pipe_close_t>(
-							 pclose));
+						 static_cast<pipe_close_t>(pclose));
 	if (!pipe) {
 		std::clog << "popen() failed: " << cmd << "\n";
 		return "";
@@ -190,8 +186,7 @@ float percent(T used, T total) noexcept
 	return (100.0f * used) / total;
 }
 
-std::expected<std::string, std::errc> find_hwmon_by_name(
-	std::string_view target)
+std::expected<std::string, std::errc> find_hwmon_by_name(std::string_view target)
 {
 	std::error_code ec;
 	fs::directory_iterator it("/sys/class/hwmon/", ec);
@@ -211,17 +206,15 @@ std::expected<std::string, std::errc> find_hwmon_by_name(
 	return std::unexpected(std::errc::no_such_device);
 }
 
-std::expected<float, std::errc> read_cpu_frequency_avg(
-	std::string_view filename) noexcept
+std::expected<float, std::errc> read_cpu_frequency_avg(std::string_view filename) noexcept
 {
 	float sum = 0;
 	int count = 0;
 
 	while (true) {
-		auto path =
-			std::format("/sys/devices/system/cpu/cpu{}/cpufreq/{}",
-				    count++,
-				    filename);
+		auto path = std::format("/sys/devices/system/cpu/cpu{}/cpufreq/{}",
+					count++,
+					filename);
 		auto line = read_line(path);
 		if (line.empty())
 			break;

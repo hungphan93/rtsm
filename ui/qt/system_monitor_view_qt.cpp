@@ -16,8 +16,7 @@ std::shared_ptr<system_monitor_backend_engine> create_system_monitor_backend(
 	std::any presenter_instance)
 {
 	auto engine = std::make_shared<system_monitor_backend_engine>();
-	engine->smp = std::any_cast<
-		std::shared_ptr<presenter::system_monitor_presenter>>(
+	engine->smp = std::any_cast<std::shared_ptr<presenter::system_monitor_presenter>>(
 		presenter_instance);
 	return engine;
 }
@@ -36,9 +35,7 @@ system_monitor_view_qt::system_monitor_view_qt(
 
 	auto bind_signal = [this](auto register_fn, auto signal) {
 		(backend_->smp.get()->*register_fn)([this, signal] {
-			QMetaObject::invokeMethod(this,
-						  signal,
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(this, signal, Qt::QueuedConnection);
 		});
 	};
 
@@ -116,8 +113,7 @@ QString system_monitor_view_qt::memory_usage_percent() const
 {
 	if (!backend_ || !backend_->smp)
 		return {};
-	return QString::fromStdString(
-		backend_->smp->memory_vm()->usage_percent);
+	return QString::fromStdString(backend_->smp->memory_vm()->usage_percent);
 }
 
 QString system_monitor_view_qt::memory_name() const
@@ -138,8 +134,7 @@ QString system_monitor_view_qt::memory_frequency_mhz() const
 {
 	if (!backend_ || !backend_->smp)
 		return {};
-	return QString::fromStdString(
-		backend_->smp->memory_vm()->frequency_mhz);
+	return QString::fromStdString(backend_->smp->memory_vm()->frequency_mhz);
 }
 
 /// gpu

@@ -1,8 +1,4 @@
 /// MIT License
-module;
-
-#include <cstdint>
-
 export module adapter:system_info_reader_linux;
 
 import usecase;
@@ -15,7 +11,7 @@ namespace fs = std::filesystem;
 export namespace adapter::linux2
 {
 
-enum class gpu_vendor : uint16_t {
+enum class gpu_vendor : std::uint16_t {
 	NVIDIA = 0x10DE,
 	AMD = 0x1002,
 	INTEL = 0x8086,
@@ -43,13 +39,13 @@ private:
 	mutable std::ifstream proc_ram_;
 
 	/// NET
-	mutable uint64_t net_prev_rx_ = 0;
-	mutable uint64_t net_prev_tx_ = 0;
+	mutable std::uint64_t net_prev_rx_ = 0;
+	mutable std::uint64_t net_prev_tx_ = 0;
 	mutable std::chrono::steady_clock::time_point net_prev_t_;
 
 	/// DISK
-	mutable uint64_t disk_prev_r_ = 0;
-	mutable uint64_t disk_prev_w_ = 0;
+	mutable std::uint64_t disk_prev_r_ = 0;
+	mutable std::uint64_t disk_prev_w_ = 0;
 	mutable std::chrono::steady_clock::time_point disk_prev_t_;
 
 	/// GPU
