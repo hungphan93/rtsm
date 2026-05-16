@@ -33,7 +33,7 @@ Standard:        Latest
 # If you need > 3 levels of indent → refactor, do not shrink the indent.
 # (This rule cannot be enforced by clang-format — reviewer's responsibility.)
 # -----------------------------------------------------------------------------
-UseTab:                      AlignWithSpaces   # tab for indent, spaces for alignment (consistent across editor tab widths)
+UseTab:                      Always   # official kernel: tabs everywhere (no alignment, so no skew)
 TabWidth:                    8
 IndentWidth:                 8
 ContinuationIndentWidth:     8
@@ -242,35 +242,24 @@ AlignTrailingComments:
   OverEmptyLines:            1
 
 # =============================================================================
-# 8. ALIGNMENT — align declarations + macros (deviation from kernel, favours
-#                readability)
+# 8. ALIGNMENT — strict kernel: NO column alignment
 # =============================================================================
-# Kernel C bans alignment (reason: changing one type forces re-formatting of
-# the whole block → diff noise). This project takes the opposite stance and
-# enables alignment for declarations and macros because the Entity layer is
-# composed of DTO structs whose types rarely change.
+# Kernel C bans column alignment. Reason: changing one type/long name forces
+# re-formatting the whole block → large diff noise, noisy blame, slow review.
+# Official linux/.clang-format: all AlignConsecutive* = false.
+# This project follows strict kernel — single space, no column alignment.
 # -----------------------------------------------------------------------------
 AlignAfterOpenBracket:                Align
 AlignArrayOfStructures:               None
 AlignConsecutiveAssignments:
-  Enabled:                   true    # `=` aligned (consistent with declarations)
-  AcrossEmptyLines:          false   # blank line BREAKS alignment
-  AcrossComments:            true    # /// comment does NOT break alignment
-  AlignCompound:             false   # `+=` not aligned with `=`
-  PadOperators:              true
+  Enabled:                   false   # kernel: do NOT align `=`
 AlignConsecutiveBitFields:
   Enabled:                   false
 AlignConsecutiveDeclarations:
-  Enabled:                   true    # variable names aligned (deviation, favours readability)
-  AcrossEmptyLines:          false   # blank line BREAKS alignment — isolates functions from vars
-  AcrossComments:            true    # /// does NOT break — vars stay aligned across comments
-  AlignCompound:             false   # `+=` not aligned with `=`
-  PadOperators:              true
+  Enabled:                   false   # kernel: do NOT align variable names
 AlignConsecutiveMacros:
-  Enabled:                   true    # exception: #define values aligned for readability
-  AcrossEmptyLines:          false
-  AcrossComments:            false
-AlignEscapedNewlines:        Left    # macro `\` aligned left
+  Enabled:                   false   # kernel: do NOT align #define
+AlignEscapedNewlines:        Left    # macro `\` aligned left (kernel keeps this)
 AlignOperands:               Align
 
 # =============================================================================

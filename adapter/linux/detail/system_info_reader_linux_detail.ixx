@@ -42,11 +42,11 @@ std::string_view extract_value(const std::string_view line) noexcept
 template <typename T>
 requires std::is_arithmetic_v<T>
 std::expected<T, std::errc> parse_number(std::string_view text,
-                                         int              base = 10) noexcept
+					 int base = 10) noexcept
 {
-	T          out{};
+	T out{};
 	const auto first = text.data();
-	const auto last  = first + text.size();
+	const auto last = first + text.size();
 
 	std::from_chars_result result;
 	if constexpr (std::is_integral_v<T>) {
@@ -83,14 +83,14 @@ void parse_first_number(T &field, std::string_view s, int base = 10) noexcept
 }
 
 struct cpu_times {
-	uint64_t user    = 0;
-	uint64_t nice    = 0;
-	uint64_t system  = 0;
-	uint64_t idle    = 0;
-	uint64_t iowait  = 0;
-	uint64_t irq     = 0;
+	uint64_t user = 0;
+	uint64_t nice = 0;
+	uint64_t system = 0;
+	uint64_t idle = 0;
+	uint64_t iowait = 0;
+	uint64_t irq = 0;
 	uint64_t softirq = 0;
-	uint64_t steal   = 0;
+	uint64_t steal = 0;
 
 	inline uint64_t total() const noexcept
 	{
@@ -122,18 +122,18 @@ std::expected<cpu_times, std::errc> read_cpu_times()
 		return std::unexpected(std::errc::protocol_error);
 	}
 
-	cpu_times   times{};
+	cpu_times times{};
 	const auto *first = line.data() + prefix.size();
-	const auto *last  = line.data() + line.size();
+	const auto *last = line.data() + line.size();
 
 	for (auto out : { &times.user,
-	                  &times.nice,
-	                  &times.system,
-	                  &times.idle,
-	                  &times.iowait,
-	                  &times.irq,
-	                  &times.softirq,
-	                  &times.steal }) {
+			  &times.nice,
+			  &times.system,
+			  &times.idle,
+			  &times.iowait,
+			  &times.irq,
+			  &times.softirq,
+			  &times.steal }) {
 		/// ignoring character space
 		while (first < last && *first == ' ')
 			++first;
@@ -151,7 +151,7 @@ std::expected<cpu_times, std::errc> read_cpu_times()
 std::string read_line(const fs::path &path)
 {
 	std::ifstream file(path);
-	std::string   line;
+	std::string line;
 	std::getline(file, line);
 	return line;
 };
@@ -159,10 +159,10 @@ std::string read_line(const fs::path &path)
 std::string exec_cmd(const char *cmd)
 {
 	std::array<char, 128> buffer;
-	std::string           result;
+	std::string result;
 	using pipe_close_t = int (*)(FILE *);
 	std::unique_ptr<FILE, pipe_close_t> pipe(popen(cmd, "r"),
-	                                         static_cast<pipe_close_t>(
+						 static_cast<pipe_close_t>(
 							 pclose));
 	if (!pipe) {
 		std::clog << "popen() failed: " << cmd << "\n";
@@ -193,7 +193,7 @@ float percent(T used, T total) noexcept
 std::expected<std::string, std::errc> find_hwmon_by_name(
 	std::string_view target)
 {
-	std::error_code        ec;
+	std::error_code ec;
 	fs::directory_iterator it("/sys/class/hwmon/", ec);
 
 	if (ec)
@@ -201,7 +201,7 @@ std::expected<std::string, std::errc> find_hwmon_by_name(
 
 	for (const auto &entry : it) {
 		auto name_path = entry.path() / "name";
-		auto name      = read_line(name_path);
+		auto name = read_line(name_path);
 
 		if (name == target) {
 			return entry.path().string();
@@ -214,14 +214,14 @@ std::expected<std::string, std::errc> find_hwmon_by_name(
 std::expected<float, std::errc> read_cpu_frequency_avg(
 	std::string_view filename) noexcept
 {
-	float sum   = 0;
-	int   count = 0;
+	float sum = 0;
+	int count = 0;
 
 	while (true) {
 		auto path =
 			std::format("/sys/devices/system/cpu/cpu{}/cpufreq/{}",
-		                    count++,
-		                    filename);
+				    count++,
+				    filename);
 		auto line = read_line(path);
 		if (line.empty())
 			break;
@@ -247,7 +247,7 @@ std::expected<T, std::errc> to_uint(std::string_view s, int base = 10) noexcept
 
 	if (base == 16 || base == 0) {
 		if (s.starts_with("0x") || s.starts_with("0X")) {
-			s    = s.substr(2);
+			s = s.substr(2);
 			base = 16;
 		}
 	}

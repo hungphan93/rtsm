@@ -27,7 +27,7 @@ namespace ui::qt
 
 system_monitor_view_qt::system_monitor_view_qt(
 	std::shared_ptr<system_monitor_backend_engine> backend,
-	QObject                                       *parent)
+	QObject *parent)
 	: QObject(parent)
 	, backend_(std::move(backend))
 {
@@ -37,21 +37,21 @@ system_monitor_view_qt::system_monitor_view_qt(
 	auto bind_signal = [this](auto register_fn, auto signal) {
 		(backend_->smp.get()->*register_fn)([this, signal] {
 			QMetaObject::invokeMethod(this,
-			                          signal,
-			                          Qt::QueuedConnection);
+						  signal,
+						  Qt::QueuedConnection);
 		});
 	};
 
 	bind_signal(&presenter::system_monitor_presenter::on_cpu_changed,
-	            &system_monitor_view_qt::cpu_changed);
+		    &system_monitor_view_qt::cpu_changed);
 	bind_signal(&presenter::system_monitor_presenter::on_memory_changed,
-	            &system_monitor_view_qt::memory_changed);
+		    &system_monitor_view_qt::memory_changed);
 	bind_signal(&presenter::system_monitor_presenter::on_gpu_changed,
-	            &system_monitor_view_qt::gpu_changed);
+		    &system_monitor_view_qt::gpu_changed);
 	bind_signal(&presenter::system_monitor_presenter::on_disk_changed,
-	            &system_monitor_view_qt::disk_changed);
+		    &system_monitor_view_qt::disk_changed);
 	bind_signal(&presenter::system_monitor_presenter::on_net_changed,
-	            &system_monitor_view_qt::net_changed);
+		    &system_monitor_view_qt::net_changed);
 }
 
 system_monitor_view_qt::~system_monitor_view_qt() = default;

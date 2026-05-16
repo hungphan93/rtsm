@@ -16,20 +16,20 @@ public:
 	system_data_scheduler(const system_data_scheduler &) = delete;
 	system_data_scheduler &operator=(const system_data_scheduler &) =
 		delete;
-	system_data_scheduler(system_data_scheduler &&)            = delete;
+	system_data_scheduler(system_data_scheduler &&) = delete;
 	system_data_scheduler &operator=(system_data_scheduler &&) = delete;
 
 	[[nodiscard]] subscription_id subscribe(
 		std::chrono::milliseconds interval,
-		std::function<void()>     task)
+		std::function<void()> task)
 	{
-		const auto       id = next_id_.fetch_add(1);
+		const auto id = next_id_.fetch_add(1);
 		std::scoped_lock lock(mutex_);
 		subscriptions_.emplace(
 			id,
 			std::jthread([this, interval, cb = std::move(task)](
 					     std::stop_token st) {
-				std::mutex                  sleep_mutex;
+				std::mutex sleep_mutex;
 				std::condition_variable_any cv;
 				while (!st.stop_requested()) {
 					cb();
@@ -49,15 +49,15 @@ public:
 	// The thread is fully managed and safely self-cleans without deadlinking the map lock.
 	[[nodiscard]] subscription_id run_once(
 		std::chrono::milliseconds interval,
-		std::function<void()>     task)
+		std::function<void()> task)
 	{
-		const auto       id = next_id_.fetch_add(1);
+		const auto id = next_id_.fetch_add(1);
 		std::scoped_lock lock(mutex_);
 		subscriptions_.emplace(
 			id,
 			std::jthread([this, id, interval, cb = std::move(task)](
 					     std::stop_token st) {
-				std::mutex                  sleep_mutex;
+				std::mutex sleep_mutex;
 				std::condition_variable_any cv;
 
 				// Baseline Call
@@ -65,7 +65,7 @@ public:
 					cb();
 
 				if (interval >
-			            std::chrono::milliseconds::zero()) {
+				    std::chrono::milliseconds::zero()) {
 					std::unique_lock<std::mutex> lock(
 						sleep_mutex);
 					cv.wait_for(lock, st, interval, [] {
@@ -85,14 +85,14 @@ public:
 		return id;
 	}
 
-	void                      unsubscribe(subscription_id id);
-	void                      stop_all();
+	void unsubscribe(subscription_id id);
+	void stop_all();
 	[[nodiscard]] std::size_t active_count() const noexcept;
 
 private:
 	std::map<subscription_id, std::jthread> subscriptions_;
-	std::atomic<subscription_id>            next_id_{ 0 };
-	mutable std::mutex                      mutex_;
+	std::atomic<subscription_id> next_id_{ 0 };
+	mutable std::mutex mutex_;
 };
 
 } /// namespace scheduler

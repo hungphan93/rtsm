@@ -25,8 +25,8 @@
 namespace platform
 {
 
-inline void make_window_sticky(QPointer<QWindow> window        = nullptr,
-                               QString           platform_name = QString())
+inline void make_window_sticky(QPointer<QWindow> window = nullptr,
+			       QString platform_name = QString())
 {
 	if (!window) {
 		std::cerr
@@ -61,7 +61,7 @@ inline void make_window_sticky(QPointer<QWindow> window        = nullptr,
 	}
 
 	else if (platform_name.startsWith("xcb", Qt::CaseInsensitive) ||
-	         platform_name.contains("x11", Qt::CaseInsensitive)) {
+		 platform_name.contains("x11", Qt::CaseInsensitive)) {
 		Display *display = XOpenDisplay(nullptr);
 		if (!display) {
 			std::cerr << "[platform] Failed to open X11 display.\n";
@@ -86,42 +86,42 @@ inline void make_window_sticky(QPointer<QWindow> window        = nullptr,
 		if (desktop_atom != None) {
 			constexpr unsigned long ALL_DESKTOPS = 0xFFFFFFFF;
 			XChangeProperty(display,
-			                win_id,
-			                desktop_atom,
-			                XA_CARDINAL,
-			                32,
-			                PropModeReplace,
-			                reinterpret_cast<unsigned char *>(
+					win_id,
+					desktop_atom,
+					XA_CARDINAL,
+					32,
+					PropModeReplace,
+					reinterpret_cast<unsigned char *>(
 						const_cast<unsigned long *>(
 							&ALL_DESKTOPS)),
-			                1);
+					1);
 			std::clog
 				<< "[platform] Set _NET_WM_DESKTOP to all desktops.\n";
 		}
 
 		/// Proper client message for _NET_WM_STATE sticky + below
 		Atom wm_state = get_atom("_NET_WM_STATE");
-		Atom sticky   = get_atom("_NET_WM_STATE_STICKY");
-		Atom below    = get_atom("_NET_WM_STATE_BELOW");
+		Atom sticky = get_atom("_NET_WM_STATE_STICKY");
+		Atom below = get_atom("_NET_WM_STATE_BELOW");
 
 		if (wm_state && sticky && below) {
 			XEvent e;
 			std::memset(&e, 0, sizeof(e));
-			e.xclient.type         = ClientMessage;
+			e.xclient.type = ClientMessage;
 			e.xclient.message_type = wm_state;
-			e.xclient.display      = display;
-			e.xclient.window       = win_id;
-			e.xclient.format       = 32;
-			e.xclient.data.l[0]    = 1; /// _NET_WM_STATE_ADD
-			e.xclient.data.l[1]    = sticky;
-			e.xclient.data.l[2]    = below;
+			e.xclient.display = display;
+			e.xclient.window = win_id;
+			e.xclient.format = 32;
+			e.xclient.data.l[0] = 1; /// _NET_WM_STATE_ADD
+			e.xclient.data.l[1] = sticky;
+			e.xclient.data.l[2] = below;
 
 			XSendEvent(display,
-			           DefaultRootWindow(display),
-			           False,
-			           SubstructureRedirectMask |
-			                   SubstructureNotifyMask,
-			           &e);
+				   DefaultRootWindow(display),
+				   False,
+				   SubstructureRedirectMask |
+					   SubstructureNotifyMask,
+				   &e);
 
 			std::clog
 				<< "[platform] Sent _NET_WM_STATE client message for sticky & below.\n";

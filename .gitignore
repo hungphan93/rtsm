@@ -89,3 +89,6 @@ CMakeLists.txt.user
 valgrind.log
 .qtcreator/
 CLAUDE.md
+doc/cpp_type_sizes.md
+doc/cpp_type_sizes.html
+.$rtsm.*

@@ -72,40 +72,40 @@ private:
 	/// Specifically designed for SPEED (Network, Disk I/O)
 	static std::string format_speed(double bytes_per_sec)
 	{
-		int         unit    = 0;
+		int unit = 0;
 		const char *units[] = { "B/s", "KB/s", "MB/s", "GB/s", "TB/s" };
 		while (bytes_per_sec >= 1024.0 && unit < 4) {
 			bytes_per_sec /= 1024.0;
 			unit++;
 		}
 		char buffer[32];
-		int  precision = unit >= 3 ? 2 : 1;
+		int precision = unit >= 3 ? 2 : 1;
 		std::snprintf(buffer,
-		              sizeof(buffer),
-		              "%.*f%s",
-		              precision,
-		              bytes_per_sec,
-		              units[unit]);
+			      sizeof(buffer),
+			      "%.*f%s",
+			      precision,
+			      bytes_per_sec,
+			      units[unit]);
 		return std::string(buffer);
 	}
 
 	/// Specifically designed for CAPACITY (RAM, VRAM, Disk Size)
 	static std::string format_bytes(double bytes)
 	{
-		int         unit    = 0;
+		int unit = 0;
 		const char *units[] = { "B", "KB", "MB", "GB", "TB" };
 		while (bytes >= 1024.0 && unit < 4) {
 			bytes /= 1024.0;
 			unit++;
 		}
 		char buffer[32];
-		int  precision = unit >= 3 ? 2 : 1;
+		int precision = unit >= 3 ? 2 : 1;
 		std::snprintf(buffer,
-		              sizeof(buffer),
-		              "%.*f%s",
-		              precision,
-		              bytes,
-		              units[unit]);
+			      sizeof(buffer),
+			      "%.*f%s",
+			      precision,
+			      bytes,
+			      units[unit]);
 		return std::string(buffer);
 	}
 
@@ -116,17 +116,17 @@ private:
 		return std::string(buffer);
 	}
 
-	static std::string format_float(float              value,
-	                                int                precision,
-	                                const std::string &suffix = "")
+	static std::string format_float(float value,
+					int precision,
+					const std::string &suffix = "")
 	{
 		char buffer[32];
 		std::snprintf(buffer,
-		              sizeof(buffer),
-		              "%.*f%s",
-		              precision,
-		              value,
-		              suffix.c_str());
+			      sizeof(buffer),
+			      "%.*f%s",
+			      precision,
+			      value,
+			      suffix.c_str());
 		return std::string(buffer);
 	}
 
@@ -136,7 +136,7 @@ private:
 	void present_cpu(const entity::cpu &v) override
 	{
 		cpu_view_model vm;
-		vm.model_name    = v.model_name;
+		vm.model_name = v.model_name;
 		vm.usage_percent = format_percent(v.usage_percent);
 		vm.frequency_mhz = format_float(v.frequency_mhz, 0, "MHz");
 		vm.temperature_c = format_float(v.temperature_c, 0, "°C");
@@ -151,13 +151,13 @@ private:
 
 		// FIX: The entity stores RAM in GiB. We must multiply by 1024^3 to restore it to Raw Bytes
 		vm.vram_total = format_bytes(v.vram_total * 1024.0 * 1024.0 *
-		                             1024.0);
-		vm.vram_used  = format_bytes(v.vram_used * 1024.0 * 1024.0 *
-                                            1024.0) +
-		               " of ";
+					     1024.0);
+		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0 *
+					    1024.0) +
+			       " of ";
 
 		vm.usage_percent = format_percent(v.usage_percent);
-		vm.voltage       = format_float(v.voltage, 1, "V");
+		vm.voltage = format_float(v.voltage, 1, "V");
 		vm.frequency_mhz = format_float(v.frequency_mhz, 0, "MHz");
 		update(memory_, vm);
 	}
@@ -169,11 +169,11 @@ private:
 
 		// FIX: GPU VRAM is stored in MiB. Multiply by 1024^2 to restore it to Raw Bytes
 		vm.vram_total = format_bytes(v.vram_total * 1024.0 * 1024.0);
-		vm.vram_used  = format_bytes(v.vram_used * 1024.0 * 1024.0) +
-		               " of ";
+		vm.vram_used = format_bytes(v.vram_used * 1024.0 * 1024.0) +
+			       " of ";
 
 		vm.usage_percent = format_percent(v.usage_percent);
-		vm.cores         = std::to_string(v.cores);
+		vm.cores = std::to_string(v.cores);
 		vm.frequency_mhz = format_float(v.frequency_mhz, 0, "MHz");
 		vm.temperature_c = format_float(v.temperature_c, 0, "°C");
 		update(gpu_, vm);
@@ -182,7 +182,7 @@ private:
 	void present_disk(const entity::disk &v) override
 	{
 		disk_view_model vm;
-		vm.model         = v.model;
+		vm.model = v.model;
 		vm.serial_number = v.serial_number;
 
 		// FIX: v.size is currently 0, the actual capacity relies on v.total (GiB). Multiply by 1024^3
@@ -193,10 +193,10 @@ private:
 		vm.write_speed = format_speed(
 			v.write_speed); // Already calculated as Bytes/s in the Adapter
 		vm.usage_percent = v.total > 0
-		                           ? format_percent(100.0f * v.used /
-		                                            v.total)
-		                           : "0.00%";
-		vm.sector_size   = std::to_string(v.sector_size);
+					   ? format_percent(100.0f * v.used /
+							    v.total)
+					   : "0.00%";
+		vm.sector_size = std::to_string(v.sector_size);
 		update(disk_, vm);
 	}
 
@@ -216,8 +216,8 @@ private:
 	template <typename T>
 	struct field {
 		std::shared_ptr<const T> data = std::make_shared<T>();
-		notify                   cb;
-		mutable std::mutex       mtx;
+		notify cb;
+		mutable std::mutex mtx;
 	};
 
 	template <typename T>
@@ -238,14 +238,14 @@ private:
 	template <typename T>
 	void update(field<T> &f, const T &v)
 	{
-		auto   new_data = std::make_shared<T>(v);
+		auto new_data = std::make_shared<T>(v);
 		notify local_cb;
 		{
 			std::scoped_lock lock(f.mtx);
 			// Prevent unnecessary UI redraws if the data has not changed
 			if (f.data && *f.data == v)
 				return;
-			f.data   = std::move(new_data);
+			f.data = std::move(new_data);
 			local_cb = f.cb;
 		}
 
@@ -254,11 +254,11 @@ private:
 			local_cb();
 	}
 
-	field<cpu_view_model>    cpu_;
+	field<cpu_view_model> cpu_;
 	field<memory_view_model> memory_;
-	field<gpu_view_model>    gpu_;
-	field<disk_view_model>   disk_;
-	field<net_view_model>    net_;
+	field<gpu_view_model> gpu_;
+	field<disk_view_model> disk_;
+	field<net_view_model> net_;
 };
 
 } /// namespace presenter

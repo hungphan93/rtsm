@@ -15,7 +15,7 @@ export namespace usecase
 class system_monitor_interactor : public system_monitor_input_boundary {
 public:
 	explicit system_monitor_interactor(
-		const system_info_reader       &reader,
+		const system_info_reader &reader,
 		system_monitor_output_boundary &output) noexcept
 		: reader_{ reader }
 		, output_{ output }
@@ -54,7 +54,7 @@ public:
 	}
 
 private:
-	const system_info_reader       &reader_;
+	const system_info_reader &reader_;
 	system_monitor_output_boundary &output_;
 
 	/// Per-metric mutexes to serialize concurrent fetch calls (e.g. subscribe + run_once)

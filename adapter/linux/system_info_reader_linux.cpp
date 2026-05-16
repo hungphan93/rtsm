@@ -32,34 +32,34 @@ typedef struct nvmlMemory_st {
 typedef nvmlReturn_t (*nvmlInit_t)(void);
 typedef nvmlReturn_t (*nvmlShutdown_t)(void);
 typedef nvmlReturn_t (*nvmlDeviceGetHandleByIndex_v2_t)(unsigned int,
-                                                        nvmlDevice_t *);
+							nvmlDevice_t *);
 typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t *);
 typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t,
-                                                   int,
-                                                   unsigned int *);
+						   int,
+						   unsigned int *);
 typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t,
-                                                 int,
-                                                 unsigned int *);
+						 int,
+						 unsigned int *);
 typedef nvmlReturn_t (*nvmlDeviceGetUtilizationRates_t)(
 	nvmlDevice_t,
 	void *); // Placeholder, actual struct needed
 typedef nvmlReturn_t (*nvmlDeviceGetName_t)(nvmlDevice_t, char *, unsigned int);
 typedef nvmlReturn_t (*nvmlDeviceGetCount_v2_t)(unsigned int *);
 
-static void *handle         = nullptr;
-static bool  loaded         = false;
-static bool  init_attempted = false;
+static void *handle = nullptr;
+static bool loaded = false;
+static bool init_attempted = false;
 
-static nvmlInit_t                      nvmlInit_v2_ptr         = nullptr;
+static nvmlInit_t nvmlInit_v2_ptr = nullptr;
 static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
 static nvmlDeviceGetUtilizationRates_t nvmlDeviceGetUtilizationRates_ptr =
 	nullptr;
-static nvmlDeviceGetMemoryInfo_t  nvmlDeviceGetMemoryInfo_ptr  = nullptr;
-static nvmlDeviceGetClockInfo_t   nvmlDeviceGetClockInfo_ptr   = nullptr;
+static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
+static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
 static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
-static nvmlDeviceGetName_t        nvmlDeviceGetName_ptr        = nullptr;
-static nvmlShutdown_t             nvmlShutdown_ptr             = nullptr;
-static nvmlDeviceGetCount_v2_t    nvmlDeviceGetCount_v2_ptr    = nullptr;
+static nvmlDeviceGetName_t nvmlDeviceGetName_ptr = nullptr;
+static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
+static nvmlDeviceGetCount_v2_t nvmlDeviceGetCount_v2_ptr = nullptr;
 
 struct nvml_guard {
 	~nvml_guard()
@@ -88,8 +88,8 @@ bool load_nvml()
 	if (!handle)
 		return false;
 
-	nvmlInit_v2_ptr         = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
-	nvmlShutdown_ptr        = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
+	nvmlInit_v2_ptr = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
+	nvmlShutdown_ptr = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
 	nvmlDeviceGetHandle_ptr = (nvmlDeviceGetHandleByIndex_v2_t)
 		dlsym(handle, "nvmlDeviceGetHandleByIndex_v2");
 	nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)
@@ -102,8 +102,8 @@ bool load_nvml()
 	// Optional pointers (we don't fail if these are missing, as they are not currently used in read_gpu)
 	nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)
 		dlsym(handle, "nvmlDeviceGetUtilizationRates");
-	nvmlDeviceGetName_ptr     = (nvmlDeviceGetName_t)dlsym(handle,
-                                                           "nvmlDeviceGetName");
+	nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle,
+							   "nvmlDeviceGetName");
 	nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)
 		dlsym(handle, "nvmlDeviceGetCount_v2");
 
@@ -144,9 +144,9 @@ entity::cpu system_info_reader_linux::read_cpu() const
 		if (line.contains("model name")) {
 			std::cmatch match;
 			if (std::regex_search(value.data(),
-			                      value.data() + value.size(),
-			                      match,
-			                      detail::cpu_name_pattern)) {
+					      value.data() + value.size(),
+					      match,
+					      detail::cpu_name_pattern)) {
 				result.model_name = match.str();
 			} else {
 				result.model_name = value;
@@ -190,12 +190,12 @@ entity::cpu system_info_reader_linux::read_cpu() const
 	const auto &current_times = *times_result;
 
 	const auto idle_diff = current_times.idle_time() -
-	                       last_cpu_times_.idle_time();
+			       last_cpu_times_.idle_time();
 	const auto total_diff = current_times.total() - last_cpu_times_.total();
 
 	if (total_diff > 0) {
 		result.usage_percent = detail::percent(total_diff - idle_diff,
-		                                       total_diff);
+						       total_diff);
 	}
 
 	last_cpu_times_ = current_times;
@@ -240,7 +240,7 @@ entity::memory system_info_reader_linux::read_memory() const
 			detail::parse_first_number(result.vram_free, value);
 		else if (line.contains("MemAvailable:"))
 			detail::parse_first_number(result.vram_available,
-			                           value);
+						   value);
 
 		if (result.vram_total > 0 && result.vram_free > 0 &&
 		    result.vram_available > 0) {
@@ -250,15 +250,15 @@ entity::memory system_info_reader_linux::read_memory() const
 
 	/// KB -> MB -> GB
 	result.vram_total = result.vram_total / (1024.0f * 1024.0f);
-	result.vram_free  = result.vram_free / (1024.0f * 1024.0f);
+	result.vram_free = result.vram_free / (1024.0f * 1024.0f);
 
 	result.vram_used = result.vram_total -
-	                   result.vram_available / (1024.0f * 1024.0f);
+			   result.vram_available / (1024.0f * 1024.0f);
 
 	/// Using percent of RAM
 	if (result.vram_used > 0 && result.vram_total > 0) {
 		result.usage_percent = detail::percent(result.vram_used,
-		                                       result.vram_total);
+						       result.vram_total);
 	}
 
 	/// https://linux.die.net/man/8/dmidecode
@@ -281,7 +281,7 @@ entity::memory system_info_reader_linux::read_memory() const
 		}
 
 		else if (line.contains("Configured Voltage:") ||
-		         line.contains("Maximum Voltage:")) {
+			 line.contains("Maximum Voltage:")) {
 			detail::parse_first_number(result.voltage, value);
 		}
 	}
@@ -336,11 +336,11 @@ bool is_amd_integrated(uint16_t device_id)
 	if (device_id >= 0x7300 && device_id <= 0x73FF)
 		return false; /// RDNA2/3 dGPU
 
-	return false;         /// default is dGPU if not match
+	return false;	      /// default is dGPU if not match
 }
 
-void system_info_reader_linux::classify_gpu(fs::path    &hwmon_path,
-                                            entity::gpu &result) const
+void system_info_reader_linux::classify_gpu(fs::path &hwmon_path,
+					    entity::gpu &result) const
 {
 	const auto vendor = static_cast<gpu_vendor>(result.vendor);
 
@@ -381,8 +381,8 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 	if (nvml::nvmlDeviceGetName_ptr) {
 		char name_buf[96] = {};
 		if (nvml::nvmlDeviceGetName_ptr(device,
-		                                name_buf,
-		                                sizeof(name_buf)) ==
+						name_buf,
+						sizeof(name_buf)) ==
 		    nvml::NVML_SUCCESS) {
 			result.name = name_buf;
 		}
@@ -393,11 +393,11 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 	if (nvml::nvmlDeviceGetMemoryInfo_ptr(device, &memory) ==
 	    nvml::NVML_SUCCESS) {
 		result.vram_total = memory.total / (1024 * 1024);
-		result.vram_used  = memory.used / (1024 * 1024);
+		result.vram_used = memory.used / (1024 * 1024);
 		if (result.vram_total > 0) {
 			result.usage_percent =
 				detail::percent(result.vram_used,
-			                        result.vram_total);
+						result.vram_total);
 		}
 	}
 
@@ -416,16 +416,16 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 	}
 }
 
-void system_info_reader_linux::read_amd_igpu(fs::path    &hwmon_path,
-                                             entity::gpu &result) const
+void system_info_reader_linux::read_amd_igpu(fs::path &hwmon_path,
+					     entity::gpu &result) const
 {
 	auto mem_total = detail::read_line(hwmon_path /
-	                                   "device/mem_info_vram_total");
+					   "device/mem_info_vram_total");
 	if (auto v = detail::to_uint(mem_total); v)
 		result.vram_total = *v / (1024 * 1024);
 
 	auto vram_used = detail::read_line(hwmon_path /
-	                                   "device/mem_info_vram_used");
+					   "device/mem_info_vram_used");
 	if (auto v = detail::to_uint(vram_used); v)
 		result.vram_used = *v / (1024 * 1024);
 
@@ -439,7 +439,7 @@ void system_info_reader_linux::read_amd_igpu(fs::path    &hwmon_path,
 
 	if (result.vram_used > 0 && result.vram_total > 0) {
 		result.usage_percent = detail::percent(result.vram_used,
-		                                       result.vram_total);
+						       result.vram_total);
 	}
 
 	auto frequency_mhz = detail::read_line(hwmon_path / "freq1_input");
@@ -447,8 +447,8 @@ void system_info_reader_linux::read_amd_igpu(fs::path    &hwmon_path,
 		result.frequency_mhz = *v / 1000000.f;
 }
 
-void system_info_reader_linux::read_amd_dgpu(fs::path    &hwmon_path,
-                                             entity::gpu &result) const
+void system_info_reader_linux::read_amd_dgpu(fs::path &hwmon_path,
+					     entity::gpu &result) const
 {
 	std::clog << "future support\n";
 }
@@ -456,7 +456,7 @@ void system_info_reader_linux::read_amd_dgpu(fs::path    &hwmon_path,
 entity::gpu system_info_reader_linux::read_gpu() const
 {
 	entity::gpu result{};
-	fs::path    hwmon_path;
+	fs::path hwmon_path;
 
 	if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
 		hwmon_path = *r;
@@ -493,7 +493,7 @@ entity::gpu system_info_reader_linux::read_gpu() const
 entity::disk system_info_reader_linux::read_disk() const
 {
 	entity::disk result{};
-	uint64_t     total_r = 0, total_w = 0;
+	uint64_t total_r = 0, total_w = 0;
 
 	/// /sys/block: aggregate sectors + grab first disk model
 	std::error_code ec;
@@ -506,7 +506,7 @@ entity::disk system_info_reader_linux::read_disk() const
 
 		if (result.model.empty())
 			result.model = detail::read_line(entry.path() /
-			                                 "device/model");
+							 "device/model");
 
 		std::istringstream iss(
 			detail::read_line(entry.path() / "stat"));
@@ -536,23 +536,23 @@ entity::disk system_info_reader_linux::read_disk() const
 			continue;
 		result.total += (double)sv.f_blocks * sv.f_frsize;
 		result.used += (double)(sv.f_blocks - sv.f_bavail) *
-		               sv.f_frsize;
+			       sv.f_frsize;
 	}
 
 	const auto current_time = std::chrono::steady_clock::now();
 	const std::chrono::duration<double> dt = current_time - disk_prev_t_;
-	const double                        dt_sec = dt.count();
+	const double dt_sec = dt.count();
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
 		const uint64_t diff_r = (total_r >= disk_prev_r_)
-		                                ? (total_r - disk_prev_r_)
-		                                : 0;
+						? (total_r - disk_prev_r_)
+						: 0;
 		const uint64_t diff_w = (total_w >= disk_prev_w_)
-		                                ? (total_w - disk_prev_w_)
-		                                : 0;
-		result.read_speed     = (diff_r * 512.0) / dt_sec;
-		result.write_speed    = (diff_w * 512.0) / dt_sec;
+						? (total_w - disk_prev_w_)
+						: 0;
+		result.read_speed = (diff_r * 512.0) / dt_sec;
+		result.write_speed = (diff_w * 512.0) / dt_sec;
 	}
 
 	/// update status
@@ -594,7 +594,7 @@ entity::net system_info_reader_linux::read_net() const
 				continue;
 
 			std::istringstream iss(line.substr(colon_pos + 1));
-			uint64_t           rx = 0, tx = 0, skip;
+			uint64_t rx = 0, tx = 0, skip;
 
 			if (iss >> rx >> skip >> skip >> skip >> skip >> skip >>
 			    skip >> skip >> tx) {
@@ -605,23 +605,23 @@ entity::net system_info_reader_linux::read_net() const
 		return { total_rx, total_tx };
 	};
 
-	auto current_time             = std::chrono::steady_clock::now();
+	auto current_time = std::chrono::steady_clock::now();
 	auto [current_rx, current_tx] = get_total_net_bytes();
 
 	result.rx_bytes = net_prev_rx_;
 	result.tx_bytes = net_prev_tx_;
 
-	std::chrono::duration<double> dt     = current_time - net_prev_t_;
-	double                        dt_sec = dt.count();
+	std::chrono::duration<double> dt = current_time - net_prev_t_;
+	double dt_sec = dt.count();
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
 		uint64_t diff_rx = (current_rx >= net_prev_rx_)
-		                           ? (current_rx - net_prev_rx_)
-		                           : 0;
+					   ? (current_rx - net_prev_rx_)
+					   : 0;
 		uint64_t diff_tx = (current_tx >= net_prev_tx_)
-		                           ? (current_tx - net_prev_tx_)
-		                           : 0;
+					   ? (current_tx - net_prev_tx_)
+					   : 0;
 
 		/// Raw Bytes/s
 		result.rx_bytes = diff_rx / dt_sec;
@@ -629,7 +629,7 @@ entity::net system_info_reader_linux::read_net() const
 	}
 
 	/// Update status
-	net_prev_t_  = current_time;
+	net_prev_t_ = current_time;
 	net_prev_rx_ = current_rx;
 	net_prev_tx_ = current_tx;
 

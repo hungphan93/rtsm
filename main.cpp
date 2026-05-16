@@ -53,30 +53,30 @@ int main(int argc, char *argv[])
 
 	/// Register periodic data sampling tasks
 	[[maybe_unused]] auto t1_ = data_scheduler
-	                                    .subscribe(300ms, [&interactor]() {
+					    .subscribe(300ms, [&interactor]() {
 						    interactor.fetch_cpu();
 					    });
 	[[maybe_unused]] auto t2_ = data_scheduler
-	                                    .subscribe(500ms, [&interactor]() {
+					    .subscribe(500ms, [&interactor]() {
 						    interactor.fetch_memory();
 					    });
 	[[maybe_unused]] auto t3_ = data_scheduler
-	                                    .subscribe(500ms, [&interactor]() {
+					    .subscribe(500ms, [&interactor]() {
 						    interactor.fetch_gpu();
 					    });
 	[[maybe_unused]] auto t4_ = data_scheduler
-	                                    .subscribe(1000ms, [&interactor]() {
+					    .subscribe(1000ms, [&interactor]() {
 						    interactor.fetch_disk();
 					    });
 	[[maybe_unused]] auto t5_ = data_scheduler
-	                                    .subscribe(1000ms, [&interactor]() {
+					    .subscribe(1000ms, [&interactor]() {
 						    interactor.fetch_net();
 					    });
 
 	QObject::connect(&engine,
-	                 &QQmlApplicationEngine::objectCreated,
-	                 &app,
-	                 [&](QObject *obj, const QUrl &) {
+			 &QQmlApplicationEngine::objectCreated,
+			 &app,
+			 [&](QObject *obj, const QUrl &) {
 				 if (!obj) {
 					 qCritical() << "Failed to load QML";
 					 app.exit(-1);
