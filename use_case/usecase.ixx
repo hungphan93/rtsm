@@ -1,3 +1,4 @@
+/// MIT License
 module;
 
 export module usecase;

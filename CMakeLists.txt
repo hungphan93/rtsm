@@ -32,6 +32,11 @@ target_sources(apprtsm
     PUBLIC
        FILE_SET CXX_MODULES
             FILES
+                util/util.ixx
+                util/parse.ixx
+                util/convert.ixx
+                util/io.ixx
+
                 entity/entity.ixx
                 entity/cpu.ixx
                 entity/disk.ixx

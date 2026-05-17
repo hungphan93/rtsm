@@ -8,6 +8,7 @@ module;
 
 module adapter;
 import std;
+import util;
 
 namespace adapter::linux2
 {
@@ -129,7 +130,7 @@ entity::cpu system_info_reader_linux::read_cpu() const
 	std::string line;
 
 	while (std::getline(proc_cpu_, line)) {
-		auto value = detail::extract_value(line);
+		auto value = util::parse::extract_value(line);
 
 		if (line.contains("model name")) {
 			std::cmatch match;
@@ -142,17 +143,17 @@ entity::cpu system_info_reader_linux::read_cpu() const
 				result.model_name = value;
 			}
 		} else if (line.contains("cache size"))
-			detail::parse_first_number(result.l2_cache_kib, value);
+			util::parse::parse_first_number(result.l2_cache_kib, value);
 		else if (line.contains("cpu cores"))
-			detail::parse_first_number(result.cpu_cores, value);
+			util::parse::parse_first_number(result.cpu_cores, value);
 		else if (line.contains("processor"))
-			detail::parse_first_number(result.processor_id, value);
+			util::parse::parse_first_number(result.processor_id, value);
 		else if (line.contains("physical id"))
-			detail::parse_first_number(result.physical_id, value);
+			util::parse::parse_first_number(result.physical_id, value);
 		else if (line.contains("siblings"))
-			detail::parse_first_number(result.siblings, value);
+			util::parse::parse_first_number(result.siblings, value);
 		else if (line.contains("core id"))
-			detail::parse_first_number(result.core_id, value);
+			util::parse::parse_first_number(result.core_id, value);
 	}
 
 	/// temp cpu amd
@@ -183,7 +184,7 @@ entity::cpu system_info_reader_linux::read_cpu() const
 	const auto total_diff = current_times.total() - last_cpu_times_.total();
 
 	if (total_diff > 0) {
-		result.usage_percent = detail::percent(total_diff - idle_diff, total_diff);
+		result.usage_percent = util::convert::percent(total_diff - idle_diff, total_diff);
 	}
 
 	last_cpu_times_ = current_times;
@@ -193,15 +194,15 @@ entity::cpu system_info_reader_linux::read_cpu() const
 		result.frequency_mhz = *v;
 
 	/// Using Cache Path dynamically to read CPU temp from k10temp (not loop all folder)
-	if (auto v = detail::parse_number<float>(
-		    detail::read_line(*hwmon_cpu_path_ / "temp1_input"));
+	if (auto v = util::parse::parse_number<float>(
+		    util::io::read_line(*hwmon_cpu_path_ / "temp1_input"));
 	    v) {
 		result.temperature_c = *v / 1000.f;
 	}
 
 	/// Using Cache Path dynamically to read power from amdgpu if integrated APU
-	if (auto v = detail::parse_number<float>(
-		    detail::read_line(*hwmon_gpu_path_ / "power1_input"));
+	if (auto v = util::parse::parse_number<float>(
+		    util::io::read_line(*hwmon_gpu_path_ / "power1_input"));
 	    v) {
 		result.power_uw = *v;
 	}
@@ -220,14 +221,14 @@ entity::memory system_info_reader_linux::read_memory() const
 	std::string line;
 
 	while (std::getline(proc_ram_, line)) {
-		auto value = detail::extract_value(line);
+		auto value = util::parse::extract_value(line);
 
 		if (line.contains("MemTotal:"))
-			detail::parse_first_number(result.vram_total, value);
+			util::parse::parse_first_number(result.vram_total, value);
 		else if (line.contains("MemFree:"))
-			detail::parse_first_number(result.vram_free, value);
+			util::parse::parse_first_number(result.vram_free, value);
 		else if (line.contains("MemAvailable:"))
-			detail::parse_first_number(result.vram_available, value);
+			util::parse::parse_first_number(result.vram_available, value);
 
 		if (result.vram_total > 0 && result.vram_free > 0 && result.vram_available > 0) {
 			break;
@@ -242,16 +243,16 @@ entity::memory system_info_reader_linux::read_memory() const
 
 	/// Using percent of RAM
 	if (result.vram_used > 0 && result.vram_total > 0) {
-		result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+		result.usage_percent = util::convert::percent(result.vram_used, result.vram_total);
 	}
 
 	/// https://linux.die.net/man/8/dmidecode
-	std::string dmi_out = detail::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
+	std::string dmi_out = util::io::exec_cmd("sudo -n dmidecode --type 17 2>/dev/null");
 
 	std::istringstream stream(dmi_out);
 
 	while (std::getline(stream, line)) {
-		auto value = detail::extract_value(line);
+		auto value = util::parse::extract_value(line);
 
 		if (line.contains("Manufacturer:")) {
 			result.name = value;
@@ -259,13 +260,13 @@ entity::memory system_info_reader_linux::read_memory() const
 
 		else if (line.contains("Configured Memory Speed:")) {
 			float raw_speed = 0;
-			detail::parse_first_number(raw_speed, value);
+			util::parse::parse_first_number(raw_speed, value);
 			result.frequency_mhz = raw_speed / 2;
 		}
 
 		else if (line.contains("Configured Voltage:") ||
 			 line.contains("Maximum Voltage:")) {
-			detail::parse_first_number(result.voltage, value);
+			util::parse::parse_first_number(result.voltage, value);
 		}
 	}
 
@@ -333,7 +334,7 @@ void system_info_reader_linux::classify_gpu(fs::path &hwmon_path, entity::gpu &r
 
 	case gpu_vendor::AMD:
 		is_amd_integrated((std::uint16_t)result.device) ? read_amd_igpu(hwmon_path, result)
-							   : read_amd_dgpu(hwmon_path, result);
+								: read_amd_dgpu(hwmon_path, result);
 		break;
 
 	case gpu_vendor::INTEL:
@@ -373,7 +374,8 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 		result.vram_total = memory.total / (1024 * 1024);
 		result.vram_used = memory.used / (1024 * 1024);
 		if (result.vram_total > 0) {
-			result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+			result.usage_percent = util::convert::percent(result.vram_used,
+								      result.vram_total);
 		}
 	}
 
@@ -392,28 +394,28 @@ void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 
 void system_info_reader_linux::read_amd_igpu(fs::path &hwmon_path, entity::gpu &result) const
 {
-	auto mem_total = detail::read_line(hwmon_path / "device/mem_info_vram_total");
-	if (auto v = detail::to_uint(mem_total); v)
+	auto mem_total = util::io::read_line(hwmon_path / "device/mem_info_vram_total");
+	if (auto v = util::parse::to_uint(mem_total); v)
 		result.vram_total = *v / (1024 * 1024);
 
-	auto vram_used = detail::read_line(hwmon_path / "device/mem_info_vram_used");
-	if (auto v = detail::to_uint(vram_used); v)
+	auto vram_used = util::io::read_line(hwmon_path / "device/mem_info_vram_used");
+	if (auto v = util::parse::to_uint(vram_used); v)
 		result.vram_used = *v / (1024 * 1024);
 
-	auto temperature_c = detail::read_line(hwmon_path / "temp1_input");
-	if (auto v = detail::to_uint(temperature_c); v)
+	auto temperature_c = util::io::read_line(hwmon_path / "temp1_input");
+	if (auto v = util::parse::to_uint(temperature_c); v)
 		result.temperature_c = *v / 1000.f;
 
-	auto power = detail::read_line(hwmon_path / "power1_input");
-	if (auto v = detail::to_uint(power); v)
+	auto power = util::io::read_line(hwmon_path / "power1_input");
+	if (auto v = util::parse::to_uint(power); v)
 		result.power = *v / 1000000.f;
 
 	if (result.vram_used > 0 && result.vram_total > 0) {
-		result.usage_percent = detail::percent(result.vram_used, result.vram_total);
+		result.usage_percent = util::convert::percent(result.vram_used, result.vram_total);
 	}
 
-	auto frequency_mhz = detail::read_line(hwmon_path / "freq1_input");
-	if (auto v = detail::to_uint(frequency_mhz); v)
+	auto frequency_mhz = util::io::read_line(hwmon_path / "freq1_input");
+	if (auto v = util::parse::to_uint(frequency_mhz); v)
 		result.frequency_mhz = *v / 1000000.f;
 }
 
@@ -431,14 +433,14 @@ entity::gpu system_info_reader_linux::read_gpu() const
 		hwmon_path = *r;
 	}
 
-	const auto vendor_str = detail::read_line(hwmon_path / "device/vendor");
-	const auto device_str = detail::read_line(hwmon_path / "device/device");
+	const auto vendor_str = util::io::read_line(hwmon_path / "device/vendor");
+	const auto device_str = util::io::read_line(hwmon_path / "device/device");
 
-	if (auto r = detail::to_uint<std::uint16_t>(vendor_str, 16); r) {
+	if (auto r = util::parse::to_uint<std::uint16_t>(vendor_str, 16); r) {
 		result.vendor = *r;
 	}
 
-	if (auto r = detail::to_uint<std::uint16_t>(device_str, 16); r) {
+	if (auto r = util::parse::to_uint<std::uint16_t>(device_str, 16); r) {
 		result.device = *r;
 	}
 
@@ -474,9 +476,9 @@ entity::disk system_info_reader_linux::read_disk() const
 			continue;
 
 		if (result.model.empty())
-			result.model = detail::read_line(entry.path() / "device/model");
+			result.model = util::io::read_line(entry.path() / "device/model");
 
-		std::istringstream iss(detail::read_line(entry.path() / "stat"));
+		std::istringstream iss(util::io::read_line(entry.path() / "stat"));
 		std::uint64_t a, b, r_sect, c, d, e, w_sect;
 		iss >> a >> b >> r_sect >> c >> d >> e >> w_sect;
 		total_r += r_sect;
@@ -510,8 +512,10 @@ entity::disk system_info_reader_linux::read_disk() const
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
-		const std::uint64_t diff_r = (total_r >= disk_prev_r_) ? (total_r - disk_prev_r_) : 0;
-		const std::uint64_t diff_w = (total_w >= disk_prev_w_) ? (total_w - disk_prev_w_) : 0;
+		const std::uint64_t diff_r = (total_r >= disk_prev_r_) ? (total_r - disk_prev_r_)
+								       : 0;
+		const std::uint64_t diff_w = (total_w >= disk_prev_w_) ? (total_w - disk_prev_w_)
+								       : 0;
 		result.read_speed = (diff_r * 512.0) / dt_sec;
 		result.write_speed = (diff_w * 512.0) / dt_sec;
 	}
@@ -577,8 +581,10 @@ entity::net system_info_reader_linux::read_net() const
 
 	/// Convert cumulative sector deltas to bytes/sec by normalizing over elapsed time
 	if (dt_sec > 0.001) {
-		std::uint64_t diff_rx = (current_rx >= net_prev_rx_) ? (current_rx - net_prev_rx_) : 0;
-		std::uint64_t diff_tx = (current_tx >= net_prev_tx_) ? (current_tx - net_prev_tx_) : 0;
+		std::uint64_t diff_rx = (current_rx >= net_prev_rx_) ? (current_rx - net_prev_rx_)
+								     : 0;
+		std::uint64_t diff_tx = (current_tx >= net_prev_tx_) ? (current_tx - net_prev_tx_)
+								     : 0;
 
 		/// Raw Bytes/s
 		result.rx_bytes = diff_rx / dt_sec;
