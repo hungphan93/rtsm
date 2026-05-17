@@ -2,7 +2,7 @@
 set -euo pipefail
 
 QT_VERSION="6.11.0"
-GCC_VERSION="15.2.0-native"
+GCC_VERSION="16.1.0-native"
 
 # ===== 1. Configuration & Context =====
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -88,9 +88,9 @@ pushd "$REPO_ROOT" > /dev/null
 # Inject CMake 4.3.0 to PATH (Required by project configuration)
 export PATH="$HOME/Qt/Tools/CMake/bin:$PATH"
 
-# Configure via preset (which sets GCC-15 environment and Qt paths).
+# Configure via preset (which sets GCC-16 environment and Qt paths).
 # Override CMAKE_PREFIX_PATH for non-x86_64 hosts so the right Qt build is picked.
-cmake --preset linux-gcc15-release \
+cmake --preset linux-gcc16-release \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DCMAKE_PREFIX_PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR"
 
@@ -98,7 +98,7 @@ cmake --preset linux-gcc15-release \
 cmake --build --preset build-release -j"$(nproc)"
 
 # Install directly to AppDir
-DESTDIR="$APPDIR" cmake --install "$BUILD_DIR/linux-gcc15-release"
+DESTDIR="$APPDIR" cmake --install "$BUILD_DIR/linux-gcc16-release"
 
 # Organize Assets into standard AppDir layout
 mkdir -p "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
@@ -110,7 +110,7 @@ popd > /dev/null
 echo "📦 Step 1: Bundling dependencies..."
 export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
 
-# Add GCC 15 and Qt paths so linuxdeploy resolves the correct dependencies instead of system ones
+# Add GCC 16 and Qt paths so linuxdeploy resolves the correct dependencies instead of system ones
 export PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/bin:/opt/gcc/$GCC_VERSION/bin:$TOOLS_DIR:$PATH"
 export LD_LIBRARY_PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/lib:/opt/gcc/$GCC_VERSION/lib64:${LD_LIBRARY_PATH:-}"
 
@@ -121,6 +121,11 @@ export LD_LIBRARY_PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/lib:/opt/gcc/$GCC_VERS
     --executable "$APPDIR/usr/bin/apprtsm" \
     --icon-file "$REPO_ROOT/icons/app_icon.png" \
     --plugin qt
+
+echo "📂 Force-bundling GCC 16 runtime libraries to bypass linuxdeploy excludelist..."
+mkdir -p "$APPDIR/usr/lib"
+cp -d /opt/gcc/$GCC_VERSION/lib64/libstdc++.so.6* "$APPDIR/usr/lib/"
+cp -d /opt/gcc/$GCC_VERSION/lib64/libgcc_s.so* "$APPDIR/usr/lib/"
 
 echo "📦 Step 2: Generating final AppImage with verified runtime..."
 rm -rf "$OUTPUT_DIR" && mkdir -p "$OUTPUT_DIR"

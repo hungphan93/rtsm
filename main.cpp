@@ -13,7 +13,6 @@
 #include "ui/qt/system_monitor_backend_fwd.hpp"
 
 #include <csignal>
-#include <memory>
 
 import adapter;
 import system_data_scheduler;

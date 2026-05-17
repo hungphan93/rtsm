@@ -230,7 +230,7 @@ std::expected<float, std::errc> read_cpu_frequency_avg(std::string_view filename
 }
 
 /// Converting a uint string to uint64_t
-template <typename T = uint64_t>
+template <typename T = std::uint64_t>
 requires std::is_arithmetic_v<T>
 std::expected<T, std::errc> to_uint(std::string_view s, int base = 10) noexcept
 {

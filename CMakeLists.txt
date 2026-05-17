@@ -19,7 +19,7 @@ set(QT_FORCE_CMP0156_TO_VALUE NEW)
 
 qt_add_executable(apprtsm main.cpp)
 
-target_compile_features(apprtsm PRIVATE cxx_std_23)
+target_compile_features(apprtsm PRIVATE cxx_std_26)
 
 set_target_properties(apprtsm PROPERTIES
     MACOSX_BUNDLE TRUE

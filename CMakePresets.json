@@ -6,41 +6,44 @@
   },
   "configurePresets": [
     {
-      "name": "gcc15-base",
+      "name": "gcc16-base",
       "hidden": true,
-      "description": "Base configuration containing customized GCC 15.2.0 path environment details",
+      "description": "Base configuration containing customized GCC 16.1.0 path environment details",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "environment": {
-        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/15.2.0-native/bin:$penv{PATH}",
-        "LD_LIBRARY_PATH": "/opt/gcc/15.2.0-native/lib64:$penv{LD_LIBRARY_PATH}",
-        "CC": "/opt/gcc/15.2.0-native/bin/gcc",
-        "CXX": "/opt/gcc/15.2.0-native/bin/g++",
+        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/16.1.0-native/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/opt/gcc/16.1.0-native/lib64:$penv{LD_LIBRARY_PATH}",
+        "CC": "/opt/gcc/16.1.0-native/bin/gcc",
+        "CXX": "/opt/gcc/16.1.0-native/bin/g++",
         "CXXFLAGS": "-Wall -Wextra"
       },
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_STANDARD": "26",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_SCAN_FOR_MODULES": "ON",
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.0/gcc_64"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.0/gcc_64",
+        "CMAKE_EXE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64",
+        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64",
+        "CMAKE_MODULE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64"
       }
     },
     {
-      "name": "linux-gcc15-debug",
-      "displayName": "GCC 15.2.0 (Debug Mode)",
+      "name": "linux-gcc16-debug",
+      "displayName": "GCC 16.1.0 (Debug Mode)",
       "description": "Configured for step-by-step code source debugging",
-      "inherits": "gcc15-base",
+      "inherits": "gcc16-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "linux-gcc15-release",
-      "displayName": "GCC 15.2.0 (Release Mode)",
+      "name": "linux-gcc16-release",
+      "displayName": "GCC 16.1.0 (Release Mode)",
       "description": "Configured for optimal high-speed release software compilation",
-      "inherits": "gcc15-base",
+      "inherits": "gcc16-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -49,11 +52,11 @@
   "buildPresets": [
     {
       "name": "build-debug",
-      "configurePreset": "linux-gcc15-debug"
+      "configurePreset": "linux-gcc16-debug"
     },
     {
       "name": "build-release",
-      "configurePreset": "linux-gcc15-release"
+      "configurePreset": "linux-gcc16-release"
     }
   ]
 }
