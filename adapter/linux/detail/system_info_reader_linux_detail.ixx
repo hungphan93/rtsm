@@ -1,8 +1,4 @@
 /// MIT License
-module;
-
-#include <regex>
-
 export module adapter:system_info_reader_linux_detail;
 
 import std;

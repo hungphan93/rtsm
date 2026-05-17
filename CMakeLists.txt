@@ -73,6 +73,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     adapter/linux/system_info_reader_linux.ixx
                     adapter/linux/adapter.ixx
                     adapter/linux/detail/system_info_reader_linux_detail.ixx
+                    adapter/linux/detail/nvml.ixx
 
         PRIVATE
             adapter/linux/system_info_reader_linux.cpp

@@ -1,119 +1,17 @@
 module;
 
-#include <dlfcn.h> /// For libnvidia-ml.so dynamic loading
 #include <mntent.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/sysmacros.h>
 
 module adapter;
+
 import std;
 import util;
 
 namespace adapter::linux2
 {
-
-///=============================================================================
-/// NVML Dynamic Loading Wrapper
-///=============================================================================
-namespace nvml
-{
-typedef enum nvmlReturn_enum {
-	NVML_SUCCESS = 0
-} nvmlReturn_t;
-typedef struct nvmlDevice_st *nvmlDevice_t;
-typedef struct nvmlMemory_st {
-	unsigned long long total;
-	unsigned long long free;
-	unsigned long long used;
-} nvmlMemory_t;
-
-typedef nvmlReturn_t (*nvmlInit_t)(void);
-typedef nvmlReturn_t (*nvmlShutdown_t)(void);
-typedef nvmlReturn_t (*nvmlDeviceGetHandleByIndex_v2_t)(unsigned int, nvmlDevice_t *);
-typedef nvmlReturn_t (*nvmlDeviceGetMemoryInfo_t)(nvmlDevice_t, nvmlMemory_t *);
-typedef nvmlReturn_t (*nvmlDeviceGetTemperature_t)(nvmlDevice_t, int, unsigned int *);
-typedef nvmlReturn_t (*nvmlDeviceGetClockInfo_t)(nvmlDevice_t, int, unsigned int *);
-typedef nvmlReturn_t (*nvmlDeviceGetUtilizationRates_t)(
-	nvmlDevice_t,
-	void *); // Placeholder, actual struct needed
-typedef nvmlReturn_t (*nvmlDeviceGetName_t)(nvmlDevice_t, char *, unsigned int);
-typedef nvmlReturn_t (*nvmlDeviceGetCount_v2_t)(unsigned int *);
-
-static void *handle = nullptr;
-static bool loaded = false;
-static bool init_attempted = false;
-
-static nvmlInit_t nvmlInit_v2_ptr = nullptr;
-static nvmlDeviceGetHandleByIndex_v2_t nvmlDeviceGetHandle_ptr = nullptr;
-static nvmlDeviceGetUtilizationRates_t nvmlDeviceGetUtilizationRates_ptr = nullptr;
-static nvmlDeviceGetMemoryInfo_t nvmlDeviceGetMemoryInfo_ptr = nullptr;
-static nvmlDeviceGetClockInfo_t nvmlDeviceGetClockInfo_ptr = nullptr;
-static nvmlDeviceGetTemperature_t nvmlDeviceGetTemperature_ptr = nullptr;
-static nvmlDeviceGetName_t nvmlDeviceGetName_ptr = nullptr;
-static nvmlShutdown_t nvmlShutdown_ptr = nullptr;
-static nvmlDeviceGetCount_v2_t nvmlDeviceGetCount_v2_ptr = nullptr;
-
-struct nvml_guard {
-	~nvml_guard()
-	{
-		if (handle) {
-			if (nvmlShutdown_ptr) {
-				nvmlShutdown_ptr();
-			}
-			dlclose(handle);
-			handle = nullptr;
-		}
-	}
-};
-
-static nvml_guard guard;
-
-bool load_nvml()
-{
-	if (init_attempted)
-		return loaded;
-	init_attempted = true;
-
-	handle = dlopen("libnvidia-ml.so.1", RTLD_LAZY);
-	if (!handle)
-		handle = dlopen("libnvidia-ml.so", RTLD_LAZY);
-	if (!handle)
-		return false;
-
-	nvmlInit_v2_ptr = (nvmlInit_t)dlsym(handle, "nvmlInit_v2");
-	nvmlShutdown_ptr = (nvmlShutdown_t)dlsym(handle, "nvmlShutdown");
-	nvmlDeviceGetHandle_ptr = (nvmlDeviceGetHandleByIndex_v2_t)
-		dlsym(handle, "nvmlDeviceGetHandleByIndex_v2");
-	nvmlDeviceGetMemoryInfo_ptr = (nvmlDeviceGetMemoryInfo_t)dlsym(handle,
-								       "nvmlDeviceGetMemoryInfo");
-	nvmlDeviceGetTemperature_ptr = (nvmlDeviceGetTemperature_t)
-		dlsym(handle, "nvmlDeviceGetTemperature");
-	nvmlDeviceGetClockInfo_ptr = (nvmlDeviceGetClockInfo_t)dlsym(handle,
-								     "nvmlDeviceGetClockInfo");
-
-	// Optional pointers (we don't fail if these are missing, as they are not currently used in read_gpu)
-	nvmlDeviceGetUtilizationRates_ptr = (nvmlDeviceGetUtilizationRates_t)
-		dlsym(handle, "nvmlDeviceGetUtilizationRates");
-	nvmlDeviceGetName_ptr = (nvmlDeviceGetName_t)dlsym(handle, "nvmlDeviceGetName");
-	nvmlDeviceGetCount_v2_ptr = (nvmlDeviceGetCount_v2_t)dlsym(handle, "nvmlDeviceGetCount_v2");
-
-	if (!nvmlInit_v2_ptr || !nvmlShutdown_ptr || !nvmlDeviceGetHandle_ptr ||
-	    !nvmlDeviceGetMemoryInfo_ptr || !nvmlDeviceGetTemperature_ptr ||
-	    !nvmlDeviceGetClockInfo_ptr) {
-		dlclose(handle);
-		handle = nullptr;
-		loaded = false;
-	} else if (nvmlInit_v2_ptr() == NVML_SUCCESS) {
-		loaded = true;
-	} else {
-		dlclose(handle);
-		handle = nullptr;
-		loaded = false;
-	}
-	return loaded;
-}
-}
 
 system_info_reader_linux::system_info_reader_linux() noexcept
 	: proc_cpu_{ "/proc/cpuinfo" }
@@ -351,44 +249,20 @@ void system_info_reader_linux::classify_gpu(fs::path &hwmon_path, entity::gpu &r
 
 void system_info_reader_linux::read_nvidia_gpu(entity::gpu &result) const
 {
-	/// Fast path for NVIDIA using NVML C API
-	if (!nvml::load_nvml())
+	auto info = nvml::read();
+	if (!info)
 		return;
 
-	nvml::nvmlDevice_t device;
-	if (nvml::nvmlDeviceGetHandle_ptr(0, &device) != nvml::NVML_SUCCESS)
-		return;
+	/// Mapping: nvml raw data → domain entity
+	result.name = std::move(info->name);
+	result.vram_total = info->vram_total_mb;
+	result.vram_used = info->vram_used_mb;
+	result.temperature_c = info->temperature_c;
+	result.frequency_mhz = info->clock_mhz;
 
-	/// GPU name (written into cache so result.name stays up-to-date)
-	if (nvml::nvmlDeviceGetName_ptr) {
-		char name_buf[96] = {};
-		if (nvml::nvmlDeviceGetName_ptr(device, name_buf, sizeof(name_buf)) ==
-		    nvml::NVML_SUCCESS) {
-			result.name = name_buf;
-		}
-	}
-
-	/// VRAM
-	nvml::nvmlMemory_t memory;
-	if (nvml::nvmlDeviceGetMemoryInfo_ptr(device, &memory) == nvml::NVML_SUCCESS) {
-		result.vram_total = memory.total / (1024 * 1024);
-		result.vram_used = memory.used / (1024 * 1024);
-		if (result.vram_total > 0) {
-			result.usage_percent = util::convert::percent(result.vram_used,
-								      result.vram_total);
-		}
-	}
-
-	/// Temperature  (0 = NVML_TEMPERATURE_GPU)
-	unsigned int temp = 0;
-	if (nvml::nvmlDeviceGetTemperature_ptr(device, 0, &temp) == nvml::NVML_SUCCESS) {
-		result.temperature_c = temp;
-	}
-
-	/// Core clock  (0 = NVML_CLOCK_GRAPHICS)
-	unsigned int freq = 0;
-	if (nvml::nvmlDeviceGetClockInfo_ptr(device, 0, &freq) == nvml::NVML_SUCCESS) {
-		result.frequency_mhz = freq;
+	if (result.vram_total > 0) {
+		result.usage_percent = util::convert::percent(
+			result.vram_used, result.vram_total);
 	}
 }
 
