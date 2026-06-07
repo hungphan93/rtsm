@@ -16,7 +16,7 @@
         "LD_LIBRARY_PATH": "/opt/gcc/16.1.0-native/lib64:$penv{LD_LIBRARY_PATH}",
         "CC": "/opt/gcc/16.1.0-native/bin/gcc",
         "CXX": "/opt/gcc/16.1.0-native/bin/g++",
-        "CXXFLAGS": "-Wall -Wextra"
+        "CXXFLAGS": "-Wall -Wextra -static-libgcc -static-libstdc++"
       },
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "26",
