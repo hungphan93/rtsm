@@ -108,7 +108,7 @@ popd > /dev/null
 
 # ===== 4. Final Packaging =====
 echo "📦 Step 1: Bundling dependencies..."
-export QML_SOURCES_PATHS="$REPO_ROOT/ui/qt/qml" # Critical for Qt dependencies
+export QML_SOURCES_PATHS="$REPO_ROOT/rtsm-qt/ui/qt/qml" # Critical for Qt dependencies
 
 # Add GCC 16 and Qt paths so linuxdeploy resolves the correct dependencies instead of system ones
 export PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/bin:/opt/gcc/$GCC_VERSION/bin:$TOOLS_DIR:$PATH"
