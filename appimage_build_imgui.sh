@@ -21,7 +21,7 @@ export ARCH
 export VERSION=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "1.0.0")
 GIT_TAG=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "untagged")
 
-# Required Tools (Same as Qt version, but no Qt plugin needed)
+# Required Tools (Same as CLI version, no Qt plugin needed)
 LINUXDEPLOY_TAG="1-alpha-20251107-1"
 RUNTIME_TAG="20251108"
 APPIMAGETOOL_TAG="1.9.1"
@@ -49,31 +49,32 @@ download_tool "runtime-${ARCH}" "$RUNTIME_URL"
 download_tool "appimagetool-${ARCH}.AppImage" "$APPIMAGETOOL_URL"
 popd > /dev/null
 
-# ===== 3. Project Compilation (RTSM CLI) =====
+# ===== 3. Project Compilation (RTSM ImGui) =====
 mkdir -p "$BUILD_DIR"
 rm -rf "$APPDIR"
 pushd "$REPO_ROOT" > /dev/null
 
-export PATH="$HOME/Qt/Tools/CMake/bin:$PATH"
+# Inject CMake to PATH
+export PATH="/opt/cmake/cmake-4.3.0/bin:$PATH"
 
-# Build using the same preset but we only care about CLI
+# Build using the release preset
 cmake --preset linux-gcc16-release -DCMAKE_INSTALL_PREFIX=/usr
-cmake --build --preset build-release -j"$(nproc)" --target rtsm-cli
+cmake --build --preset build-release -j"$(nproc)" --target rtsm-imgui
 
-# Install CLI directly to AppDir
-DESTDIR="$APPDIR" cmake --install "$BUILD_DIR/linux-gcc16-release" --component rtsm-cli
+# Install ImGui directly to AppDir
+DESTDIR="$APPDIR" cmake --install "$BUILD_DIR/linux-gcc16-release" --component rtsm-imgui
 popd > /dev/null
 
-# Create a minimal desktop file for CLI
+# Create a minimal desktop file for ImGui
 mkdir -p "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
-cat <<EOF > "$APPDIR/usr/share/applications/rtsm-cli.desktop"
+cat <<EOF > "$APPDIR/usr/share/applications/rtsm-imgui.desktop"
 [Desktop Entry]
-Name=RTSM CLI
-Exec=rtsm-cli
+Name=RTSM ImGui
+Exec=rtsm-imgui
 Icon=app_icon
 Type=Application
-Terminal=true
-Categories=System;Monitor;
+Terminal=false
+Categories=System;Monitor;Utility;
 EOF
 cp "$REPO_ROOT/icons/app_icon.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/app_icon.png"
 
@@ -82,11 +83,11 @@ echo "📦 Bundling dependencies..."
 export PATH="/opt/gcc/$GCC_VERSION/bin:$TOOLS_DIR:$PATH"
 export LD_LIBRARY_PATH="/opt/gcc/$GCC_VERSION/lib64:${LD_LIBRARY_PATH:-}"
 
-# Prepare AppDir folder using linuxdeploy (No Qt plugin needed)
+# Prepare AppDir folder using linuxdeploy
 "$TOOLS_DIR/linuxdeploy-${ARCH}.AppImage" \
     --appdir "$APPDIR" \
-    --desktop-file "$APPDIR/usr/share/applications/rtsm-cli.desktop" \
-    --executable "$APPDIR/usr/bin/rtsm-cli" \
+    --desktop-file "$APPDIR/usr/share/applications/rtsm-imgui.desktop" \
+    --executable "$APPDIR/usr/bin/rtsm-imgui" \
     --icon-file "$REPO_ROOT/icons/app_icon.png"
 
 echo "📂 Force-bundling GCC 16 runtime libraries..."
@@ -96,8 +97,8 @@ cp -d /opt/gcc/$GCC_VERSION/lib64/libgcc_s.so* "$APPDIR/usr/lib/"
 
 echo "📦 Generating final AppImage..."
 mkdir -p "$OUTPUT_DIR"
-FINAL_FILE="$OUTPUT_DIR/RTSM-CLI-${ARCH}-${GIT_TAG}.AppImage"
+FINAL_FILE="$OUTPUT_DIR/RTSM-ImGui-${ARCH}-${GIT_TAG}.AppImage"
 
 "$TOOLS_DIR/appimagetool-${ARCH}.AppImage" "$APPDIR" "$FINAL_FILE" --runtime-file "$TOOLS_DIR/runtime-${ARCH}"
 
-echo "✅ Success! Final CLI AppImage ready at: $FINAL_FILE"
+echo "✅ Success! Final ImGui AppImage ready at: $FINAL_FILE"

@@ -82,7 +82,8 @@ popd > /dev/null
 
 # ===== 3. Project Compilation (RTSM) =====
 # Clean environment for fresh build
-rm -rf "$BUILD_DIR" && mkdir -p "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+rm -rf "$APPDIR"
 pushd "$REPO_ROOT" > /dev/null
 
 # Inject CMake 4.3.0 to PATH (Required by project configuration)

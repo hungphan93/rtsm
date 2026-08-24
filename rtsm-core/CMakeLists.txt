@@ -30,6 +30,7 @@ target_sources(rtsm-core
                 scheduler/system_data_scheduler.ixx
     PRIVATE
                 scheduler/system_data_scheduler.cpp
+    PUBLIC
                 platform/window_sticky.hpp
 )
 

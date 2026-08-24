@@ -92,3 +92,4 @@ CLAUDE.md
 doc/cpp_type_sizes.md
 doc/cpp_type_sizes.html
 .$rtsm.*
+rtsm-imgui/imgui
