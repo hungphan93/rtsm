@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=RTSM ImGui
+Exec=rtsm-imgui
+Icon=app_icon
+Type=Application
+Terminal=false
+Categories=System;Monitor;Utility;

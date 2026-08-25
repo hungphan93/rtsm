@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=RTSM CLI
+Exec=rtsm-cli
+Icon=app_icon
+Type=Application
+Terminal=true
+Categories=System;Monitor;

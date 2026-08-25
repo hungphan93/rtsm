@@ -16,7 +16,7 @@
         "LD_LIBRARY_PATH": "/opt/gcc/16.1.0-native/lib64:$penv{LD_LIBRARY_PATH}",
         "CC": "/opt/gcc/16.1.0-native/bin/gcc",
         "CXX": "/opt/gcc/16.1.0-native/bin/g++",
-        "CXXFLAGS": "-Wall -Wextra -static-libgcc -static-libstdc++"
+        "CXXFLAGS": "-Wall -Wextra"
       },
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "26",
@@ -45,7 +45,9 @@
       "description": "Configured for optimal high-speed release software compilation",
       "inherits": "gcc16-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_STRIP": "/opt/gcc/16.1.0-native/bin/strip",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=x86-64-v3"
       }
     }
   ],
