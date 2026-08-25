@@ -1,14 +1,9 @@
 /// MIT License
-
 #include <csignal>
-#include <chrono>
 #include <thread>
-#include <iostream>
-#include <iomanip>
 #include <memory>
-#include <mutex>
 #include <functional>
-#include <unistd.h> // Required for write() and _exit()
+#include <unistd.h> /// Required for write() and _exit()
 
 import adapter;
 import system_data_scheduler;
@@ -29,13 +24,13 @@ extern "C" void signal_handler(int /*signum*/)
 
 import system_monitor_view_cli;
 
-int main(int argc, char *argv[])
+int main()
 {
 	using namespace std::chrono_literals;
 
 	std::signal(SIGINT, signal_handler);
 	std::signal(SIGTERM, signal_handler);
-	std::signal(SIGTSTP, signal_handler); // Catch Ctrl+Z signal to exit the program
+	std::signal(SIGTSTP, signal_handler); /// Catch Ctrl+Z signal to exit the program
 
 	/// Initialize Core Logic (Note: Bypassing Qt Backend)
 	adapter::linux2::system_info_reader_linux reader;

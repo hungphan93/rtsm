@@ -1,5 +1,4 @@
 /// MIT License
-
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
@@ -11,8 +10,6 @@
 #include <iostream>
 #include <csignal>
 #include <memory>
-#include <chrono>
-#include <thread>
 #include <fcntl.h>
 #include <sys/file.h>
 #include <stdio.h>
@@ -62,13 +59,13 @@ std::string get_font_path() {
     return "rtsm-imgui/imgui/misc/fonts/Roboto-Medium.ttf"; // Fallback
 }
 
-int main(int argc, char* argv[])
+int main()
 {
     using namespace std::chrono_literals;
 
     /// Ensure only one instance of the application is running at a time
-    int lock_fd = open("/tmp/rtsm_imgui.lock", O_CREAT | O_RDWR, 0666);
-    if (lock_fd == -1 || flock(lock_fd, LOCK_EX | LOCK_NB) == -1) {
+    int lock_file = open("/tmp/rtsm_imgui.lock", O_CREAT | O_RDWR, 0666);
+    if (lock_file == -1 || flock(lock_file, LOCK_EX | LOCK_NB) == -1) {
         std::cerr << "Another instance is already running.\n";
         return 0;
     }
@@ -76,10 +73,10 @@ int main(int argc, char* argv[])
     /// Handle IDE and terminal Stop commands gracefully
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
-    std::signal(SIGTSTP, signal_handler); // Handle Ctrl+Z
-    std::signal(SIGQUIT, signal_handler); // Handle Ctrl+\
+    std::signal(SIGTSTP, signal_handler); /// Handle Ctrl+Z
+    std::signal(SIGQUIT, signal_handler); /// Handle Ctrl+
 
-    // Force X11 so we can use X11 sticky window atoms (Wayland LayerShell unsupported)
+    /// Force X11 so we can use X11 sticky window atoms (Wayland LayerShell unsupported)
     glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 
     glfwSetErrorCallback(glfw_error_callback);
@@ -100,29 +97,30 @@ int main(int argc, char* argv[])
 
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-    glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, GLFW_TRUE); // Let clicks pass through to desktop below
+    glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, GLFW_TRUE); /// Let clicks pass through to desktop below
 
-    // Get primary monitor resolution to span the entire screen width
+    /// Get primary monitor resolution to span the entire screen width
     GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary_monitor);
     int screen_w = mode ? mode->width : 1920;
     
-    // Create window with graphics context (span full screen width, slightly taller for bigger font)
+    /// Create window with graphics context (span full screen width, slightly taller for bigger font)
     GLFWwindow* window = glfwCreateWindow(screen_w, 400, "Real-time system monitoring", nullptr, nullptr);
     if (window == nullptr)
         return 1;
     
     glfwSetWindowPos(window, 0, 40);
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1); /// Enable vsync
 
-    // Apply sticky window logic for Linux/X11
+    /// Apply sticky window logic for Linux/X11
     platform::make_window_sticky(window);
 
-    // Setup Dear ImGui context
+    /// Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO& io = ImGui::GetIO(); 
+    (void)io;
     io.IniFilename = nullptr;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -138,19 +136,29 @@ int main(int argc, char* argv[])
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     adapter::linux2::system_info_reader_linux reader;
-    auto monitor_presenter = std::make_shared<presenter::system_monitor_presenter>();
-    usecase::system_monitor_interactor interactor(reader, *monitor_presenter);
+    auto presenter = std::make_shared<presenter::system_monitor_presenter>();
+    usecase::system_monitor_interactor interactor(reader, *presenter);
 
     scheduler::system_data_scheduler data_scheduler;
 
     /// Register periodic data sampling tasks
-    [[maybe_unused]] auto t1_ = data_scheduler.subscribe(300ms, [&interactor]() { interactor.fetch_cpu(); });
-    [[maybe_unused]] auto t2_ = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_memory(); });
-    [[maybe_unused]] auto t3_ = data_scheduler.subscribe(500ms, [&interactor]() { interactor.fetch_gpu(); });
-    [[maybe_unused]] auto t4_ = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_disk(); });
-    [[maybe_unused]] auto t5_ = data_scheduler.subscribe(1000ms, [&interactor]() { interactor.fetch_net(); });
+    [[maybe_unused]] auto t1_ = data_scheduler.subscribe(300ms, [&interactor]() {
+        interactor.fetch_cpu();
+    });
+    [[maybe_unused]] auto t2_ = data_scheduler.subscribe(500ms, [&interactor]() {
+        interactor.fetch_memory();
+    });
+    [[maybe_unused]] auto t3_ = data_scheduler.subscribe(500ms, [&interactor]() {
+        interactor.fetch_gpu();
+    });
+    [[maybe_unused]] auto t4_ = data_scheduler.subscribe(1000ms, [&interactor]() {
+        interactor.fetch_disk();
+    });
+    [[maybe_unused]] auto t5_ = data_scheduler.subscribe(1000ms, [&interactor]() {
+        interactor.fetch_net();
+    });
 
-    // Main loop
+    /// Main loop
     while (!glfwWindowShouldClose(window) && g_running)
     {
         glfwPollEvents();
@@ -178,7 +186,7 @@ int main(int argc, char* argv[])
         float row_height = 400.0f / 5.0f;
         float text_y_offset = (row_height - ImGui::GetTextLineHeight()) * 0.5f;
 
-        // Base positions for the first 3 detail columns
+        /// Base positions for the first 3 detail columns
         float col_x[] = { screen_w * 0.28f, screen_w * 0.46f, screen_w * 0.64f }; 
 
         auto draw_row = [&](int row_index, const std::string& title, const std::vector<std::string>& details) {
@@ -191,7 +199,7 @@ int main(int argc, char* argv[])
                     ImGui::SetCursorPos(ImVec2(col_x[i], base_y));
                     ImGui::TextColored(color_device_detail, "%s", details[i].c_str());
                 } else if (i == 3) {
-                    // Right align the 4th column exactly 100px from the right edge
+                    /// Right align the 4th column exactly 100px from the right edge
                     ImVec2 text_size = ImGui::CalcTextSize(details[i].c_str());
                     ImGui::SetCursorPos(ImVec2(screen_w - 100.0f - text_size.x, base_y));
                     ImGui::TextColored(color_device_detail, "%s", details[i].c_str());
@@ -199,19 +207,19 @@ int main(int argc, char* argv[])
             }
         };
 
-        auto cpu_vm = monitor_presenter->cpu_vm();
+        auto cpu_vm = presenter->cpu_vm();
         draw_row(0, cpu_vm->model_name, {cpu_vm->usage_percent, cpu_vm->temperature_c, cpu_vm->power, cpu_vm->frequency_mhz});
 
-        auto mem_vm = monitor_presenter->memory_vm();
+        auto mem_vm = presenter->memory_vm();
         draw_row(1, mem_vm->name.empty() ? "Ram" : mem_vm->name, {mem_vm->usage_percent, mem_vm->voltage, mem_vm->vram_used + mem_vm->vram_total, mem_vm->frequency_mhz});
 
-        auto gpu_vm = monitor_presenter->gpu_vm();
+        auto gpu_vm = presenter->gpu_vm();
         draw_row(2, gpu_vm->name, {gpu_vm->usage_percent, gpu_vm->temperature_c, gpu_vm->vram_used + gpu_vm->vram_total, gpu_vm->frequency_mhz});
 
-        auto disk_vm = monitor_presenter->disk_vm();
+        auto disk_vm = presenter->disk_vm();
         draw_row(3, disk_vm->model, {disk_vm->usage_percent, "Read: " + disk_vm->read_speed + " | Write: " + disk_vm->write_speed});
         
-        auto net_vm = monitor_presenter->net_vm();
+        auto net_vm = presenter->net_vm();
         draw_row(4, "Network", {"Down: " + net_vm->rx_speed + " | Up: " + net_vm->tx_speed});
 
         ImGui::End();
@@ -234,8 +242,8 @@ int main(int argc, char* argv[])
     glfwDestroyWindow(window);
     glfwTerminate();
     
-    if (lock_fd != -1) {
-        close(lock_fd);
+    if (lock_file != -1) {
+        close(lock_file);
         remove("/tmp/rtsm_imgui.lock");
     }
 

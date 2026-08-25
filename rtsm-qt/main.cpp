@@ -1,4 +1,3 @@
-
 /// MIT License
 #include <QDebug>
 #include <QDir>
