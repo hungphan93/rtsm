@@ -19,6 +19,11 @@ add_subdirectory(imgui)
 # Build the main executable
 add_executable(rtsm-imgui main.cpp)
 
+target_sources(rtsm-imgui
+    PRIVATE FILE_SET CXX_MODULES FILES
+    system_monitor_view_imgui.ixx
+)
+
 # Link ImGui and RTSM::Core (just like Qt!)
 target_link_libraries(rtsm-imgui PRIVATE
     imgui
