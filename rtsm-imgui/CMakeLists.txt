@@ -26,4 +26,4 @@ target_link_libraries(rtsm-imgui PRIVATE
 )
 
 install(TARGETS rtsm-imgui DESTINATION bin COMPONENT rtsm-imgui)
-install(DIRECTORY imgui/misc/fonts/ DESTINATION share/rtsm-imgui/fonts COMPONENT rtsm-imgui)
+install(DIRECTORY fonts/ DESTINATION share/rtsm-imgui/fonts COMPONENT rtsm-imgui)

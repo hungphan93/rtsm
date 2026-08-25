@@ -51,12 +51,12 @@ std::string get_font_path() {
         exe_dir = path.substr(0, path.find_last_of('/'));
     }
 
-    std::string bundled_path = exe_dir + "/../share/rtsm-imgui/fonts/Roboto-Medium.ttf";
-    std::string dev_path = exe_dir + "/../../../rtsm-imgui/imgui/misc/fonts/Roboto-Medium.ttf";
+    std::string bundled_path = exe_dir + "/../share/rtsm-imgui/fonts/Ubuntu-Bold.ttf";
+    std::string dev_path = exe_dir + "/../../../rtsm-imgui/fonts/Ubuntu-Bold.ttf";
     
     if (std::filesystem::exists(bundled_path)) return bundled_path;
     if (std::filesystem::exists(dev_path)) return dev_path;
-    return "rtsm-imgui/imgui/misc/fonts/Roboto-Medium.ttf"; // Fallback
+    return "rtsm-imgui/fonts/Ubuntu-Bold.ttf"; // Fallback
 }
 
 int main()
