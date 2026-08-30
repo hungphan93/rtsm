@@ -82,7 +82,7 @@ popd > /dev/null
 
 # ===== 3. Project Compilation =====
 mkdir -p "$BUILD_DIR"
-rm -rf "$APPDIR" "$BUILD_DIR/linux-gcc16-release"
+rm -rf "$APPDIR"
 pushd "$REPO_ROOT" > /dev/null
 
 # CMake Preset already injects PATH, LD_LIBRARY_PATH, and CMAKE_PREFIX_PATH internally!
@@ -119,8 +119,8 @@ popd > /dev/null
 echo "📦 Step 1: Bundling dependencies..."
 
 # Inject Qt and GCC paths so linuxdeploy resolves the correct dependencies
-QT_VERSION="6.11.0"
-GCC_VERSION="16.1.0-native"
+QT_VERSION="6.11.2"
+GCC_VERSION="16.2.0-native"
 export PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/bin:/opt/gcc/$GCC_VERSION/bin:$TOOLS_DIR:$PATH"
 export LD_LIBRARY_PATH="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR/lib:/opt/gcc/$GCC_VERSION/lib64:${LD_LIBRARY_PATH:-}"
 

@@ -8,14 +8,14 @@
     {
       "name": "gcc16-base",
       "hidden": true,
-      "description": "Base configuration containing customized GCC 16.1.0 path environment details",
+      "description": "Base configuration containing customized GCC 16.2.0 path environment details",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "environment": {
-        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/16.1.0-native/bin:$penv{PATH}",
-        "LD_LIBRARY_PATH": "/opt/gcc/16.1.0-native/lib64:$penv{LD_LIBRARY_PATH}",
-        "CC": "/opt/gcc/16.1.0-native/bin/gcc",
-        "CXX": "/opt/gcc/16.1.0-native/bin/g++",
+        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/16.2.0-native/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/opt/gcc/16.2.0-native/lib64:$penv{LD_LIBRARY_PATH}",
+        "CC": "/opt/gcc/16.2.0-native/bin/gcc",
+        "CXX": "/opt/gcc/16.2.0-native/bin/g++",
         "CXXFLAGS": "-Wall -Wextra"
       },
       "cacheVariables": {
@@ -24,15 +24,15 @@
         "CMAKE_CXX_EXTENSIONS": "OFF",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_SCAN_FOR_MODULES": "ON",
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.0/gcc_64",
-        "CMAKE_EXE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64",
-        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64",
-        "CMAKE_MODULE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.1.0-native/lib64"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.2/gcc_64",
+        "CMAKE_EXE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.2.0-native/lib64",
+        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.2.0-native/lib64",
+        "CMAKE_MODULE_LINKER_FLAGS": "-Wl,-rpath=/opt/gcc/16.2.0-native/lib64"
       }
     },
     {
       "name": "linux-gcc16-debug",
-      "displayName": "GCC 16.1.0 (Debug Mode)",
+      "displayName": "GCC 16.2.0 (Debug Mode)",
       "description": "Configured for step-by-step code source debugging",
       "inherits": "gcc16-base",
       "cacheVariables": {
@@ -41,12 +41,12 @@
     },
     {
       "name": "linux-gcc16-release",
-      "displayName": "GCC 16.1.0 (Release Mode)",
+      "displayName": "GCC 16.2.0 (Release Mode)",
       "description": "Configured for optimal high-speed release software compilation",
       "inherits": "gcc16-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_STRIP": "/opt/gcc/16.1.0-native/bin/strip",
+        "CMAKE_STRIP": "/opt/gcc/16.2.0-native/bin/strip",
         "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=x86-64-v3"
       }
     }

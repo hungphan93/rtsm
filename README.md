@@ -12,9 +12,9 @@ Real-time **CPU**, **RAM**, **GPU**, **Disk**, **Network** with per-component sa
 
 | Component | Version | Path |
 |---|---|---|
-| GCC       | ≥ 16.1.0 | `/opt/gcc/16.1.0-native` |
+| GCC       | ≥ 16.2.0 | `/opt/gcc/16.2.0-native` |
 | CMake     | ≥ 4.3.0 | `/opt/cmake/cmake-4.3.0` |
-| Qt        | 6.11.0  | `~/Qt/6.11.0/gcc_64` |
+| Qt        | 6.11.2  | `~/Qt/6.11.2/gcc_64` |
 | Generator | Ninja   | — |
 | Standard  | C++26 + Modules | — |
 
@@ -24,7 +24,7 @@ System packages (Debian/Ubuntu):
 sudo apt install -y ninja-build git wget dmidecode libx11-dev
 ```
 
-> Different install paths? Edit [`CMakePresets.json`](CMakePresets.json) and [`appimage_build.sh`](appimage_build.sh).
+> Different install paths? Edit [`CMakePresets.json`](CMakePresets.json) and [`appimage_build_ubuntu.sh`](appimage_build_ubuntu.sh).
 
 ---
 
@@ -34,21 +34,35 @@ sudo apt install -y ninja-build git wget dmidecode libx11-dev
 ```bash
 git clone https://gitlab.com/hp210693/rtsm.git
 cd rtsm
-chmod +x appimage_build.sh
-./appimage_build.sh
+chmod +x appimage_build_ubuntu.sh
+./appimage_build_ubuntu.sh qt
 ```
 
 ### CLI AppImage
 ```bash
-chmod +x appimage_build_cli.sh
-./appimage_build_cli.sh
+chmod +x appimage_build_ubuntu.sh
+./appimage_build_ubuntu.sh cli
+```
+
+### Dear Imgui AppImage
+```bash
+chmod +x appimage_build_ubuntu.sh
+./appimage_build_ubuntu.sh imgui
+```
+
+### WebAssembly (WASM) Build
+```bash
+chmod +x appimage_build_ubuntu.sh
+./appimage_build_ubuntu.sh wasm
 ```
 
 The scripts download pinned `linuxdeploy` / `appimagetool` (SHA256-verified), configure with preset `linux-gcc16-release`, build, and package.
 
-**Supported architectures:** `x86_64` (ARM `aarch64` planned).
+**Supported architectures:** `x86_64` (ARM `aarch64` planned), `wasm`.
 
-**Output:** `output_appimage/RTSM-<arch>-<git-tag>.AppImage`
+**Supported targets:** `QT` `CLI` `ImGui` `WASM`.
+
+**Output:** `output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage` (for AppImage) or `output_appimage/` (for WebAssembly)
 
 ### Manual build
 
@@ -60,6 +74,7 @@ cmake --build --preset build-release -j"$(nproc)"
 Binaries: 
 - Qt GUI: `build/linux-gcc16-release/rtsm-qt/apprtsm`
 - CLI: `build/linux-gcc16-release/rtsm-cli/rtsm-cli`
+- ImGui: `build/linux-gcc16-release/rtsm-imgui/rtsm-imgui`
 
 ---
 
@@ -83,8 +98,8 @@ sudo chmod 0440 /etc/sudoers.d/dmidecode
 **3. Launch:**
 
 ```bash
-chmod +x output_appimage/RTSM-<arch>-<git-tag>.AppImage
-./output_appimage/RTSM-<arch>-<git-tag>.AppImage
+chmod +x output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage
+./output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage
 ```
 
 ---
@@ -104,6 +119,7 @@ chmod +x output_appimage/RTSM-<arch>-<git-tag>.AppImage
 rtsm-core/    Core logic (Entity, UseCase, Adapter, Presenter, Scheduler)
 rtsm-qt/      Qt6 QML frontend + bindings
 rtsm-cli/     Command-line interface
+rtsm-imgui/   Dear ImGui frontend
 ```
 
 Dependencies flow inward: **UI → Presenter → UseCase → Entity**. Adapters implement UseCase ports.
@@ -114,7 +130,7 @@ Dependencies flow inward: **UI → Presenter → UseCase → Entity**. Adapters 
 
 - **CMake/GCC not found** — fix `PATH` and `CC`/`CXX` in [`CMakePresets.json`](CMakePresets.json).
 - **Qt not found** — fix `CMAKE_PREFIX_PATH` in [`CMakePresets.json`](CMakePresets.json).
-- **AppImage hash mismatch** — delete `builder_appimage/` to re-download, or update hashes in [`appimage_build.sh`](appimage_build.sh).
+- **AppImage hash mismatch** — delete `builder_appimage/` to re-download, or update hashes in [`appimage_build_ubuntu.sh`](appimage_build_ubuntu.sh).
 - **GPU/firmware info missing** — install `dmidecode` and run `rtsm_install_ubuntu.sh` for sudoers.
 
 ---
