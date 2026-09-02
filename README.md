@@ -24,11 +24,13 @@ System packages (Debian/Ubuntu):
 sudo apt install -y ninja-build git wget dmidecode libx11-dev
 ```
 
-> Different install paths? Edit [`CMakePresets.json`](CMakePresets.json) and [`appimage_build_ubuntu.sh`](appimage_build_ubuntu.sh).
+> Different install paths? Export them in your environment, create a `CMakeUserPresets.json`, or edit [`appimage_build_ubuntu.sh`](appimage_build_ubuntu.sh).
 
 ---
 
-## Build a Release AppImage
+## Build & Package (AppImage / WebAssembly)
+
+The `appimage_build_ubuntu.sh` script automatically compiles the source code and packages it into a standalone AppImage (or WebAssembly files).
 
 ### Qt GUI AppImage
 ```bash
@@ -56,25 +58,34 @@ chmod +x appimage_build_ubuntu.sh
 ./appimage_build_ubuntu.sh wasm
 ```
 
-The scripts download pinned `linuxdeploy` / `appimagetool` (SHA256-verified), configure with preset `linux-gcc16-release`, build, and package.
+The scripts download pinned `linuxdeploy` / `appimagetool`, configure with preset `linux-release` (or `linux-gcc16-release` if you have user presets), build, and package.
 
 **Supported architectures:** `x86_64` (ARM `aarch64` planned), `wasm`.
 
 **Supported targets:** `QT` `CLI` `ImGui` `WASM`.
 
-**Output:** `output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage` (for AppImage) or `output_appimage/` (for WebAssembly)
+**Minimum System Requirement (AppImage):** `glibc >= 2.35` (e.g., Ubuntu 22.04 or newer).
 
-### Manual build
+**Output:** `output_appimage/RTSM-<TARGET>-<arch>-<git-tag>.AppImage` (for AppImage) or `output_appimage/` (for WebAssembly)
+
+## Manual Build (Binaries Only)
+
+If you only want to compile the raw executables without packaging them into an AppImage, you can use CMake directly:
 
 ```bash
-cmake --preset linux-gcc16-release        # or linux-gcc16-debug
+# Release build
+cmake --preset linux-release
 cmake --build --preset build-release -j"$(nproc)"
+
+# Debug build
+cmake --preset linux-debug
+cmake --build --preset build-debug -j"$(nproc)"
 ```
 
 Binaries: 
-- Qt GUI: `build/linux-gcc16-release/rtsm-qt/apprtsm`
-- CLI: `build/linux-gcc16-release/rtsm-cli/rtsm-cli`
-- ImGui: `build/linux-gcc16-release/rtsm-imgui/rtsm-imgui`
+- Qt GUI: `build/linux-release/rtsm-qt/apprtsm`
+- CLI: `build/linux-release/rtsm-cli/rtsm-cli`
+- ImGui: `build/linux-release/rtsm-imgui/rtsm-imgui`
 
 ---
 
@@ -89,8 +100,8 @@ sudo apt install -y dmidecode
 **2. Grant passwordless `dmidecode`** so RTSM can read firmware info without prompting:
 
 ```bash
-sudo sh -c 'echo "'"$USER"' ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode, /usr/bin/dmidecode" > /etc/sudoers.d/dmidecode'
-sudo chmod 0440 /etc/sudoers.d/dmidecode
+echo "$USER ALL=(ALL) NOPASSWD: /usr/sbin/dmidecode" | sudo tee /etc/sudoers.d/90-dmidecode-$USER
+sudo chmod 440 /etc/sudoers.d/90-dmidecode-$USER
 ```
 
 > Skip this step if you ran `rtsm_install_ubuntu.sh` — it configures sudoers automatically.
@@ -98,8 +109,8 @@ sudo chmod 0440 /etc/sudoers.d/dmidecode
 **3. Launch:**
 
 ```bash
-chmod +x output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage
-./output_appimage/RTSM-<target>-<arch>-<git-tag>.AppImage
+chmod +x output_appimage/RTSM-<TARGET>-<arch>-<git-tag>.AppImage
+./output_appimage/RTSM-<TARGET>-<arch>-<git-tag>.AppImage
 ```
 
 ---
@@ -128,9 +139,9 @@ Dependencies flow inward: **UI → Presenter → UseCase → Entity**. Adapters 
 
 ## Troubleshooting
 
-- **CMake/GCC not found** — fix `PATH` and `CC`/`CXX` in [`CMakePresets.json`](CMakePresets.json).
-- **Qt not found** — fix `CMAKE_PREFIX_PATH` in [`CMakePresets.json`](CMakePresets.json).
-- **AppImage hash mismatch** — delete `builder_appimage/` to re-download, or update hashes in [`appimage_build_ubuntu.sh`](appimage_build_ubuntu.sh).
+- **CMake/GCC not found** — export `CC`/`CXX` in your environment or define them in `CMakeUserPresets.json`.
+- **Qt not found** — export `CMAKE_PREFIX_PATH` in your environment or define it in `CMakeUserPresets.json`.
+- **AppImage download fails** — delete `builder_appimage/` to re-download.
 - **GPU/firmware info missing** — install `dmidecode` and run `rtsm_install_ubuntu.sh` for sudoers.
 
 ---
