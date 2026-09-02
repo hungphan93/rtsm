@@ -1,0 +1,46 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25 },
+  "configurePresets": [
+    {
+      "name": "user-base",
+      "hidden": true,
+      "environment": {
+        "PATH": "/opt/cmake/cmake-4.3.0/bin:/opt/gcc/16.2.0-native/bin:$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/opt/gcc/16.2.0-native/bin/gcc",
+        "CMAKE_CXX_COMPILER": "/opt/gcc/16.2.0-native/bin/g++",
+        "CMAKE_PREFIX_PATH": "$penv{HOME}/Qt/6.11.2/gcc_64",
+        "CMAKE_BUILD_RPATH": "/opt/gcc/16.2.0-native/lib64;$penv{HOME}/Qt/6.11.2/gcc_64/lib",
+        "CMAKE_EXE_LINKER_FLAGS": "-Wl,--disable-new-dtags"
+      }
+    },
+    {
+      "name": "linux-gcc16-release",
+      "displayName": "Local GCC 16 Release",
+      "inherits": ["linux-release", "user-base"],
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=x86-64-v3"
+      }
+    },
+    {
+      "name": "linux-gcc16-debug",
+      "displayName": "Local GCC 16 Debug",
+      "inherits": ["linux-debug", "user-base"],
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-gcc16-release",
+      "configurePreset": "linux-gcc16-release"
+    },
+    {
+      "name": "build-gcc16-debug",
+      "configurePreset": "linux-gcc16-debug"
+    }
+  ]
+}
