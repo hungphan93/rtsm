@@ -92,18 +92,18 @@ entity::cpu system_info_reader_linux::read_cpu() const
 		result.frequency_mhz = *v;
 
 	/// Using Cache Path dynamically to read CPU temp from k10temp (not loop all folder)
-	if (auto v = util::parse::parse_number<float>(
-		    util::io::read_line(*hwmon_cpu_path_ / "temp1_input"));
-	    v) {
-		result.temperature_c = *v / 1000.f;
-	}
+		if (auto v = util::parse::parse_number<float>(
+			    util::io::read_line(*hwmon_cpu_path_ / "temp1_input"));
+		    v) {
+			result.temperature_c = *v / 1000.f;
+		}
 
-	/// Using Cache Path dynamically to read power from amdgpu if integrated APU
-	if (auto v = util::parse::parse_number<float>(
-		    util::io::read_line(*hwmon_gpu_path_ / "power1_input"));
-	    v) {
-		result.power_uw = *v;
-	}
+		/// Using Cache Path dynamically to read power from amdgpu if integrated APU
+		if (auto v = util::parse::parse_number<float>(
+			    util::io::read_line(*hwmon_gpu_path_ / "power1_input"));
+		    v) {
+			result.power_uw = *v;
+		}
 
 	return result;
 }
@@ -303,21 +303,24 @@ entity::gpu system_info_reader_linux::read_gpu() const
 	entity::gpu result{};
 	fs::path hwmon_path;
 
-	if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
+	// 1. Hardware Discovery
+	if (nvml::load()) {
+		result.vendor = static_cast<std::uint16_t>(gpu_vendor::NVIDIA);
+	} else if (auto r = detail::find_hwmon_by_name("amdgpu"); r) {
 		hwmon_path = *r;
+		const auto vendor_str = util::io::read_line(hwmon_path / "device/vendor");
+		const auto device_str = util::io::read_line(hwmon_path / "device/device");
+
+		if (auto v = util::parse::to_uint<std::uint16_t>(vendor_str, 16); v) {
+			result.vendor = *v;
+		}
+
+		if (auto v = util::parse::to_uint<std::uint16_t>(device_str, 16); v) {
+			result.device = *v;
+		}
 	}
 
-	const auto vendor_str = util::io::read_line(hwmon_path / "device/vendor");
-	const auto device_str = util::io::read_line(hwmon_path / "device/device");
-
-	if (auto r = util::parse::to_uint<std::uint16_t>(vendor_str, 16); r) {
-		result.vendor = *r;
-	}
-
-	if (auto r = util::parse::to_uint<std::uint16_t>(device_str, 16); r) {
-		result.device = *r;
-	}
-
+	// 2. Identify Vendor Name Fallbacks
 	const auto vendor = static_cast<gpu_vendor>(result.vendor);
 
 	if (vendor == gpu_vendor::NVIDIA) {
@@ -330,6 +333,7 @@ entity::gpu system_info_reader_linux::read_gpu() const
 		result.name = "Unknown GPU";
 	}
 
+	// 3. Dispatch Reading Telemetry
 	classify_gpu(hwmon_path, result);
 
 	return result;

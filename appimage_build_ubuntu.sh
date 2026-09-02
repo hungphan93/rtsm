@@ -30,7 +30,7 @@ QT_DIR="$HOME/Qt/$QT_VERSION/$QT_HOST_DIR"
 GCC_LIB_DIR="/opt/gcc/$GCC_VERSION/lib64"
 CMAKE_BIN="${CMAKE_BIN:-$(command -v cmake || echo "/opt/cmake/cmake-4.3.0/bin/cmake")}"
 
-# Tự động map Preset: Ưu tiên máy local, fallback cho CI/CD
+# Auto map Preset: Prefer local machine, fallback for CI/CD
 if [ -f "$REPO_ROOT/CMakeUserPresets.json" ]; then
     CONFIGURE_PRESET="linux-gcc16-release"
     BUILD_PRESET="build-gcc16-release"
@@ -143,7 +143,7 @@ fi
 
 "$TOOLS_DIR/linuxdeploy-${ARCH}.AppImage" "${LINUXDEPLOY_ARGS[@]}"
 
-# Bundle runtime GCC 16 vào cả 2 thư mục lib của AppDir
+# Bundle GCC 16 runtime into both lib directories of AppDir
 if [ -d "$GCC_LIB_DIR" ]; then
     echo "📂 Force-bundling GCC 16 runtime libraries..."
     mkdir -p "$APPDIR/usr/lib" "$APPDIR/usr/lib/x86_64-linux-gnu"
@@ -153,7 +153,7 @@ if [ -d "$GCC_LIB_DIR" ]; then
     done
 fi
 
-# Tạo isolated AppRun script để đè bẹp LD_LIBRARY_PATH từ máy host
+# Create isolated AppRun script to override LD_LIBRARY_PATH from the host machine
 echo "⚙️ Writing standalone AppRun wrapper..."
 rm -f "$APPDIR/AppRun"
 cat << EOF > "$APPDIR/AppRun"
@@ -168,7 +168,7 @@ exec "\$HERE/usr/bin/$APP_EXEC" "\$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# Tạo AppImage hoàn chỉnh
+# Generate final AppImage
 echo "📦 Generating final AppImage..."
 mkdir -p "$OUTPUT_DIR"
 FINAL_FILE="$OUTPUT_DIR/RTSM-${APP_SUFFIX}-${ARCH}-${GIT_TAG}.AppImage"
